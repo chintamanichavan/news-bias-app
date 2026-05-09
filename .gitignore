@@ -1,0 +1,41 @@
+# Node
+**/node_modules/
+**/.next/
+**/out/
+**/dist/
+**/build/
+*.tsbuildinfo
+.pnpm-store/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.python-version
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ML data + model artifacts (don't bloat the repo)
+ml-service/data/
+*.pkl
+*.joblib
+*.bin
+*.onnx
+models/
+checkpoints/
+
+# Logs
+*.log
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Env
+.env
+.env.*
+!.env.example
