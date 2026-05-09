@@ -1,0 +1,18 @@
+{
+  "name": "news-bias-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently --names \"ML,WEB\" --prefix-colors \"cyan,magenta\" \"npm run dev:ml\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:ml": "cd ml-service && python3 -m uvicorn main:app --reload --port 8000"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
