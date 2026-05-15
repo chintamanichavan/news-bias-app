@@ -18,8 +18,9 @@ venv/
 .ruff_cache/
 .mypy_cache/
 
-# ML data + model artifacts (don't bloat the repo)
-ml-service/data/
+# ML data + model artifacts (don't bloat the repo) — but keep curated sources list
+ml-service/data/*
+!ml-service/data/sources.json
 *.pkl
 *.joblib
 *.bin
