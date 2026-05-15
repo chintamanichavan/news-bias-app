@@ -20,7 +20,8 @@ interface Stats {
 
 async function getStats(): Promise<Stats | null> {
   try {
-    const res = await fetch('http://localhost:8000/stats', { cache: 'no-store' })
+    const base = process.env.ML_SERVICE_URL ?? 'http://localhost:8421'
+    const res = await fetch(`${base}/stats`, { cache: 'no-store' })
     if (!res.ok) return null
     return res.json()
   } catch {

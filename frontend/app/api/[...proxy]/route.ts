@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ML_SERVICE = 'http://localhost:8000'
+const ML_SERVICE = process.env.ML_SERVICE_URL ?? 'http://localhost:8421'
 
 async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname.replace('/api', '')
