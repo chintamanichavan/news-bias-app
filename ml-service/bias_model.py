@@ -106,6 +106,7 @@ class BiasModel:
             x = self.extractor.extract(title, body, source_score).reshape(1, -1)
             probs = self.model.predict_proba(x)[0]
             confidence = float(probs.max())
-            bias_score = float(np.dot(probs, CLASS_SCORES))
+            class_values = [CLASS_SCORES[c] for c in self.model.classes_]
+            bias_score = float(np.dot(probs, class_values))
 
         return round(bias_score, 2), round(confidence, 3)
