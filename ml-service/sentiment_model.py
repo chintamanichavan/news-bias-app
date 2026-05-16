@@ -147,6 +147,14 @@ class SentimentModel:
         y_pol = np.asarray(polarity_labels)
         y_int = np.asarray(intensity_labels)
 
+        # LogisticRegression requires >=2 classes. With the bootstrap labeler,
+        # a homogeneous corpus can produce all-same-class labels — refuse to
+        # train rather than crashing; the caller leaves polarity_clf=None and
+        # sentiment scoring stays disabled until feedback adds class variance.
+        if len(set(y_pol)) < 2 or len(set(y_int)) < 2:
+            print(f"[sentiment] skipping train — polarity classes={set(y_pol)}, intensity classes={set(y_int)}")
+            return None, None
+
         polarity_clf = LogisticRegression(
             max_iter=1000, C=1.0, class_weight="balanced", solver="lbfgs"
         )

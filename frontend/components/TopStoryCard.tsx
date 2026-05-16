@@ -28,6 +28,7 @@ export interface TopStory {
   title: string
   url: string
   body: string | null
+  summary?: string | null
   image_url: string | null
   published: string | null
   source: Source
@@ -40,10 +41,21 @@ export interface TopStory {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
+  news:        'bg-teal-100 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300',
+  opinion:     'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
   finance:     'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300',
   geopolitics: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300',
   science:     'bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-300',
   general:     'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+}
+
+const CATEGORY_ACCENT: Record<string, string> = {
+  news:        'border-l-teal-500',
+  opinion:     'border-l-amber-500',
+  finance:     'border-l-emerald-500',
+  geopolitics: 'border-l-indigo-500',
+  science:     'border-l-violet-500',
+  general:     'border-l-gray-400',
 }
 
 function formatTime(iso: string | null) {
@@ -58,13 +70,27 @@ function formatTime(iso: string | null) {
 export default function TopStoryCard({ story, rank }: { story: TopStory; rank: number }) {
   const category = story.source.category ?? 'general'
   const categoryClass = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.general
+  const accentClass = CATEGORY_ACCENT[category] ?? CATEGORY_ACCENT.general
   const cov = story.coverage
   const sig = story.market_signal
-  const snippet = (story.body || '').slice(0, 220)
+  // Prefer the curated summary; fall back to a trimmed body slice. Drop the
+  // whole snippet line if it would just repeat the headline (FT-style stubs
+  // where RSS body == title).
+  const candidate = (story.summary && story.summary.trim().length > 10)
+    ? story.summary
+    : (story.body || '').slice(0, 220)
+  const _norm = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim()
+  const _titleNorm = _norm(story.title)
+  const _candNorm = _norm(candidate)
+  const snippetAddsInfo =
+    candidate &&
+    _candNorm !== _titleNorm &&
+    !(_candNorm.startsWith(_titleNorm) && _candNorm.length < _titleNorm.length + 30)
+  const snippet = snippetAddsInfo ? candidate : ''
 
   return (
     <Link href={`/article/${story.id}`} className="block group">
-      <Card className="overflow-hidden h-full hover:shadow-lg transition-all duration-200 border border-border/60 hover:border-border">
+      <Card className={`overflow-hidden h-full hover:shadow-lg transition-all duration-200 border border-border/60 hover:border-border border-l-4 ${accentClass}`}>
         <div className="flex gap-4 p-5">
           {/* Rank */}
           <div className="shrink-0 hidden md:block">
@@ -106,8 +132,8 @@ export default function TopStoryCard({ story, rank }: { story: TopStory; rank: n
 
             {/* Snippet */}
             {snippet && (
-              <p className="text-sm text-muted-foreground line-clamp-2 leading-snug">
-                {snippet}{snippet.length >= 220 ? '…' : ''}
+              <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                {snippet}
               </p>
             )}
 

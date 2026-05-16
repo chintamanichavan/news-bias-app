@@ -110,6 +110,8 @@ def _migrate_articles_sentiment_columns(conn):
         ("intensity_score", "ALTER TABLE articles ADD COLUMN intensity_score REAL"),
         ("emotion_breakdown", "ALTER TABLE articles ADD COLUMN emotion_breakdown TEXT"),
         ("sentiment_model_version", "ALTER TABLE articles ADD COLUMN sentiment_model_version INTEGER"),
+        ("summary", "ALTER TABLE articles ADD COLUMN summary TEXT"),
+        ("scrape_attempted_at", "ALTER TABLE articles ADD COLUMN scrape_attempted_at TIMESTAMP"),
     ]:
         if col not in cols:
             try:
@@ -173,23 +175,74 @@ def update_article_sentiment(conn, article_id: str, sentiment_score: float,
     """, (sentiment_score, intensity_score, json.dumps(emotion_breakdown), version, article_id))
 
 
+def update_article_summary(conn, article_id: str, summary: str):
+    conn.execute("UPDATE articles SET summary=? WHERE id=?", (summary, article_id))
+
+
+def replace_article_body(conn, article_id: str, body: str):
+    """Overwrite body with scraped article text; also clear summary so it
+    regenerates from the longer source."""
+    conn.execute(
+        "UPDATE articles SET body=?, summary=NULL, scrape_attempted_at=CURRENT_TIMESTAMP WHERE id=?",
+        (body, article_id),
+    )
+
+
+def mark_scrape_attempted(conn, article_id: str):
+    conn.execute(
+        "UPDATE articles SET scrape_attempted_at=CURRENT_TIMESTAMP WHERE id=?",
+        (article_id,),
+    )
+
+
 def get_articles(conn, page: int, per_page: int, source_id: str | None,
-                 min_score: float | None, max_score: float | None):
+                 min_score: float | None, max_score: float | None,
+                 source_ids: list[str] | None = None,
+                 lookback_hours: int | None = None,
+                 per_source_cap: int | None = None):
     where = ["1=1"]
     params: list = []
     if source_id:
         where.append("source_id = ?")
         params.append(source_id)
+    elif source_ids:
+        placeholders = ",".join("?" * len(source_ids))
+        where.append(f"source_id IN ({placeholders})")
+        params.extend(source_ids)
     if min_score is not None:
         where.append("(bias_score IS NULL OR bias_score >= ?)")
         params.append(min_score)
     if max_score is not None:
         where.append("(bias_score IS NULL OR bias_score <= ?)")
         params.append(max_score)
+    if lookback_hours is not None:
+        where.append(f"published > datetime('now', '-{int(lookback_hours)} hours')")
 
-    sql = f"SELECT * FROM articles WHERE {' AND '.join(where)} ORDER BY published DESC NULLS LAST"
-    total = conn.execute(f"SELECT COUNT(*) FROM articles WHERE {' AND '.join(where)}", params).fetchone()[0]
-    rows = conn.execute(sql + " LIMIT ? OFFSET ?", params + [per_page, (page - 1) * per_page]).fetchall()
+    where_sql = " AND ".join(where)
+
+    if per_source_cap:
+        # Cap each source to the N most recent matching articles, then page across
+        # the capped set. Keeps high-volume outlets (NYT, Guardian) from drowning
+        # out lower-volume but equally relevant sources (FT, Foreign Affairs).
+        base = f"""
+            SELECT *
+              FROM (
+                SELECT *, ROW_NUMBER() OVER (
+                    PARTITION BY source_id
+                    ORDER BY published DESC NULLS LAST
+                ) AS _rn
+                  FROM articles
+                 WHERE {where_sql}
+              )
+             WHERE _rn <= {int(per_source_cap)}
+             ORDER BY published DESC NULLS LAST
+        """
+        total = conn.execute(f"SELECT COUNT(*) FROM ({base})", params).fetchone()[0]
+        rows = conn.execute(base + " LIMIT ? OFFSET ?", params + [per_page, (page - 1) * per_page]).fetchall()
+    else:
+        sql = f"SELECT * FROM articles WHERE {where_sql} ORDER BY published DESC NULLS LAST"
+        total = conn.execute(f"SELECT COUNT(*) FROM articles WHERE {where_sql}", params).fetchone()[0]
+        rows = conn.execute(sql + " LIMIT ? OFFSET ?", params + [per_page, (page - 1) * per_page]).fetchall()
     return total, [dict(r) for r in rows]
 
 
@@ -378,10 +431,18 @@ def get_story_groups(conn):
 # ── Top stories ──────────────────────────────────────────────────────────────
 
 PRESTIGE_SOURCES = {
-    "foreign_affairs", "foreign_policy", "cfr", "war_on_rocks",
-    "nature", "science_mag", "quanta", "scientific_american",
-    "calculated_risk", "marginal_revolution", "ritholtz",
-    "ft_markets", "ft_central_banks", "wsj_markets",
+    # Reporting-led outlets only — opinion/commentary blogs (Marginal Revolution,
+    # Ritholtz, Calculated Risk) belong in /feed, not the homepage digest.
+    "foreign_affairs", "foreign_policy", "war_on_rocks",
+    "nature", "science_mag",
+}
+
+# Default /feed view shows only these. FT/WSJ dropped (paywalled stubs); CFR
+# and Scientific American dropped (dead RSS feeds — 404 and SSL handshake fail).
+ESSENTIAL_SOURCES = {
+    "marginal_revolution", "ritholtz", "liberty_street", "econbrowser",
+    "foreign_affairs", "foreign_policy", "war_on_rocks",
+    "nature", "science_mag", "quanta",
 }
 
 
@@ -440,7 +501,7 @@ def get_top_stories(conn, limit: int = 12, lookback_hours: int = 36):
         else:                recency = 0.3
 
         coverage_score = size * 3.0
-        prestige = 4.0 if size == 1 and a["source_id"] in PRESTIGE_SOURCES else 0.0
+        prestige = 2.0 if size == 1 and a["source_id"] in PRESTIGE_SOURCES else 0.0
         intensity_boost = (a.get("intensity_score") or 0) * 0.6
 
         score = coverage_score + recency + prestige + intensity_boost

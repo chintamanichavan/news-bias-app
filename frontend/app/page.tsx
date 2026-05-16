@@ -14,7 +14,7 @@ export default function HomePage() {
   const fetchTop = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/top?limit=12')
+      const res = await fetch('/api/top?limit=7')
       if (res.ok) {
         const data = await res.json()
         setStories(data.stories ?? [])
@@ -50,7 +50,7 @@ export default function HomePage() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          The {stories.length || 12} most-covered stories of the last 36 hours.
+          The {stories.length || 7} most-covered stories of the last 36 hours.
           {' '}<Link href="/feed" className="text-primary hover:underline">See all articles →</Link>
         </p>
       </div>

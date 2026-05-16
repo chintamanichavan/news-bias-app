@@ -24,7 +24,6 @@ const CATEGORY_META: Record<string, { label: string; color: string; emoji: strin
   finance:     { label: 'Finance',     color: '#16a34a', emoji: '📈' },
   geopolitics: { label: 'Geopolitics', color: '#4f46e5', emoji: '🌐' },
   science:     { label: 'Science',     color: '#7c3aed', emoji: '🔬' },
-  general:     { label: 'General',     color: '#6b7280', emoji: '📰' },
 }
 
 const TOPIC_LABEL: Record<string, string> = {
