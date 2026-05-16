@@ -82,7 +82,23 @@ export default async function ArticlePage({ params }: { params: { id: string } }
 
       <h1 className="text-2xl font-bold leading-snug mb-4">{article.title}</h1>
 
-      {/* Bias analysis */}
+      {/* RSS body — show whatever the feed gave us, no truncation */}
+      {article.body && (
+        <div className="text-sm leading-relaxed text-muted-foreground mb-6 whitespace-pre-line">
+          {article.body}
+        </div>
+      )}
+
+      <a
+        href={article.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline mb-8"
+      >
+        Read full article at {article.source.name} →
+      </a>
+
+      {/* Bias analysis — shown after the read so it doesn't prime the reader */}
       <div className="rounded-xl border border-border bg-muted/20 p-5 mb-4">
         <p className="text-sm font-semibold mb-3">Political bias</p>
         <BiasGauge score={biasScore} confidence={confidence} size="lg" />
@@ -104,22 +120,6 @@ export default async function ArticlePage({ params }: { params: { id: string } }
           emotionBreakdown={article.emotion_breakdown}
         />
       </div>
-
-      {/* Snippet */}
-      {article.body && (
-        <div className="text-sm leading-relaxed text-muted-foreground mb-6 line-clamp-6">
-          {article.body.slice(0, 800)}{article.body.length > 800 ? '…' : ''}
-        </div>
-      )}
-
-      <a
-        href={article.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline mb-8"
-      >
-        Read full article at {article.source.name} →
-      </a>
 
       <div>
         <p className="text-sm font-semibold mb-3">Help improve the model</p>

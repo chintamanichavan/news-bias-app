@@ -22,17 +22,33 @@ sentiment_model = SentimentModel()
 
 
 async def _background_startup():
-    await feed_manager.fetch_all_feeds(bias_model, sentiment_model)
-    await retrain.run_bootstrap(bias_model)
-    await retrain.run_sentiment_bootstrap(sentiment_model)
-    await feed_manager._score_unscored_feed(bias_model, sentiment_model)
-    asyncio.create_task(feed_manager.periodic_refresh(bias_model, sentiment_model))
-    # Prediction-market signals (Polymarket)
-    try:
-        await signal_manager.poll_polymarket()
-    except Exception as e:
-        print(f"[startup] initial signals poll failed: {e}")
-    asyncio.create_task(signal_manager.periodic_refresh())
+    # Signals (Polymarket) are independent of feeds + ML models — run in parallel
+    # so a hang or slow bootstrap in the feed pipeline doesn't starve the
+    # homepage signals section.
+    async def _signals_init():
+        try:
+            await signal_manager.poll_polymarket()
+        except Exception as e:
+            print(f"[startup] initial signals poll failed: {e}")
+        asyncio.create_task(signal_manager.periodic_refresh())
+
+    async def _feeds_and_models():
+        # Each step is isolated so a failure (e.g. sentiment bootstrap can't
+        # train on single-class data) doesn't stop later steps — particularly
+        # registering periodic_refresh, without which feeds stop refreshing.
+        async def _step(name: str, coro):
+            try:
+                await coro
+            except Exception as e:
+                print(f"[startup] {name} failed: {e!r}")
+
+        await _step("fetch_all_feeds", feed_manager.fetch_all_feeds(bias_model, sentiment_model))
+        await _step("bias_bootstrap", retrain.run_bootstrap(bias_model))
+        await _step("sentiment_bootstrap", retrain.run_sentiment_bootstrap(sentiment_model))
+        await _step("score_unscored_feed", feed_manager._score_unscored_feed(bias_model, sentiment_model))
+        asyncio.create_task(feed_manager.periodic_refresh(bias_model, sentiment_model))
+
+    await asyncio.gather(_signals_init(), _feeds_and_models())
 
 
 def _cleanup_orphaned_articles():
@@ -89,6 +105,8 @@ class FeedbackIn(BaseModel):
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _enrich(article: dict) -> dict:
+    # Strip internal columns that shouldn't leak to the API
+    article.pop("_rn", None)
     src = feed_manager.SOURCE_MAP.get(article["source_id"], {})
     article["source"] = {
         "id": article["source_id"],
@@ -158,42 +176,39 @@ def list_articles(
     category: Optional[str] = None,
     min_score: Optional[float] = Query(None, ge=-5, le=5),
     max_score: Optional[float] = Query(None, ge=-5, le=5),
+    lookback_hours: Optional[int] = Query(None, ge=1, le=24 * 30),
+    include_all: bool = False,
 ):
     conn = db.get_conn()
 
-    # Resolve category → list of source_ids, then push down as source_id filter set
+    # Default curation: aggressive by design — opt in to the firehose with
+    # include_all=true and lookback_hours unset.
+    #   - no category, no source picked: ESSENTIAL_SOURCES, 24h, 5/source.
+    #   - category picked: that category's sources, 24h, 5/source.
+    #   - specific source picked: all-time for that source, no cap (you asked for it).
     source_ids: list[str] | None = None
-    if category:
+    per_source_cap: int | None = None
+    if source_id:
+        pass  # honour explicit single-source view fully
+    elif category:
         source_ids = [s["id"] for s in feed_manager.SOURCES if s.get("category") == category]
-        if source_id:
-            source_ids = [s for s in source_ids if s == source_id] or [source_id]
+        if lookback_hours is None:
+            lookback_hours = 24
+        per_source_cap = 5
+    elif not include_all:
+        source_ids = sorted(db.ESSENTIAL_SOURCES)
+        if lookback_hours is None:
+            lookback_hours = 24
+        per_source_cap = 5
 
-    if source_ids and not source_id:
-        # Multiple-source filter — query manually
-        if not source_ids:
-            articles, total = [], 0
-        else:
-            placeholders = ",".join("?" * len(source_ids))
-            params = list(source_ids)
-            base_where = f"source_id IN ({placeholders})"
-            extra_params: list = []
-            if min_score is not None:
-                base_where += " AND (bias_score IS NULL OR bias_score >= ?)"
-                extra_params.append(min_score)
-            if max_score is not None:
-                base_where += " AND (bias_score IS NULL OR bias_score <= ?)"
-                extra_params.append(max_score)
-            total = conn.execute(
-                f"SELECT COUNT(*) FROM articles WHERE {base_where}",
-                params + extra_params,
-            ).fetchone()[0]
-            rows = conn.execute(
-                f"SELECT * FROM articles WHERE {base_where} ORDER BY published DESC NULLS LAST LIMIT ? OFFSET ?",
-                params + extra_params + [per_page, (page - 1) * per_page],
-            ).fetchall()
-            articles = [dict(r) for r in rows]
-    else:
-        total, articles = db.get_articles(conn, page, per_page, source_id, min_score, max_score)
+    total, articles = db.get_articles(
+        conn, page, per_page,
+        source_id=source_id,
+        min_score=min_score, max_score=max_score,
+        source_ids=source_ids,
+        lookback_hours=lookback_hours,
+        per_source_cap=per_source_cap,
+    )
 
     conn.close()
     return {
@@ -307,9 +322,12 @@ def _cross_ref_signal(title: str, signals: list[dict]) -> dict | None:
 @app.get("/top")
 def top_stories(limit: int = Query(12, ge=1, le=30)):
     conn = db.get_conn()
-    stories = db.get_top_stories(conn, limit=limit, lookback_hours=36)
+    # Over-fetch so post-filter still hits the requested limit
+    stories = db.get_top_stories(conn, limit=limit * 3, lookback_hours=36)
     signals = db.get_signals(conn, sort="movers", limit=80)
     conn.close()
+
+    stories = [s for s in stories if not feed_manager._is_low_signal_title(s.get("title") or "")][:limit]
 
     out = []
     for s in stories:

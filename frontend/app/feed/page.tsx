@@ -33,16 +33,27 @@ interface Filters {
   sourceId: string | null
   minScore: number
   maxScore: number
+  lookbackHours: number | null   // null = use server default (24h when essential, unlimited when all)
+  includeAll: boolean            // true = include tabloid/partisan/opinion sources
 }
 
-const DEFAULT_FILTERS: Filters = { category: null, sourceId: null, minScore: -5, maxScore: 5 }
+const DEFAULT_FILTERS: Filters = {
+  category: null, sourceId: null, minScore: -5, maxScore: 5,
+  lookbackHours: 24, includeAll: false,
+}
 const PER_PAGE = 24
+
+const WINDOW_OPTIONS: { label: string; hours: number | null }[] = [
+  { label: '24h', hours: 24 },
+  { label: '3d',  hours: 72 },
+  { label: '7d',  hours: 168 },
+  { label: 'All', hours: null },
+]
 
 const CATEGORY_HEADING: Record<string, string> = {
   finance:     '📈 Finance',
   geopolitics: '🌐 Geopolitics',
   science:     '🔬 Science',
-  general:     '📰 General',
 }
 
 export default function HomePage() {
@@ -61,6 +72,11 @@ export default function HomePage() {
     if (f.category) params.set('category', f.category)
     if (f.minScore > -5) params.set('min_score', String(f.minScore))
     if (f.maxScore < 5) params.set('max_score', String(f.maxScore))
+    // Picking a specific source means "show me everything from them" — skip the
+    // lookback window in that case so slow-publishing sources (e.g. Liberty
+    // Street, 0 posts in the last 24h) don't look empty when clicked.
+    if (f.lookbackHours !== null && !f.sourceId) params.set('lookback_hours', String(f.lookbackHours))
+    if (f.includeAll) params.set('include_all', 'true')
 
     try {
       const res = await fetch(`/api/articles?${params}`)
@@ -102,7 +118,7 @@ export default function HomePage() {
 
   // Heading reflects what's currently filtered
   let heading = 'Your Feed'
-  let subheading = 'Finance and science, curated.'
+  let subheading = 'High-signal sources, last 24h.'
   if (filters.category) {
     heading = CATEGORY_HEADING[filters.category] ?? filters.category
     subheading = `${total} articles in this category`
@@ -111,7 +127,13 @@ export default function HomePage() {
     heading = src?.name ?? 'Source'
     subheading = `${total} articles from ${src?.name ?? 'this source'}`
   } else {
-    subheading = `${total} articles · ML-rated for tone and bias`
+    const windowLabel = filters.lookbackHours === null ? 'all time'
+      : filters.lookbackHours === 24 ? 'last 24h'
+      : filters.lookbackHours === 72 ? 'last 3d'
+      : filters.lookbackHours === 168 ? 'last 7d'
+      : `last ${filters.lookbackHours}h`
+    const scope = filters.includeAll ? 'all sources' : 'essential sources'
+    subheading = `${total} articles · ${scope} · ${windowLabel}`
   }
 
   return (
@@ -122,7 +144,7 @@ export default function HomePage() {
         <div className="flex-1 min-w-0">
           <InfoStrip />
 
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-2xl font-bold">{heading}</h1>
               <p className="text-sm text-muted-foreground mt-0.5">{subheading}</p>
@@ -131,6 +153,38 @@ export default function HomePage() {
               {refreshing ? 'Refreshing...' : 'Refresh feeds'}
             </Button>
           </div>
+
+          {!filters.sourceId && (
+            <div className="flex flex-wrap items-center gap-3 mb-5 text-sm">
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground mr-1">Window:</span>
+                {WINDOW_OPTIONS.map(o => (
+                  <button
+                    key={o.label}
+                    onClick={() => setFilters(f => ({ ...f, lookbackHours: o.hours }))}
+                    className={`text-xs px-2.5 py-1 rounded-md transition-colors ${
+                      filters.lookbackHours === o.hours
+                        ? 'bg-primary/10 text-foreground font-medium'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              {!filters.category && (
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.includeAll}
+                    onChange={e => setFilters(f => ({ ...f, includeAll: e.target.checked }))}
+                    className="cursor-pointer"
+                  />
+                  Show all sources (incl. tabloid/opinion)
+                </label>
+              )}
+            </div>
+          )}
 
           {loading && articles.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
