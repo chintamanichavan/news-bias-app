@@ -487,8 +487,10 @@ async def weather(
             "current": "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,"
                        "precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,"
                        "surface_pressure,pressure_msl,cloud_cover,visibility,dew_point_2m",
-            "hourly": "temperature_2m,precipitation_probability,precipitation,weather_code,"
-                      "wind_speed_10m,surface_pressure,cloud_cover,is_day",
+            "hourly": "temperature_2m,relative_humidity_2m,dew_point_2m,"
+                      "precipitation_probability,precipitation,weather_code,"
+                      "wind_speed_10m,wind_gusts_10m,wind_direction_10m,"
+                      "surface_pressure,pressure_msl,cloud_cover,visibility,uv_index,is_day",
             "daily": "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,"
                      "apparent_temperature_min,precipitation_probability_max,precipitation_sum,"
                      "precipitation_hours,sunrise,sunset,uv_index_max,wind_speed_10m_max,"
