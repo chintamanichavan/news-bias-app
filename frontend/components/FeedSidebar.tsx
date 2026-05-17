@@ -12,12 +12,14 @@ interface Filters {
   sourceId: string | null
   minScore: number
   maxScore: number
+  lookbackHours: number | null
+  includeAll: boolean
 }
 
 interface FeedSidebarProps {
   sources: Source[]
   filters: Filters
-  onFiltersChange: (f: Filters) => void
+  onFiltersChange: React.Dispatch<React.SetStateAction<Filters>>
 }
 
 const CATEGORY_META: Record<string, { label: string; color: string; emoji: string }> = {

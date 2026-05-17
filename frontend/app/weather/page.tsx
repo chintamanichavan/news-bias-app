@@ -5,7 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import AtmosphericHero from '@/components/AtmosphericHero'
 import HourlyTempCurve from '@/components/HourlyTempCurve'
-import { describeWeather, compass, aqiCategory } from '@/lib/weather'
+import AirQualityCard from '@/components/AirQualityCard'
+import WindCard from '@/components/WindCard'
+import PressureCard from '@/components/PressureCard'
+import HumidityCard from '@/components/HumidityCard'
+import CloudCard from '@/components/CloudCard'
+import VisibilityCard from '@/components/VisibilityCard'
+import UVCard from '@/components/UVCard'
+import { describeWeather } from '@/lib/weather'
 
 interface WeatherData {
   place: string
@@ -29,12 +36,19 @@ interface WeatherData {
   hourly: {
     time: string[]
     temperature_2m: number[]
+    relative_humidity_2m: number[]
+    dew_point_2m: number[]
     precipitation_probability: number[]
     precipitation: number[]
     weather_code: number[]
     wind_speed_10m: number[]
+    wind_gusts_10m: number[]
+    wind_direction_10m: number[]
     surface_pressure: number[]
+    pressure_msl: number[]
     cloud_cover: number[]
+    visibility: number[]
+    uv_index: number[]
     is_day: (0 | 1)[]
   }
   daily: {
@@ -59,8 +73,21 @@ interface WeatherData {
       pm10: number
       pm2_5: number
       ozone: number
+      nitrogen_dioxide: number
+      sulphur_dioxide: number
+      carbon_monoxide: number
       uv_index: number
     } | null
+    hourly?: {
+      time: string[]
+      us_aqi: (number | null)[]
+      alder_pollen: (number | null)[]
+      birch_pollen: (number | null)[]
+      grass_pollen: (number | null)[]
+      mugwort_pollen: (number | null)[]
+      olive_pollen: (number | null)[]
+      ragweed_pollen: (number | null)[]
+    }
   } | null
 }
 
@@ -68,14 +95,6 @@ function fmtDay(iso: string, idx: number): string {
   if (idx === 0) return 'Today'
   if (idx === 1) return 'Tomorrow'
   return new Date(iso + 'T12:00').toLocaleDateString([], { weekday: 'short' })
-}
-
-function uvLabel(uv: number): string {
-  if (uv < 3) return 'Low'
-  if (uv < 6) return 'Moderate'
-  if (uv < 8) return 'High'
-  if (uv < 11) return 'Very High'
-  return 'Extreme'
 }
 
 export default function WeatherPage() {
@@ -117,17 +136,6 @@ export default function WeatherPage() {
       }))
   }, [data])
 
-  // Pressure trend over last few hourly steps (around now ± few)
-  const pressureTrend = useMemo(() => {
-    if (!data) return null
-    const nowIso = data.current.time
-    const idx = data.hourly.time.findIndex(t => t >= nowIso)
-    if (idx < 2) return null
-    const a = data.hourly.surface_pressure[idx - 2]
-    const b = data.hourly.surface_pressure[idx]
-    if (a == null || b == null) return null
-    return b - a
-  }, [data])
 
   if (loading && !data) {
     return (
@@ -161,7 +169,77 @@ export default function WeatherPage() {
     gusts: data.daily.wind_gusts_10m_max[0],
   }
   const aq = data.air_quality?.current ?? null
-  const aqi = aqiCategory(aq?.us_aqi ?? null)
+  const aqHourly = data.air_quality?.hourly ?? null
+
+  // 24h wind slice starting at the current hour, for the WindCard band chart
+  const windHourly = (() => {
+    if (!data.hourly?.wind_speed_10m || !data.hourly?.wind_gusts_10m) return null
+    const nowIso = cur.time
+    const start = Math.max(0, data.hourly.time.findIndex(t => t >= nowIso))
+    const end = Math.min(start + 24, data.hourly.time.length)
+    if (end - start < 2) return null
+    return {
+      sustained: data.hourly.wind_speed_10m.slice(start, end),
+      gusts: data.hourly.wind_gusts_10m.slice(start, end),
+      times: data.hourly.time.slice(start, end),
+    }
+  })()
+
+  // Generic next-24h slicer using "now" as the anchor.
+  const sliceNext24 = <T,>(arr: T[] | undefined): { values: T[]; times: string[] } | null => {
+    if (!arr || !arr.length) return null
+    const nowIso = cur.time
+    const start = Math.max(0, data.hourly.time.findIndex(t => t >= nowIso))
+    const end = Math.min(start + 24, data.hourly.time.length)
+    if (end - start < 2) return null
+    return { values: arr.slice(start, end), times: data.hourly.time.slice(start, end) }
+  }
+
+  // 24h humidity slice for HumidityCard
+  const humidityHourly = (() => {
+    const rh = sliceNext24(data.hourly?.relative_humidity_2m)
+    const dew = sliceNext24(data.hourly?.dew_point_2m)
+    if (!rh || !dew) return null
+    return { rh: rh.values, dewF: dew.values, times: rh.times }
+  })()
+
+  // 24h cloud cover + day-flag slice for CloudCard
+  const cloudHourly = (() => {
+    const cover = sliceNext24(data.hourly?.cloud_cover)
+    const isDay = sliceNext24<0 | 1>(data.hourly?.is_day)
+    if (!cover || !isDay) return null
+    return { cover: cover.values, isDay: isDay.values, times: cover.times }
+  })()
+
+  // 24h visibility slice for VisibilityCard
+  const visibilityHourly = (() => {
+    const v = sliceNext24(data.hourly?.visibility)
+    return v ? { meters: v.values, times: v.times } : null
+  })()
+
+  // 24h UV slice for UVCard
+  const uvHourly = (() => {
+    const v = sliceNext24(data.hourly?.uv_index)
+    return v ? { uv: v.values, times: v.times } : null
+  })()
+
+  // Pressure: split the past 3h (for the tendency calc) from the forecast
+  // (for the chart) so the chart's index 0 is "now".
+  const pressure = (() => {
+    const series = data.hourly?.pressure_msl
+    if (!series || !series.length) return { trend3h: null as number | null, forecast: null as null | { values: number[]; times: string[] } }
+    const nowIso = cur.time
+    const nowIdx = Math.max(0, data.hourly.time.findIndex(t => t >= nowIso))
+    const past3hIdx = nowIdx - 3
+    const trend3h = past3hIdx >= 0 && series[nowIdx] != null && series[past3hIdx] != null
+      ? series[nowIdx] - series[past3hIdx]
+      : null
+    const end = Math.min(nowIdx + 33, data.hourly.time.length)
+    const forecast = end - nowIdx >= 2
+      ? { values: series.slice(nowIdx, end), times: data.hourly.time.slice(nowIdx, end) }
+      : null
+    return { trend3h, forecast }
+  })()
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-4">
@@ -188,68 +266,74 @@ export default function WeatherPage() {
         </Button>
       </div>
 
-      {/* Hourly curve + AQI side-by-side */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2">
+      {/* Hourly temperature — full width */}
+      <Card>
+        <div className="p-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Next 24 hours
+          </h2>
+          <HourlyTempCurve points={next24} />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Solid line: temperature · blue bars: precipitation chance · light wash: daylight hours
+          </p>
+        </div>
+      </Card>
+
+      {/* Atmospheric detail cards — 4-up on xl, 2x4 on md/lg, stacked on mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card>
           <div className="p-4">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Next 24 hours
-            </h2>
-            <HourlyTempCurve points={next24} />
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Solid line: temperature · blue bars: precipitation chance · light wash: daylight hours
-            </p>
+            <AirQualityCard current={aq} hourly={aqHourly} />
           </div>
         </Card>
-
         <Card>
-          <div className="p-4 h-full flex flex-col">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Air quality
-            </h2>
-            {aq ? (
-              <>
-                <div className="flex items-end gap-3 mb-3">
-                  <div className={`px-3 py-2 rounded-lg ${aqi.bg} ${aqi.color}`}>
-                    <div className="text-3xl font-bold tabular-nums leading-none">{aq.us_aqi}</div>
-                    <div className="text-[10px] uppercase tracking-wider mt-1 opacity-90">US AQI</div>
-                  </div>
-                  <div className="text-sm font-medium pb-2">{aqi.label}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <Stat label="PM2.5"  value={`${aq.pm2_5.toFixed(1)} µg/m³`} />
-                  <Stat label="PM10"   value={`${aq.pm10.toFixed(1)} µg/m³`} />
-                  <Stat label="Ozone"  value={`${aq.ozone.toFixed(0)} µg/m³`} />
-                  <Stat label="UV"     value={`${aq.uv_index.toFixed(1)} (${uvLabel(aq.uv_index)})`} />
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">No air-quality data available.</p>
-            )}
+          <div className="p-4">
+            <WindCard
+              current={cur.wind_speed_10m}
+              gust={cur.wind_gusts_10m}
+              direction={cur.wind_direction_10m}
+              dayPeakGust={today.gusts}
+              hourly={windHourly}
+            />
+          </div>
+        </Card>
+        <Card>
+          <div className="p-4">
+            <PressureCard
+              current={cur.pressure_msl}
+              trend3h={pressure.trend3h}
+              series={pressure.forecast}
+            />
+          </div>
+        </Card>
+        <Card>
+          <div className="p-4">
+            <HumidityCard
+              currentRh={cur.relative_humidity_2m}
+              currentDewF={cur.dew_point_2m}
+              hourly={humidityHourly}
+            />
+          </div>
+        </Card>
+        <Card>
+          <div className="p-4">
+            <CloudCard current={cur.cloud_cover} hourly={cloudHourly} />
+          </div>
+        </Card>
+        <Card>
+          <div className="p-4">
+            <VisibilityCard currentM={cur.visibility} hourly={visibilityHourly} />
+          </div>
+        </Card>
+        <Card>
+          <div className="p-4">
+            <UVCard
+              current={aq?.uv_index ?? today.uv ?? 0}
+              hourly={uvHourly}
+            />
           </div>
         </Card>
       </div>
-
-      {/* Detailed metrics row */}
-      <Card>
-        <div className="p-4">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Now
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-            <Metric label="Wind" value={`${Math.round(cur.wind_speed_10m)} mph`} sub={compass(cur.wind_direction_10m)}
-              icon={<WindArrow deg={cur.wind_direction_10m} />} />
-            <Metric label="Gusts" value={`${Math.round(cur.wind_gusts_10m)} mph`} />
-            <Metric label="Pressure"
-              value={`${cur.pressure_msl.toFixed(0)} hPa`}
-              sub={pressureTrend == null ? '—' : pressureTrend > 0.5 ? '↑ rising' : pressureTrend < -0.5 ? '↓ falling' : '→ steady'} />
-            <Metric label="Humidity" value={`${cur.relative_humidity_2m}%`} sub={`dew ${Math.round(cur.dew_point_2m)}°`} />
-            <Metric label="Cloud cover" value={`${cur.cloud_cover}%`} />
-            <Metric label="Visibility" value={cur.visibility >= 16093 ? '10+ mi' : `${(cur.visibility / 1609).toFixed(1)} mi`} />
-            <Metric label="UV today" value={today.uv?.toFixed(0) ?? '—'} sub={today.uv != null ? uvLabel(today.uv) : ''} />
-          </div>
-        </div>
-      </Card>
 
       {/* 7-day */}
       <Card>
@@ -264,39 +348,6 @@ export default function WeatherPage() {
       <p className="text-xs text-muted-foreground mt-4 text-center">
         Forecast & air quality from Open-Meteo · cached 10 min · sun arc updates as the day progresses
       </p>
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="text-sm font-medium tabular-nums">{value}</div>
-    </div>
-  )
-}
-
-function Metric({ label, value, sub, icon }: { label: string; value: string; sub?: string; icon?: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3">
-      {icon && <div className="shrink-0">{icon}</div>}
-      <div>
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="text-sm font-semibold tabular-nums">{value}</div>
-        {sub && <div className="text-[10px] text-muted-foreground tabular-nums">{sub}</div>}
-      </div>
-    </div>
-  )
-}
-
-function WindArrow({ deg }: { deg: number }) {
-  return (
-    <div className="relative w-10 h-10 rounded-full border border-border bg-muted/40 flex items-center justify-center">
-      <svg viewBox="0 0 20 20" className="w-6 h-6" style={{ transform: `rotate(${deg}deg)` }}>
-        <path d="M10 2 L13 14 L10 11 L7 14 Z" className="fill-foreground/80" />
-      </svg>
-      <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[8px] text-muted-foreground">N</div>
     </div>
   )
 }
