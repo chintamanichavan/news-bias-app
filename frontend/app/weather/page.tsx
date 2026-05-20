@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -12,6 +13,8 @@ import HumidityCard from '@/components/HumidityCard'
 import CloudCard from '@/components/CloudCard'
 import VisibilityCard from '@/components/VisibilityCard'
 import UVCard from '@/components/UVCard'
+import SunMoonCard from '@/components/SunMoonCard'
+import NowCastBanner from '@/components/NowCastBanner'
 import { describeWeather } from '@/lib/weather'
 
 interface WeatherData {
@@ -217,6 +220,20 @@ export default function WeatherPage() {
     return v ? { meters: v.values, times: v.times } : null
   })()
 
+  // Nowcast inputs — weather code + precip trajectory over next 12h
+  const nowcastHourly = (() => {
+    const codes = sliceNext24(data.hourly?.weather_code)
+    const probs = sliceNext24(data.hourly?.precipitation_probability)
+    const precip = sliceNext24(data.hourly?.precipitation)
+    if (!codes || !probs || !precip) return null
+    return {
+      times: codes.times,
+      codes: codes.values,
+      probs: probs.values,
+      precip: precip.values,
+    }
+  })()
+
   // 24h UV slice for UVCard
   const uvHourly = (() => {
     const v = sliceNext24(data.hourly?.uv_index)
@@ -266,6 +283,9 @@ export default function WeatherPage() {
         </Button>
       </div>
 
+      {/* Dark-Sky-style nowcast — one-sentence hyperlocal narrative */}
+      <NowCastBanner currentCode={cur.weather_code} hourly={nowcastHourly} />
+
       {/* Hourly temperature — full width */}
       <Card>
         <div className="p-4">
@@ -279,60 +299,56 @@ export default function WeatherPage() {
         </div>
       </Card>
 
-      {/* Atmospheric detail cards — 4-up on xl, 2x4 on md/lg, stacked on mobile */}
+      {/* Atmospheric detail cards — 4-up on xl, 2x4 on md/lg, stacked on mobile.
+          Each tile is a Link to its detail page. */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <Card>
-          <div className="p-4">
-            <AirQualityCard current={aq} hourly={aqHourly} />
-          </div>
-        </Card>
-        <Card>
-          <div className="p-4">
-            <WindCard
-              current={cur.wind_speed_10m}
-              gust={cur.wind_gusts_10m}
-              direction={cur.wind_direction_10m}
-              dayPeakGust={today.gusts}
-              hourly={windHourly}
-            />
-          </div>
-        </Card>
-        <Card>
-          <div className="p-4">
-            <PressureCard
-              current={cur.pressure_msl}
-              trend3h={pressure.trend3h}
-              series={pressure.forecast}
-            />
-          </div>
-        </Card>
-        <Card>
-          <div className="p-4">
-            <HumidityCard
-              currentRh={cur.relative_humidity_2m}
-              currentDewF={cur.dew_point_2m}
-              hourly={humidityHourly}
-            />
-          </div>
-        </Card>
-        <Card>
-          <div className="p-4">
-            <CloudCard current={cur.cloud_cover} hourly={cloudHourly} />
-          </div>
-        </Card>
-        <Card>
-          <div className="p-4">
-            <VisibilityCard currentM={cur.visibility} hourly={visibilityHourly} />
-          </div>
-        </Card>
-        <Card>
-          <div className="p-4">
-            <UVCard
-              current={aq?.uv_index ?? today.uv ?? 0}
-              hourly={uvHourly}
-            />
-          </div>
-        </Card>
+        <Link href="/weather/aqi" className="news-card news-card-hover block p-4">
+          <AirQualityCard current={aq} hourly={aqHourly} />
+        </Link>
+        <Link href="/weather/wind" className="news-card news-card-hover block p-4">
+          <WindCard
+            current={cur.wind_speed_10m}
+            gust={cur.wind_gusts_10m}
+            direction={cur.wind_direction_10m}
+            dayPeakGust={today.gusts}
+            hourly={windHourly}
+          />
+        </Link>
+        <Link href="/weather/pressure" className="news-card news-card-hover block p-4">
+          <PressureCard
+            current={cur.pressure_msl}
+            trend3h={pressure.trend3h}
+            series={pressure.forecast}
+          />
+        </Link>
+        <Link href="/weather/humidity" className="news-card news-card-hover block p-4">
+          <HumidityCard
+            currentRh={cur.relative_humidity_2m}
+            currentDewF={cur.dew_point_2m}
+            hourly={humidityHourly}
+          />
+        </Link>
+        <Link href="/weather/cloud" className="news-card news-card-hover block p-4">
+          <CloudCard current={cur.cloud_cover} hourly={cloudHourly} />
+        </Link>
+        <Link href="/weather/visibility" className="news-card news-card-hover block p-4">
+          <VisibilityCard currentM={cur.visibility} hourly={visibilityHourly} />
+        </Link>
+        <Link href="/weather/uv" className="news-card news-card-hover block p-4">
+          <UVCard
+            current={aq?.uv_index ?? today.uv ?? 0}
+            hourly={uvHourly}
+          />
+        </Link>
+        <Link href="/weather/sun-moon" className="news-card news-card-hover block p-4">
+          <SunMoonCard
+            sunriseToday={today.sunrise}
+            sunsetToday={today.sunset}
+            sunriseTomorrow={data.daily.sunrise[1] ?? null}
+            sunsetTomorrow={data.daily.sunset[1] ?? null}
+            now={cur.time}
+          />
+        </Link>
       </div>
 
       {/* 7-day */}

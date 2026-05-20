@@ -1,7 +1,5 @@
 import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import ToneChip from '@/components/ToneChip'
 
 interface MarketSignal {
   question: string
@@ -40,22 +38,21 @@ export interface TopStory {
   market_signal: MarketSignal | null
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  news:        'bg-teal-100 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300',
-  opinion:     'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
-  finance:     'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300',
-  geopolitics: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300',
-  science:     'bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-300',
-  general:     'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+const CATEGORY_TONE: Record<string, string> = {
+  finance:     'text-emerald-700',
+  geopolitics: 'text-indigo-700',
+  science:     'text-violet-700',
+  general:     'text-stone-600',
 }
 
-const CATEGORY_ACCENT: Record<string, string> = {
-  news:        'border-l-teal-500',
-  opinion:     'border-l-amber-500',
-  finance:     'border-l-emerald-500',
-  geopolitics: 'border-l-indigo-500',
-  science:     'border-l-violet-500',
-  general:     'border-l-gray-400',
+// Fallback art for image-less cards — a soft category-tinted gradient that
+// occupies the same visual slot the image would, so a no-image card doesn't
+// collapse into "headline floating in white space" next to siblings with images.
+const CATEGORY_TINT: Record<string, string> = {
+  finance:     'bg-gradient-to-br from-emerald-100 via-emerald-50 to-stone-50',
+  geopolitics: 'bg-gradient-to-br from-indigo-100 via-sky-50 to-stone-50',
+  science:     'bg-gradient-to-br from-violet-100 via-fuchsia-50 to-stone-50',
+  general:     'bg-gradient-to-br from-stone-100 via-stone-50 to-background',
 }
 
 function formatTime(iso: string | null) {
@@ -67,98 +64,153 @@ function formatTime(iso: string | null) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function TopStoryCard({ story, rank }: { story: TopStory; rank: number }) {
-  const category = story.source.category ?? 'general'
-  const categoryClass = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.general
-  const accentClass = CATEGORY_ACCENT[category] ?? CATEGORY_ACCENT.general
-  const cov = story.coverage
-  const sig = story.market_signal
-  // Prefer the curated summary; fall back to a trimmed body slice. Drop the
-  // whole snippet line if it would just repeat the headline (FT-style stubs
-  // where RSS body == title).
+function useSnippet(story: TopStory): string | null {
   const candidate = (story.summary && story.summary.trim().length > 10)
     ? story.summary
-    : (story.body || '').slice(0, 220)
-  const _norm = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim()
-  const _titleNorm = _norm(story.title)
-  const _candNorm = _norm(candidate)
-  const snippetAddsInfo =
-    candidate &&
-    _candNorm !== _titleNorm &&
-    !(_candNorm.startsWith(_titleNorm) && _candNorm.length < _titleNorm.length + 30)
-  const snippet = snippetAddsInfo ? candidate : ''
+    : (story.body || '').slice(0, 240)
+  const norm = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim()
+  const t = norm(story.title)
+  const c = norm(candidate)
+  if (!c || c === t) return null
+  if (c.startsWith(t) && c.length < t.length + 30) return null
+  return candidate
+}
 
+function MetaRow({ story, accent }: { story: TopStory; accent?: string }) {
+  const tone = CATEGORY_TONE[story.source.category ?? 'general'] ?? CATEGORY_TONE.general
   return (
-    <Link href={`/article/${story.id}`} className="block group">
-      <Card className={`overflow-hidden h-full hover:shadow-lg transition-all duration-200 border border-border/60 hover:border-border border-l-4 ${accentClass}`}>
-        <div className="flex gap-4 p-5">
-          {/* Rank */}
-          <div className="shrink-0 hidden md:block">
-            <span className="text-3xl font-bold text-muted-foreground/40 tabular-nums">
-              {String(rank).padStart(2, '0')}
+    <div className="flex items-center gap-1.5 text-[11px] font-medium">
+      <span className={`uppercase tracking-wider ${accent ?? tone}`}>{story.source.name}</span>
+      {story.published && (
+        <>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-muted-foreground tabular-nums">{formatTime(story.published)}</span>
+        </>
+      )}
+      {story.coverage.count > 1 && (
+        <>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-muted-foreground tabular-nums" title={story.coverage.sources.join(', ')}>
+            {story.coverage.count} sources
+          </span>
+        </>
+      )}
+    </div>
+  )
+}
+
+function MarketBadge({ sig }: { sig: MarketSignal }) {
+  return (
+    <div className="inline-flex items-center gap-1.5 text-[11px] mt-2 px-2 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200/60">
+      <span>🎯 {Math.round(sig.yes_price * 100)}%</span>
+      <span className={`tabular-nums font-medium ${sig.yes_change_24h > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+        {sig.yes_change_24h > 0 ? '↑' : '↓'}{Math.abs(Math.round(sig.yes_change_24h * 100))}pt
+      </span>
+      <span className="opacity-70 line-clamp-1 max-w-[14em]">{sig.question}</span>
+    </div>
+  )
+}
+
+// ── Hero variant ───────────────────────────────────────────────────────────
+// Editorial centerpiece. Full-width, big image, oversized headline.
+
+export function HeroStoryCard({ story }: { story: TopStory }) {
+  const snippet = useSnippet(story)
+  const tint = CATEGORY_TINT[story.source.category ?? 'general'] ?? CATEGORY_TINT.general
+  return (
+    <Link href={`/article/${story.id}`} className="group block news-card news-card-hover overflow-hidden">
+      {story.image_url ? (
+        <div className="relative w-full aspect-[16/9] sm:aspect-[2/1] bg-muted overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={story.image_url}
+            alt=""
+            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+        </div>
+      ) : (
+        <div className={`relative w-full aspect-[16/7] sm:aspect-[5/2] overflow-hidden ${tint}`}>
+          {/* Big oversized headline ghost — visual anchor on text-only stories.
+              Inherits category tone via the gradient above. */}
+          <div className="absolute inset-0 flex items-center justify-center p-8">
+            <span className="text-[clamp(40px,8vw,80px)] font-bold tracking-tighter leading-none text-foreground opacity-[0.08] select-none">
+              {story.source.name}
             </span>
           </div>
-
-          <div className="flex-1 min-w-0 flex flex-col gap-2.5">
-            {/* Top row */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Badge className={`text-[10px] px-2 py-0.5 ${categoryClass}`}>
-                {story.source.name}
-              </Badge>
-              <ToneChip
-                polarity={story.sentiment_score}
-                intensity={story.intensity_score}
-                size="sm"
-              />
-              {cov.count > 1 && (
-                <span
-                  className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded"
-                  title={cov.sources.join(', ')}
-                >
-                  📰 {cov.count} outlets
-                </span>
-              )}
-              {story.published && (
-                <span className="text-xs text-muted-foreground ml-auto">
-                  {formatTime(story.published)}
-                </span>
-              )}
-            </div>
-
-            {/* Headline */}
-            <h2 className="text-base md:text-lg font-semibold leading-snug group-hover:text-primary transition-colors line-clamp-2">
-              {story.title}
-            </h2>
-
-            {/* Snippet */}
-            {snippet && (
-              <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                {snippet}
-              </p>
-            )}
-
-            {/* Market signal cross-reference */}
-            {sig && (
-              <div className="flex items-center gap-2 text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-md px-2 py-1.5 mt-1">
-                <span className="text-amber-700 dark:text-amber-400">🎯</span>
-                <span className="font-medium text-amber-900 dark:text-amber-100">
-                  {Math.round(sig.yes_price * 100)}%
-                </span>
-                <span className={`tabular-nums font-medium ${
-                  sig.yes_change_24h > 0
-                    ? 'text-emerald-700 dark:text-emerald-400'
-                    : 'text-rose-700 dark:text-rose-400'
-                }`}>
-                  {sig.yes_change_24h > 0 ? '↑' : '↓'} {Math.abs(Math.round(sig.yes_change_24h * 100))}pts
-                </span>
-                <span className="text-muted-foreground line-clamp-1 flex-1 min-w-0">
-                  {sig.question}
-                </span>
-              </div>
-            )}
-          </div>
         </div>
-      </Card>
+      )}
+      <div className="p-6 sm:p-7">
+        <MetaRow story={story} />
+        <h2 className="mt-2.5 text-2xl sm:text-[28px] font-bold leading-[1.15] tracking-tight group-hover:text-foreground/80 transition-colors">
+          {story.title}
+        </h2>
+        {snippet && (
+          <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground line-clamp-3">
+            {snippet}
+          </p>
+        )}
+        {story.market_signal && <MarketBadge sig={story.market_signal} />}
+      </div>
     </Link>
   )
 }
+
+// ── Medium variant ─────────────────────────────────────────────────────────
+// Used in the 2-column secondary row.
+
+export function MediumStoryCard({ story }: { story: TopStory }) {
+  const tint = CATEGORY_TINT[story.source.category ?? 'general'] ?? CATEGORY_TINT.general
+  return (
+    <Link href={`/article/${story.id}`} className="group block news-card news-card-hover overflow-hidden h-full flex flex-col">
+      {story.image_url ? (
+        <div className="relative w-full aspect-[16/9] bg-muted overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={story.image_url}
+            alt=""
+            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+        </div>
+      ) : (
+        <div className={`relative w-full aspect-[16/9] overflow-hidden ${tint}`}>
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <span className="text-[clamp(28px,5vw,44px)] font-bold tracking-tighter leading-none text-foreground opacity-[0.1] select-none text-center">
+              {story.source.name}
+            </span>
+          </div>
+        </div>
+      )}
+      <div className="p-4 sm:p-5 flex-1 flex flex-col">
+        <MetaRow story={story} />
+        <h3 className="mt-2 text-[17px] sm:text-[19px] font-semibold leading-snug tracking-tight line-clamp-3 group-hover:text-foreground/80 transition-colors">
+          {story.title}
+        </h3>
+        {story.market_signal && <MarketBadge sig={story.market_signal} />}
+      </div>
+    </Link>
+  )
+}
+
+// ── Compact variant ────────────────────────────────────────────────────────
+// Used for the trending list. No image, two-line title, fine separators.
+
+export function CompactStoryRow({ story }: { story: TopStory }) {
+  return (
+    <Link href={`/article/${story.id}`} className="group block py-3.5 first:pt-0 last:pb-0 border-b border-border/60 last:border-b-0">
+      <MetaRow story={story} />
+      <h3 className="mt-1 text-[15px] sm:text-base font-semibold leading-snug tracking-tight line-clamp-2 group-hover:text-foreground/80 transition-colors">
+        {story.title}
+      </h3>
+    </Link>
+  )
+}
+
+// Default export kept for any existing imports — renders the medium variant.
+export default function TopStoryCard({ story }: { story: TopStory; rank?: number }) {
+  return <MediumStoryCard story={story} />
+}
+
+// Re-export Badge so other call-sites don't have to know about the indirection.
+export { Badge }

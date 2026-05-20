@@ -4,26 +4,30 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Apple-News-inspired palette — warm off-white surface, pure white cards
+       lifted with subtle shadow, near-black headline text, medium-gray meta. */
+    --background: 30 8% 97%;
+    --foreground: 0 0% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 0 0% 11%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 6% 94%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 30 6% 94%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 30 6% 94%;
+    --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 6% 90%;
+    --input: 30 6% 90%;
+    --ring: 0 0% 11%;
+    --radius: 0.875rem;
+    /* Apple News editorial accent — used sparingly on section labels + links */
+    --accent-news: 354 90% 56%;
   }
 
   .dark {
@@ -54,6 +58,26 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv11", "calt";
+  }
+
+  /* Apple-News-style section label: small, uppercase, tracked, accent-red */
+  .news-section-label {
+    @apply text-xs font-semibold uppercase tracking-[0.12em];
+    color: hsl(var(--accent-news));
+  }
+
+  /* Soft card elevation — replaces hard borders */
+  .news-card {
+    @apply bg-card rounded-2xl;
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.04), 0 4px 16px hsl(0 0% 0% / 0.03);
+  }
+  .news-card-hover {
+    transition: box-shadow 200ms ease, transform 200ms ease;
+  }
+  .news-card-hover:hover {
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.05), 0 12px 32px hsl(0 0% 0% / 0.07);
+    transform: translateY(-1px);
   }
 }
 

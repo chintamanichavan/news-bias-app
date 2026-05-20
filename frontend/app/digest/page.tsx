@@ -22,13 +22,13 @@ interface Article {
   sentiment_score: number | null
 }
 
-const CATEGORY_META: Record<string, { label: string; color: string; emoji: string; gradient: string }> = {
-  finance:     { label: 'Finance',     color: 'bg-emerald-500/15 text-emerald-300', emoji: '📈',
-                 gradient: 'bg-gradient-to-br from-emerald-500/30 via-teal-500/15 to-background' },
-  geopolitics: { label: 'Geopolitics', color: 'bg-indigo-500/15 text-indigo-300',   emoji: '🌐',
-                 gradient: 'bg-gradient-to-br from-indigo-500/30 via-sky-500/15 to-background' },
-  science:     { label: 'Science',     color: 'bg-violet-500/15 text-violet-300',   emoji: '🔬',
-                 gradient: 'bg-gradient-to-br from-violet-500/30 via-fuchsia-500/15 to-background' },
+const CATEGORY_META: Record<string, { label: string; tone: string; gradient: string }> = {
+  finance:     { label: 'Finance',     tone: 'text-emerald-700',
+                 gradient: 'bg-gradient-to-br from-emerald-100 via-emerald-50 to-background' },
+  geopolitics: { label: 'Geopolitics', tone: 'text-indigo-700',
+                 gradient: 'bg-gradient-to-br from-indigo-100 via-sky-50 to-background' },
+  science:     { label: 'Science',     tone: 'text-violet-700',
+                 gradient: 'bg-gradient-to-br from-violet-100 via-fuchsia-50 to-background' },
 }
 
 function formatTime(iso: string | null): string {
@@ -141,8 +141,8 @@ export default function DigestPage() {
       {articles.map((a, i) => {
         const text = (a.summary && a.summary.trim().length > 10) ? a.summary : (a.body ?? '')
         const cat = CATEGORY_META[a.source.category] ?? {
-          label: a.source.category, color: 'bg-muted text-muted-foreground', emoji: '📰',
-          gradient: 'bg-gradient-to-br from-muted/40 via-muted/20 to-background',
+          label: a.source.category, tone: 'text-stone-700',
+          gradient: 'bg-gradient-to-br from-stone-100 via-stone-50 to-background',
         }
         const hasImage = !!a.image_url && !imageFailed[a.id]
         return (
@@ -153,7 +153,7 @@ export default function DigestPage() {
             className="h-[calc(100dvh-3.5rem)] snap-start snap-always flex flex-col"
           >
             {/* Hero — image when available, otherwise a category-tinted gradient
-                panel with a huge emoji so the card never has a blank top half. */}
+                panel so the card never has a blank top half. */}
             {hasImage ? (
               <div className="relative w-full h-2/5 md:h-1/2 bg-muted overflow-hidden shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -163,71 +163,45 @@ export default function DigestPage() {
                   className="w-full h-full object-cover"
                   onError={() => setImageFailed(prev => ({ ...prev, [a.id]: true }))}
                 />
-                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background via-background/80 to-transparent" />
               </div>
             ) : (
-              <div className={`relative w-full h-[30%] md:h-2/5 shrink-0 ${cat.gradient} flex items-end px-5 md:px-8 pb-5 md:pb-6 overflow-hidden`}>
-                <span className="absolute right-4 top-4 text-7xl md:text-8xl opacity-25 select-none">
-                  {cat.emoji}
-                </span>
-                <span className={`relative z-10 px-3 py-1 rounded-full text-xs font-medium ${cat.color}`}>
-                  {cat.emoji} {cat.label}
-                </span>
-              </div>
+              <div className={`w-full h-[20%] md:h-[25%] shrink-0 ${cat.gradient}`} />
             )}
 
-            {/* Content */}
-            <div className="flex-1 min-h-0 flex flex-col px-5 md:px-8 py-5 md:py-6 max-w-2xl w-full mx-auto">
-              {/* Source row — show only when hero is an image, since the no-image
-                  hero already carries the category badge. */}
-              {hasImage && (
-                <div className="flex items-center gap-2 mb-4 text-xs">
-                  <span className={`px-2.5 py-1 rounded-full font-medium ${cat.color}`}>
-                    {cat.emoji} {cat.label}
-                  </span>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="font-medium text-foreground">{a.source.name}</span>
-                  {a.published && (
-                    <>
-                      <span className="text-muted-foreground">·</span>
-                      <span className="text-muted-foreground">{formatTime(a.published)}</span>
-                    </>
-                  )}
-                </div>
-              )}
+            {/* Content — Apple-News-style editorial layout */}
+            <div className="flex-1 min-h-0 flex flex-col px-6 md:px-8 py-6 md:py-8 max-w-2xl w-full mx-auto">
+              {/* Source row — uppercase, tracked, category-colored */}
+              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.12em] mb-4">
+                <span className={cat.tone}>{a.source.name}</span>
+                {a.published && (
+                  <>
+                    <span className="text-muted-foreground/60">·</span>
+                    <span className="text-muted-foreground tabular-nums">{formatTime(a.published)}</span>
+                  </>
+                )}
+              </div>
 
-              {!hasImage && (
-                <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">{a.source.name}</span>
-                  {a.published && (
-                    <>
-                      <span>·</span>
-                      <span>{formatTime(a.published)}</span>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <h2 className="text-xl md:text-3xl font-bold leading-tight mb-4 tracking-tight">
+              <h2 className="text-[26px] md:text-[36px] font-bold leading-[1.1] tracking-tight mb-5">
                 {a.title}
               </h2>
 
-              <p className="text-base md:text-lg leading-relaxed text-foreground/90 mb-auto">
+              <p className="text-[17px] md:text-[19px] leading-[1.55] text-foreground/85 mb-auto">
                 {text}
               </p>
 
-              <div className="flex items-center justify-between gap-3 pt-4 mt-6 border-t border-border/60">
+              <div className="flex items-center justify-between gap-3 pt-5 mt-8 border-t border-border/60">
                 <a
                   href={a.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm font-medium text-primary hover:underline"
+                  className="text-sm font-semibold text-foreground hover:opacity-60 transition-opacity"
                 >
                   Read full article →
                 </a>
                 <Link
                   href={`/article/${a.id}`}
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   More context
                 </Link>
@@ -237,9 +211,9 @@ export default function DigestPage() {
         )
       })}
 
-      {/* Position indicator (bottom-right corner) */}
-      <div className="fixed bottom-4 right-4 text-xs text-muted-foreground bg-background/70 backdrop-blur px-2.5 py-1 rounded-full border border-border/60 tabular-nums">
-        {activeIdx + 1} / {articles.length}
+      {/* Position indicator — minimal, bottom right */}
+      <div className="fixed bottom-4 right-4 text-[11px] font-medium text-muted-foreground bg-card/90 backdrop-blur px-3 py-1.5 rounded-full shadow-sm tabular-nums">
+        {activeIdx + 1} · {articles.length}
       </div>
     </div>
   )
