@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import BiasGauge from '@/components/BiasGauge'
-import { Badge } from '@/components/ui/badge'
 
 interface Source {
   id: string
@@ -39,14 +38,14 @@ interface StoryGroup {
 
 type Filter = 'all' | 'left' | 'right'
 
-const LABEL_COLORS: Record<string, string> = {
-  far_left: 'bg-blue-700 text-white',
-  left: 'bg-blue-400 text-white',
-  lean_left: 'bg-blue-200 text-blue-900 dark:bg-blue-900/40 dark:text-blue-200',
-  center: 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
-  lean_right: 'bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-200',
-  right: 'bg-red-400 text-white',
-  far_right: 'bg-red-700 text-white',
+const SOURCE_TONE: Record<string, string> = {
+  far_left:   'text-blue-700',
+  left:       'text-blue-700',
+  lean_left:  'text-blue-700',
+  center:     'text-stone-600',
+  lean_right: 'text-red-700',
+  right:      'text-red-700',
+  far_right:  'text-red-700',
 }
 
 function enrichArticle(a: Article) {
@@ -83,21 +82,27 @@ export default function StoriesPage() {
   const visible = filtered()
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-2xl font-bold mb-1">Same Story, Different Lens</h1>
-      <p className="text-sm text-muted-foreground mb-6">
-        See how different outlets cover the same events — and which stories one side is missing.
-      </p>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      {/* Editorial masthead */}
+      <header className="mb-7">
+        <p className="news-section-label">Cross-source clustering</p>
+        <h1 className="mt-1 text-3xl sm:text-4xl font-bold tracking-tight leading-none">
+          Same Story
+        </h1>
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-prose">
+          See how different outlets cover the same event, and which stories one side is missing.
+        </p>
+      </header>
 
       {/* Filter chips */}
       <div className="flex flex-wrap items-center gap-1.5 mb-6">
-        <FilterChip active={filter === 'all'}   onClick={() => setFilter('all')}
-          label="All stories" emoji="📰" count={counts.all} />
-        <FilterChip active={filter === 'left'}  onClick={() => setFilter('left')}
-          label="Left blindspot" emoji="🔵" count={counts.left}
+        <Chip active={filter === 'all'}   onClick={() => setFilter('all')}
+          label="All stories" count={counts.all} />
+        <Chip active={filter === 'left'}  onClick={() => setFilter('left')}
+          label="Left blindspot" count={counts.left} dot="bg-blue-500"
           tip="Mostly covered by right-leaning outlets — left-readers are missing it" />
-        <FilterChip active={filter === 'right'} onClick={() => setFilter('right')}
-          label="Right blindspot" emoji="🔴" count={counts.right}
+        <Chip active={filter === 'right'} onClick={() => setFilter('right')}
+          label="Right blindspot" count={counts.right} dot="bg-red-500"
           tip="Mostly covered by left-leaning outlets — right-readers are missing it" />
       </div>
 
@@ -106,55 +111,57 @@ export default function StoriesPage() {
       ) : visible.length === 0 ? (
         <EmptyState filter={filter} groups={groups} />
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-5">
           {visible.map(group => {
             const enriched = group.articles.map(enrichArticle)
             const sorted = [...enriched].sort((a, b) => a.score - b.score)
             const headline = sorted[Math.floor(sorted.length / 2)]?.title ?? enriched[0]?.title
 
             return (
-              <div key={group.group_id} className="rounded-xl border border-border overflow-hidden">
-                <div className="bg-muted/40 px-5 py-3 border-b border-border">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Story · {enriched.length} sources
+              <section key={group.group_id} className="news-card overflow-hidden">
+                {/* Cluster header */}
+                <div className="px-5 sm:px-6 py-4 border-b border-border/50">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground tabular-nums">
+                      {enriched.length} sources
                     </p>
                     {group.blindspot.direction && (
                       <BlindspotPill bs={group.blindspot} />
                     )}
                   </div>
-                  <p className="font-semibold text-sm leading-snug line-clamp-2">{headline}</p>
+                  <p className="font-semibold text-[17px] leading-snug tracking-tight line-clamp-2">
+                    {headline}
+                  </p>
                   {group.blindspot.total >= 2 && (
-                    <DistributionBar bs={group.blindspot} className="mt-2.5" />
+                    <DistributionBar bs={group.blindspot} className="mt-3" />
                   )}
                 </div>
-                <div className="divide-y divide-border">
-                  {sorted.map(a => (
+
+                {/* Source list — each row is the same story as told by an outlet */}
+                <div>
+                  {sorted.map((a, i) => (
                     <Link
                       key={a.id}
                       href={`/article/${a.id}`}
-                      className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 hover:bg-muted/30 transition-colors group"
+                      className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:gap-4 px-5 sm:px-6 py-3 hover:bg-muted/40 transition-colors group ${
+                        i > 0 ? 'border-t border-border/50' : ''
+                      }`}
                     >
-                      <div className="w-32 sm:w-44 shrink-0 min-w-0">
-                        <Badge
-                          title={a.source.name}
-                          className={`text-[10px] px-1.5 py-0.5 max-w-full block truncate ${LABEL_COLORS[a.source.allsides_label] ?? 'bg-gray-200 dark:bg-gray-700'}`}
-                        >
+                      <div className="min-w-0">
+                        <div className={`text-[11px] font-medium uppercase tracking-[0.12em] mb-0.5 ${SOURCE_TONE[a.source.allsides_label] ?? 'text-stone-600'}`}>
                           {a.source.name}
-                        </Badge>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm line-clamp-1 group-hover:text-primary transition-colors">
+                        </div>
+                        <p className="text-[14px] leading-snug line-clamp-2 group-hover:text-foreground/70 transition-colors">
                           {a.title}
                         </p>
                       </div>
-                      <div className="w-32 sm:w-40 shrink-0">
+                      <div className="w-28 sm:w-36 shrink-0">
                         <BiasGauge score={a.score} confidence={a.confidence} size="sm" />
                       </div>
                     </Link>
                   ))}
                 </div>
-              </div>
+              </section>
             )
           })}
         </div>
@@ -163,26 +170,28 @@ export default function StoriesPage() {
   )
 }
 
-function FilterChip({
-  active, onClick, label, emoji, count, tip,
+function Chip({
+  active, onClick, label, count, dot, tip,
 }: {
-  active: boolean; onClick: () => void; label: string; emoji: string; count: number; tip?: string
+  active: boolean; onClick: () => void; label: string; count: number; dot?: string; tip?: string
 }) {
   return (
     <button
       onClick={onClick}
       title={tip}
-      className={`text-sm px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5 ${
+      className={`text-[13px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors flex items-center gap-2 ${
         active
-          ? 'bg-primary text-primary-foreground font-medium'
-          : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'
+          ? 'bg-foreground text-background font-medium'
+          : 'bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground'
       }`}
     >
-      <span>{emoji}</span>
+      {dot && <span className={`inline-block w-1.5 h-1.5 rounded-full ${dot}`} />}
       <span>{label}</span>
-      <span className={`text-[10px] tabular-nums ${active ? 'opacity-80' : 'opacity-60'}`}>
-        {count}
-      </span>
+      {count > 0 && (
+        <span className={`text-[10px] tabular-nums ${active ? 'opacity-70' : 'opacity-60'}`}>
+          {count}
+        </span>
+      )}
     </button>
   )
 }
@@ -190,17 +199,16 @@ function FilterChip({
 function BlindspotPill({ bs }: { bs: Blindspot }) {
   const isLeftBs = bs.direction === 'left'
   const cls = isLeftBs
-    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
-    : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200'
-  const dot = isLeftBs ? '🔵' : '🔴'
+    ? 'bg-blue-100 text-blue-800'
+    : 'bg-red-100 text-red-800'
   const which = isLeftBs ? 'right' : 'left'
   const pct = Math.round(bs.skew * 100)
   return (
     <span
-      className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1 tabular-nums whitespace-nowrap ${cls}`}
+      className={`text-[10px] font-semibold uppercase tracking-[0.1em] px-2 py-0.5 rounded-md inline-flex items-center gap-1.5 tabular-nums whitespace-nowrap ${cls}`}
       title={`${pct}% of partisan outlets covering this story are ${which}-leaning`}
     >
-      <span>{dot}</span>
+      <span className={`inline-block w-1.5 h-1.5 rounded-full ${isLeftBs ? 'bg-blue-600' : 'bg-red-600'}`} />
       <span>{isLeftBs ? 'Left' : 'Right'} blindspot</span>
       <span className="opacity-70">· {pct}%</span>
     </span>
@@ -213,7 +221,7 @@ function DistributionBar({ bs, className = '' }: { bs: Blindspot; className?: st
   const seg = (n: number) => `${(n / total) * 100}%`
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <div className="flex h-1.5 rounded-full overflow-hidden bg-muted flex-1 max-w-xs">
+      <div className="flex h-1.5 rounded-full overflow-hidden bg-muted flex-1 max-w-sm">
         {bs.left   > 0 && <div className="bg-blue-500"            style={{ width: seg(bs.left)   }} title={`${bs.left} left`}   />}
         {bs.center > 0 && <div className="bg-muted-foreground/40" style={{ width: seg(bs.center) }} title={`${bs.center} center`} />}
         {bs.right  > 0 && <div className="bg-red-500"             style={{ width: seg(bs.right)  }} title={`${bs.right} right`}  />}
@@ -228,19 +236,21 @@ function DistributionBar({ bs, className = '' }: { bs: Blindspot; className?: st
 function EmptyState({ filter, groups }: { filter: Filter; groups: StoryGroup[] }) {
   if (groups.length === 0) {
     return (
-      <div className="text-center py-20 text-muted-foreground border border-dashed rounded-xl">
-        <p className="font-medium">No story groups yet</p>
-        <p className="text-sm mt-1">Refresh feeds and wait for articles to be ingested and grouped.</p>
+      <div className="news-card text-center py-20">
+        <p className="font-semibold">No story groups yet</p>
+        <p className="text-sm text-muted-foreground mt-1.5">
+          Refresh feeds and wait for articles to be ingested and grouped.
+        </p>
       </div>
     )
   }
   const which = filter === 'left' ? 'left blindspots' : 'right blindspots'
   return (
-    <div className="text-center py-20 text-muted-foreground border border-dashed rounded-xl">
-      <p className="font-medium">No {which} right now</p>
-      <p className="text-sm mt-1">
-        A blindspot needs ≥4 outlets covering a story with ≥70% from one side.
-        Try “All stories”, or add more politically diverse sources.
+    <div className="news-card text-center py-20">
+      <p className="font-semibold">No {which} right now</p>
+      <p className="text-sm text-muted-foreground mt-1.5 max-w-md mx-auto leading-relaxed">
+        A blindspot needs ≥4 outlets covering a story with ≥70% from one side. Try “All stories”,
+        or add more politically diverse sources.
       </p>
     </div>
   )
@@ -248,9 +258,9 @@ function EmptyState({ filter, groups }: { filter: Filter; groups: StoryGroup[] }
 
 function SkeletonList() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="h-40 rounded-xl bg-muted/30 animate-pulse" />
+        <div key={i} className="news-card h-44 animate-pulse bg-muted/30" />
       ))}
     </div>
   )

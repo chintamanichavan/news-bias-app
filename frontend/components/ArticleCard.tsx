@@ -33,11 +33,13 @@ const CATEGORY_TONE: Record<string, string> = {
   general:     'text-stone-600',
 }
 
+// Full category-tinted gradient for the no-image fallback hero. Mirrors the
+// Top-page treatment so a no-image card still has visual weight.
 const CATEGORY_TINT: Record<string, string> = {
-  finance:     'from-emerald-50 to-transparent',
-  geopolitics: 'from-indigo-50 to-transparent',
-  science:     'from-violet-50 to-transparent',
-  general:     'from-stone-50 to-transparent',
+  finance:     'bg-gradient-to-br from-emerald-100 via-emerald-50 to-stone-50',
+  geopolitics: 'bg-gradient-to-br from-indigo-100 via-sky-50 to-stone-50',
+  science:     'bg-gradient-to-br from-violet-100 via-fuchsia-50 to-stone-50',
+  general:     'bg-gradient-to-br from-stone-100 via-stone-50 to-background',
 }
 
 function formatTime(iso: string | null): string {
@@ -81,7 +83,13 @@ export default function ArticleCard({ article }: { article: Article }) {
           />
         </div>
       ) : (
-        <div className={`w-full h-20 bg-gradient-to-br ${tint}`} />
+        <div className={`relative w-full aspect-[16/9] overflow-hidden ${tint}`}>
+          <div className="absolute inset-0 flex items-center justify-center px-4">
+            <span className="text-[clamp(20px,5vw,40px)] font-bold tracking-tighter leading-none text-foreground opacity-[0.1] select-none text-center line-clamp-2">
+              {article.source.name}
+            </span>
+          </div>
+        </div>
       )}
       <div className="p-4 flex flex-col gap-2">
         <div className="flex items-center gap-1.5 text-[11px] font-medium">

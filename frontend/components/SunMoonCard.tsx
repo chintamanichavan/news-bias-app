@@ -11,6 +11,8 @@ interface Props {
   sunsetTomorrow?: string | null
   /** Current ISO time (used for sun position on the arc + daylight-left math). */
   now: string
+  /** Detail-page mode. */
+  expanded?: boolean
 }
 
 function parseLocal(iso: string): Date {
@@ -122,7 +124,7 @@ function MoonGlyph({ phase, illumination }: { phase: number; illumination: numbe
 }
 
 export default function SunMoonCard({
-  sunriseToday, sunsetToday, sunriseTomorrow, sunsetTomorrow, now,
+  sunriseToday, sunsetToday, sunriseTomorrow, sunsetTomorrow, now, expanded = false,
 }: Props) {
   const sr = parseLocal(sunriseToday)
   const ss = parseLocal(sunsetToday)
@@ -160,7 +162,7 @@ export default function SunMoonCard({
 
       {/* Sun arc */}
       <div className="relative">
-        <svg viewBox="0 0 280 120" className="w-full h-auto">
+        <svg viewBox="0 0 280 120" preserveAspectRatio="xMidYMid meet" className={`w-full ${expanded ? 'aspect-[2/1] max-h-[280px]' : 'h-auto'}`}>
           <defs>
             <linearGradient id="sunArcGradient" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%"  stopColor="#fbbf24" stopOpacity="0.55" />
@@ -201,30 +203,32 @@ export default function SunMoonCard({
       </div>
 
       {/* Daylight stats */}
-      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+      <div className={`${expanded ? 'mt-4' : 'mt-2'} grid grid-cols-2 gap-2 ${expanded ? 'text-sm' : 'text-[11px]'}`}>
         <div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Day length</div>
-          <div className="text-sm font-semibold tabular-nums">{dayLengthLabel}</div>
+          <div className={`${expanded ? 'text-2xl' : 'text-sm'} font-semibold tabular-nums`}>{dayLengthLabel}</div>
         </div>
         <div className="text-right">
           {timeRemainingLabel && (
             <>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{geom.isDay ? 'Remaining' : 'Next'}</div>
-              <div className="text-sm font-semibold tabular-nums">{timeRemainingLabel.replace(/^Sunrise in /, '').replace(/ of daylight left$/, '')}</div>
+              <div className={`${expanded ? 'text-2xl' : 'text-sm'} font-semibold tabular-nums`}>{timeRemainingLabel.replace(/^Sunrise in /, '').replace(/ of daylight left$/, '')}</div>
             </>
           )}
         </div>
       </div>
       {trendLabel && (
-        <div className="mt-1 text-[10px] text-muted-foreground/90">{trendLabel}</div>
+        <div className={`${expanded ? 'mt-2 text-xs' : 'mt-1 text-[10px]'} text-muted-foreground/90`}>{trendLabel}</div>
       )}
 
       {/* Moon */}
-      <div className="mt-4 pt-3 border-t border-border/60 flex items-center gap-3">
-        <MoonGlyph phase={moon.phase} illumination={moon.illumination} />
-        <div className="min-w-0">
-          <div className="text-sm font-semibold leading-tight">{moon.name}</div>
-          <div className="text-[11px] text-muted-foreground tabular-nums">{moon.illumination}% illuminated</div>
+      <div className={`${expanded ? 'mt-6 pt-4' : 'mt-4 pt-3'} border-t border-border/60 flex items-center ${expanded ? 'gap-5' : 'gap-3'}`}>
+        <div className={expanded ? 'scale-[2] origin-left ml-3' : ''}>
+          <MoonGlyph phase={moon.phase} illumination={moon.illumination} />
+        </div>
+        <div className={`min-w-0 ${expanded ? 'ml-12' : ''}`}>
+          <div className={`${expanded ? 'text-xl' : 'text-sm'} font-semibold leading-tight`}>{moon.name}</div>
+          <div className={`${expanded ? 'text-sm mt-1' : 'text-[11px]'} text-muted-foreground tabular-nums`}>{moon.illumination}% illuminated</div>
         </div>
       </div>
     </div>

@@ -7,6 +7,8 @@ interface Props {
   current: number
   /** Next 24h: cloud cover %, is_day flag, ISO times. */
   hourly: { cover: number[]; isDay: (0 | 1)[]; times: string[] } | null
+  /** Detail-page mode. */
+  expanded?: boolean
 }
 
 function classify(cover: number): { label: string; tone: string } {
@@ -34,11 +36,10 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d
 }
 
-export default function CloudCard({ current, hourly }: Props) {
+export default function CloudCard({ current, hourly, expanded = false }: Props) {
   const cls = classify(current)
   const sunHours = useMemo(() => {
     if (!hourly) return null
-    // "Sunny" = daytime hour with <= 25% cloud cover
     let n = 0
     for (let i = 0; i < hourly.cover.length; i++) {
       if (hourly.isDay[i] === 1 && hourly.cover[i] <= 25) n++
@@ -53,27 +54,29 @@ export default function CloudCard({ current, hourly }: Props) {
       </h2>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-bold tabular-nums leading-none">{Math.round(current)}<span className="text-base font-normal text-muted-foreground">%</span></span>
-        <span className={`text-sm font-medium ${cls.tone} ml-auto`}>{cls.label}</span>
+        <span className={`${expanded ? 'text-6xl' : 'text-3xl'} font-bold tabular-nums leading-none`}>
+          {Math.round(current)}<span className={`${expanded ? 'text-2xl' : 'text-base'} font-normal text-muted-foreground`}>%</span>
+        </span>
+        <span className={`${expanded ? 'text-base' : 'text-sm'} font-medium ${cls.tone} ml-auto`}>{cls.label}</span>
       </div>
 
       {sunHours != null && (
-        <div className="mt-1 text-[11px] text-muted-foreground">
-          ☀️ {sunHours} sunny hour{sunHours === 1 ? '' : 's'} expected in the next 24h
+        <div className={`${expanded ? 'mt-2 text-sm' : 'mt-1 text-[11px]'} text-muted-foreground`}>
+          ☀️ {sunHours} sunny hour{sunHours === 1 ? '' : 's'} expected in the {expanded ? 'next 48h' : 'next 24h'}
         </div>
       )}
 
       {hourly && hourly.cover.length >= 2
-        ? <Chart hourly={hourly} />
+        ? <Chart hourly={hourly} expanded={expanded} />
         : <p className="text-[11px] text-muted-foreground mt-3">Forecast unavailable.</p>
       }
     </div>
   )
 }
 
-function Chart({ hourly }: { hourly: NonNullable<Props['hourly']> }) {
+function Chart({ hourly, expanded = false }: { hourly: NonNullable<Props['hourly']>; expanded?: boolean }) {
   const W = 320
-  const H = 100
+  const H = expanded ? 220 : 100
   const padL = 24
   const padR = 8
   const padT = 8

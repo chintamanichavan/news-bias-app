@@ -1,14 +1,6 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 
-interface MarketSignal {
-  question: string
-  yes_price: number
-  yes_change_24h: number
-  url: string | null
-  category: string | null
-}
-
 interface Source {
   id: string
   name: string
@@ -35,7 +27,6 @@ export interface TopStory {
   sentiment_score: number | null
   intensity_score: number | null
   coverage: Coverage
-  market_signal: MarketSignal | null
 }
 
 const CATEGORY_TONE: Record<string, string> = {
@@ -99,18 +90,6 @@ function MetaRow({ story, accent }: { story: TopStory; accent?: string }) {
   )
 }
 
-function MarketBadge({ sig }: { sig: MarketSignal }) {
-  return (
-    <div className="inline-flex items-center gap-1.5 text-[11px] mt-2 px-2 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200/60">
-      <span>🎯 {Math.round(sig.yes_price * 100)}%</span>
-      <span className={`tabular-nums font-medium ${sig.yes_change_24h > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-        {sig.yes_change_24h > 0 ? '↑' : '↓'}{Math.abs(Math.round(sig.yes_change_24h * 100))}pt
-      </span>
-      <span className="opacity-70 line-clamp-1 max-w-[14em]">{sig.question}</span>
-    </div>
-  )
-}
-
 // ── Hero variant ───────────────────────────────────────────────────────────
 // Editorial centerpiece. Full-width, big image, oversized headline.
 
@@ -150,7 +129,6 @@ export function HeroStoryCard({ story }: { story: TopStory }) {
             {snippet}
           </p>
         )}
-        {story.market_signal && <MarketBadge sig={story.market_signal} />}
       </div>
     </Link>
   )
@@ -187,7 +165,6 @@ export function MediumStoryCard({ story }: { story: TopStory }) {
         <h3 className="mt-2 text-[17px] sm:text-[19px] font-semibold leading-snug tracking-tight line-clamp-3 group-hover:text-foreground/80 transition-colors">
           {story.title}
         </h3>
-        {story.market_signal && <MarketBadge sig={story.market_signal} />}
       </div>
     </Link>
   )

@@ -27,6 +27,8 @@ interface HourlyAQ {
 interface Props {
   current: CurrentAQ | null
   hourly?: HourlyAQ | null
+  /** Detail-page mode — larger headline + thicker bars. */
+  expanded?: boolean
 }
 
 const POLLUTANT_ORDER: { key: PollutantKey; source: keyof CurrentAQ }[] = [
@@ -54,7 +56,7 @@ function pollenBand(grains: number): { label: string; tone: string } {
   return                  { label: 'Very high', tone: 'bg-red-600'     }
 }
 
-export default function AirQualityCard({ current, hourly }: Props) {
+export default function AirQualityCard({ current, hourly, expanded = false }: Props) {
   if (!current) {
     return <p className="text-sm text-muted-foreground">No air-quality data available.</p>
   }
@@ -89,15 +91,15 @@ export default function AirQualityCard({ current, hourly }: Props) {
       </h2>
 
       {/* AQI hero */}
-      <div className="flex items-end gap-3 mb-1">
-        <div className={`px-3 py-2 rounded-lg ${aqi.bg} ${aqi.color}`}>
-          <div className="text-3xl font-bold tabular-nums leading-none">{current.us_aqi}</div>
-          <div className="text-[10px] uppercase tracking-wider mt-1 opacity-90">US AQI</div>
+      <div className={`flex items-end gap-${expanded ? '5' : '3'} mb-1`}>
+        <div className={`${expanded ? 'px-5 py-3' : 'px-3 py-2'} rounded-lg ${aqi.bg} ${aqi.color}`}>
+          <div className={`${expanded ? 'text-6xl' : 'text-3xl'} font-bold tabular-nums leading-none`}>{current.us_aqi}</div>
+          <div className={`${expanded ? 'text-xs mt-2' : 'text-[10px] mt-1'} uppercase tracking-wider opacity-90`}>US AQI</div>
         </div>
         <div className="pb-1 flex-1">
-          <div className="text-sm font-medium leading-tight">{aqi.label}</div>
+          <div className={`${expanded ? 'text-xl' : 'text-sm'} font-medium leading-tight`}>{aqi.label}</div>
           {driver && (
-            <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+            <div className={`${expanded ? 'text-sm mt-1.5' : 'text-[11px] mt-0.5'} text-muted-foreground leading-tight`}>
               driver: <span className="font-medium">{driver.label}</span>
             </div>
           )}
