@@ -128,6 +128,44 @@ def _enrich(article: dict) -> dict:
     return article
 
 
+_TITLE_NORM_RE = re.compile(r"[^a-z0-9\s]")
+_WS_RE = re.compile(r"\s+")
+
+
+def _norm_title(t: str | None) -> str:
+    if not t:
+        return ""
+    return _WS_RE.sub(" ", _TITLE_NORM_RE.sub(" ", t.lower())).strip()
+
+
+def _dedupe(articles: list[dict]) -> list[dict]:
+    """Drop near-duplicate articles (same source republishing the same headline
+    under different URLs — e.g. Foreign Policy + Foreign Affairs sometimes
+    publish an essay at two slugs).
+
+    Keys on (source_id, normalized_title). Among duplicates, prefer the entry
+    with the longer body, then the most recent published timestamp.
+    """
+    best: dict[tuple[str, str], dict] = {}
+    for a in articles:
+        key = (a.get("source_id") or "", _norm_title(a.get("title")))
+        if not key[1]:
+            # No title to dedupe on — keep as-is, key by id so each survives.
+            best[(a.get("source_id") or "", a.get("id") or str(id(a)))] = a
+            continue
+        prev = best.get(key)
+        if prev is None:
+            best[key] = a
+            continue
+        body_new = len(a.get("body") or "")
+        body_old = len(prev.get("body") or "")
+        if body_new > body_old:
+            best[key] = a
+        elif body_new == body_old and (a.get("published") or "") > (prev.get("published") or ""):
+            best[key] = a
+    return list(best.values())
+
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -211,8 +249,10 @@ def list_articles(
     )
 
     conn.close()
+    enriched = [_enrich(a) for a in articles]
+    deduped = _dedupe(enriched)
     return {
-        "articles": [_enrich(a) for a in articles],
+        "articles": deduped,
         "total": total,
         "page": page,
         "per_page": per_page,
@@ -356,7 +396,7 @@ def top_stories(limit: int = Query(12, ge=1, le=30)):
         # Polymarket cross-reference
         s["market_signal"] = _cross_ref_signal(s["title"], signals)
         out.append(s)
-    return {"stories": out}
+    return {"stories": _dedupe(out)}
 
 
 # ── Blindspot ───────────────────────────────────────────────────────────────

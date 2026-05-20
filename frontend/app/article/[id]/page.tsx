@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
 import BiasGauge from '@/components/BiasGauge'
 import SentimentPanel from '@/components/SentimentPanel'
 import FeedbackPanel from '@/components/FeedbackPanel'
@@ -12,7 +11,10 @@ interface Article {
   body: string | null
   image_url: string | null
   published: string | null
-  source: { id: string; name: string; allsides_score: number; allsides_label: string }
+  source: {
+    id: string; name: string; category?: string
+    allsides_score: number; allsides_label: string
+  }
   bias_score: number | null
   confidence: number | null
   sentiment_score: number | null
@@ -31,14 +33,21 @@ async function getArticle(id: string): Promise<Article | null> {
   }
 }
 
-const LABEL_COLORS: Record<string, string> = {
-  far_left: 'bg-blue-700 text-white',
-  left: 'bg-blue-400 text-white',
-  lean_left: 'bg-blue-200 text-blue-900 dark:bg-blue-900/40 dark:text-blue-200',
-  center: 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
-  lean_right: 'bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-200',
-  right: 'bg-red-400 text-white',
-  far_right: 'bg-red-700 text-white',
+const CATEGORY_TONE: Record<string, string> = {
+  finance:     'text-emerald-700',
+  geopolitics: 'text-indigo-700',
+  science:     'text-violet-700',
+  general:     'text-stone-600',
+}
+
+// Category-tinted gradient used as the hero fallback when an article has no
+// image. Matches the Top-page / Feed-card treatment so a no-image article
+// still has visual anchor at the top of the reader.
+const CATEGORY_TINT: Record<string, string> = {
+  finance:     'bg-gradient-to-br from-emerald-100 via-emerald-50 to-stone-50',
+  geopolitics: 'bg-gradient-to-br from-indigo-100 via-sky-50 to-stone-50',
+  science:     'bg-gradient-to-br from-violet-100 via-fuchsia-50 to-stone-50',
+  general:     'bg-gradient-to-br from-stone-100 via-stone-50 to-background',
 }
 
 function formatDate(iso: string | null) {
@@ -56,35 +65,58 @@ export default async function ArticlePage({ params }: { params: { id: string } }
   const confidence = article.confidence ?? 0.3
   const polarity = article.sentiment_score ?? 0
   const intensity = article.intensity_score ?? 0
-  const labelClass = LABEL_COLORS[article.source.allsides_label] ?? 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+  const tone = CATEGORY_TONE[article.source.category ?? 'general'] ?? CATEGORY_TONE.general
+  const tint = CATEGORY_TINT[article.source.category ?? 'general'] ?? CATEGORY_TINT.general
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      <Link href="/" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1">
-        ← Back to feed
+    <article className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <Link
+        href="/"
+        className="inline-flex items-center text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors mb-6"
+      >
+        ← Top Stories
       </Link>
 
-      {article.image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={article.image_url}
-          alt=""
-          className="w-full h-56 object-cover rounded-xl mb-6 mt-4"
-        />
-      )}
-
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <Badge className={`${labelClass} text-xs`}>{article.source.name}</Badge>
+      {/* Editorial meta strip — Apple-News-style uppercase source + dot date */}
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.12em] mb-4">
+        <span className={tone}>{article.source.name}</span>
         {article.published && (
-          <span className="text-xs text-muted-foreground">{formatDate(article.published)}</span>
+          <>
+            <span className="text-muted-foreground/60">·</span>
+            <span className="text-muted-foreground tabular-nums normal-case tracking-normal">{formatDate(article.published)}</span>
+          </>
         )}
       </div>
 
-      <h1 className="text-2xl font-bold leading-snug mb-4">{article.title}</h1>
+      {/* Oversized editorial headline */}
+      <h1 className="text-3xl sm:text-[40px] font-bold leading-[1.1] tracking-tight mb-6">
+        {article.title}
+      </h1>
 
-      {/* RSS body — show whatever the feed gave us, no truncation */}
+      {/* Hero — image when available, otherwise a category-tinted gradient
+          with the source name as a soft watermark. */}
+      {article.image_url ? (
+        <div className="relative rounded-2xl overflow-hidden mb-8 bg-muted">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={article.image_url}
+            alt=""
+            className="w-full h-auto max-h-[440px] object-cover"
+          />
+        </div>
+      ) : (
+        <div className={`relative rounded-2xl overflow-hidden mb-8 aspect-[16/7] ${tint}`}>
+          <div className="absolute inset-0 flex items-center justify-center px-8">
+            <span className="text-[clamp(40px,9vw,96px)] font-bold tracking-tighter leading-none text-foreground opacity-[0.08] select-none text-center line-clamp-2">
+              {article.source.name}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* RSS body — generous reading column with serif-y proportions */}
       {article.body && (
-        <div className="text-sm leading-relaxed text-muted-foreground mb-6 whitespace-pre-line">
+        <div className="text-[17px] leading-[1.65] text-foreground/90 mb-8 whitespace-pre-line">
           {article.body}
         </div>
       )}
@@ -93,42 +125,42 @@ export default async function ArticlePage({ params }: { params: { id: string } }
         href={article.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline mb-8"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:opacity-60 transition-opacity mb-10"
       >
         Read full article at {article.source.name} →
       </a>
 
       {/* Bias analysis — shown after the read so it doesn't prime the reader */}
-      <div className="rounded-xl border border-border bg-muted/20 p-5 mb-4">
-        <p className="text-sm font-semibold mb-3">Political bias</p>
+      <section className="news-card p-6 sm:p-7 mb-4">
+        <p className="news-section-label mb-4">Political bias</p>
         <BiasGauge score={biasScore} confidence={confidence} size="lg" />
-        <p className="text-xs text-muted-foreground mt-3">
-          Source baseline: AllSides rates <strong>{article.source.name}</strong> as{' '}
-          <strong>{article.source.allsides_label.replace('_', ' ')}</strong>.
+        <p className="text-[13px] text-muted-foreground mt-4 leading-relaxed">
+          Source baseline: AllSides rates <strong className="font-semibold text-foreground">{article.source.name}</strong> as{' '}
+          <strong className="font-semibold text-foreground">{article.source.allsides_label.replace('_', ' ')}</strong>.
           {article.bias_score !== null
             ? ' Our ML model analysed this article\'s specific language.'
             : ' Score shown is the source baseline (not yet analysed).'}
         </p>
-      </div>
+      </section>
 
       {/* Sentiment analysis */}
-      <div className="rounded-xl border border-border bg-muted/20 p-5 mb-6">
-        <p className="text-sm font-semibold mb-3">Tone &amp; emotion</p>
+      <section className="news-card p-6 sm:p-7 mb-8">
+        <p className="news-section-label mb-4">Tone &amp; emotion</p>
         <SentimentPanel
           polarity={polarity}
           intensity={intensity}
           emotionBreakdown={article.emotion_breakdown}
         />
-      </div>
+      </section>
 
-      <div>
-        <p className="text-sm font-semibold mb-3">Help improve the model</p>
+      <section className="mb-6">
+        <p className="news-section-label mb-3">Help improve the model</p>
         <FeedbackPanel
           articleId={article.id}
           bias={{ score: biasScore, confidence }}
           sentiment={{ polarity, intensity }}
         />
-      </div>
-    </div>
+      </section>
+    </article>
   )
 }

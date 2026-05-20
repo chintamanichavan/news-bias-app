@@ -20,6 +20,8 @@ interface Props {
   dayPeakGust?: number | null
   /** Aligned 24h-from-now slice. If null, the band chart is skipped. */
   hourly?: { sustained: number[]; gusts: number[]; times: string[] } | null
+  /** Detail-page mode — bigger compass + taller chart. */
+  expanded?: boolean
 }
 
 function smoothPath(pts: { x: number; y: number }[]): string {
@@ -39,7 +41,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d
 }
 
-function CompassRose({ direction, sustained, gust }: { direction: number; sustained: number; gust: number }) {
+function CompassRose({ direction, sustained, gust, expanded = false }: { direction: number; sustained: number; gust: number; expanded?: boolean }) {
   // Arrow lengths scale with speed, capped at the rose radius. The "scale" of
   // 30 mph = full is a reasonable upper-bound for daily-life conditions; a 50+
   // mph day will still render arrows that fill the rose but won't overflow.
@@ -51,7 +53,7 @@ function CompassRose({ direction, sustained, gust }: { direction: number; sustai
   const lenGust = Math.min(R - 4, (Math.max(gust, 0) / fullSpeed) * (R - 4))
 
   return (
-    <svg viewBox="0 0 140 140" className="w-32 h-32">
+    <svg viewBox="0 0 140 140" className={expanded ? 'w-52 h-52' : 'w-32 h-32'}>
       {/* Outer ring */}
       <circle cx={cx} cy={cy} r={R} className="stroke-border" strokeWidth={1} fill="none" />
       <circle cx={cx} cy={cy} r={R * 0.66} className="stroke-border/50" strokeWidth={1} fill="none" />
@@ -85,9 +87,9 @@ function CompassRose({ direction, sustained, gust }: { direction: number; sustai
   )
 }
 
-function BandChart({ data }: { data: NonNullable<Props['hourly']> }) {
+function BandChart({ data, expanded = false }: { data: NonNullable<Props['hourly']>; expanded?: boolean }) {
   const W = 320
-  const H = 80
+  const H = expanded ? 200 : 80
   const padL = 28
   const padR = 8
   const padT = 6
@@ -157,24 +159,24 @@ function BandChart({ data }: { data: NonNullable<Props['hourly']> }) {
   )
 }
 
-export default function WindCard({ current, gust, direction, dayPeakGust, hourly }: Props) {
+export default function WindCard({ current, gust, direction, dayPeakGust, hourly, expanded = false }: Props) {
   return (
     <div className="h-full flex flex-col">
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
         Wind
       </h2>
-      <div className="flex items-start gap-4">
-        <CompassRose direction={direction} sustained={current} gust={gust} />
+      <div className={`flex items-start gap-${expanded ? '6' : '4'}`}>
+        <CompassRose direction={direction} sustained={current} gust={gust} expanded={expanded} />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold tabular-nums leading-none">{Math.round(current)}</span>
-            <span className="text-xs text-muted-foreground uppercase">mph · {compass(direction)}</span>
+            <span className={`${expanded ? 'text-6xl' : 'text-3xl'} font-bold tabular-nums leading-none`}>{Math.round(current)}</span>
+            <span className={`${expanded ? 'text-sm' : 'text-xs'} text-muted-foreground uppercase tracking-wider`}>mph · {compass(direction)}</span>
           </div>
-          <div className="text-xs text-muted-foreground mt-0.5 tabular-nums">
+          <div className={`${expanded ? 'text-sm mt-2' : 'text-xs mt-0.5'} text-muted-foreground tabular-nums`}>
             gusting {Math.round(gust)} mph
             {dayPeakGust != null && ` · peak today ${Math.round(dayPeakGust)}`}
           </div>
-          <div className="mt-3 flex items-center gap-3 text-[10px] text-muted-foreground">
+          <div className={`${expanded ? 'mt-4' : 'mt-3'} flex items-center gap-3 text-[10px] text-muted-foreground`}>
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-3 h-0.5 bg-[#0369a1]" /> sustained
             </span>
@@ -186,8 +188,8 @@ export default function WindCard({ current, gust, direction, dayPeakGust, hourly
       </div>
 
       {hourly && hourly.sustained.length >= 2 && (
-        <div className="mt-3 -mx-1">
-          <BandChart data={hourly} />
+        <div className={`${expanded ? 'mt-6' : 'mt-3'} -mx-1`}>
+          <BandChart data={hourly} expanded={expanded} />
         </div>
       )}
     </div>

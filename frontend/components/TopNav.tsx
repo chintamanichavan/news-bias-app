@@ -8,7 +8,6 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/',        label: 'Top' },
   { href: '/digest',  label: 'Digest' },
   { href: '/feed',    label: 'Feed' },
-  { href: '/signals', label: 'Signals' },
   { href: '/stories', label: 'Same Story' },
   { href: '/markets', label: 'Markets' },
   { href: '/weather', label: 'Weather' },

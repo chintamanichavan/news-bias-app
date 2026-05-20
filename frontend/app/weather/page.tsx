@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import AtmosphericHero from '@/components/AtmosphericHero'
 import HourlyTempCurve from '@/components/HourlyTempCurve'
 import AirQualityCard from '@/components/AirQualityCard'
@@ -286,21 +285,19 @@ export default function WeatherPage() {
       {/* Dark-Sky-style nowcast — one-sentence hyperlocal narrative */}
       <NowCastBanner currentCode={cur.weather_code} hourly={nowcastHourly} />
 
-      {/* Hourly temperature — full width */}
-      <Card>
-        <div className="p-4">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            Next 24 hours
-          </h2>
-          <HourlyTempCurve points={next24} />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Solid line: temperature · blue bars: precipitation chance · light wash: daylight hours
-          </p>
-        </div>
-      </Card>
+      {/* Hourly temperature — full width, tap to expand */}
+      <Link href="/weather/forecast" className="news-card news-card-hover block p-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+          Next 24 hours
+        </h2>
+        <HourlyTempCurve points={next24} />
+        <p className="text-[11px] text-muted-foreground mt-1">
+          Solid line: temperature · blue bars: precipitation chance · light wash: daylight hours
+        </p>
+      </Link>
 
-      {/* Atmospheric detail cards — 4-up on xl, 2x4 on md/lg, stacked on mobile.
-          Each tile is a Link to its detail page. */}
+      {/* Atmospheric detail cards — compact summary tiles. Tap one to drill
+          into its dedicated detail page for the deep view. */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Link href="/weather/aqi" className="news-card news-card-hover block p-4">
           <AirQualityCard current={aq} hourly={aqHourly} />
@@ -335,10 +332,7 @@ export default function WeatherPage() {
           <VisibilityCard currentM={cur.visibility} hourly={visibilityHourly} />
         </Link>
         <Link href="/weather/uv" className="news-card news-card-hover block p-4">
-          <UVCard
-            current={aq?.uv_index ?? today.uv ?? 0}
-            hourly={uvHourly}
-          />
+          <UVCard current={aq?.uv_index ?? today.uv ?? 0} hourly={uvHourly} />
         </Link>
         <Link href="/weather/sun-moon" className="news-card news-card-hover block p-4">
           <SunMoonCard
@@ -352,14 +346,12 @@ export default function WeatherPage() {
       </div>
 
       {/* 7-day */}
-      <Card>
-        <div className="p-4">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            7-day forecast
-          </h2>
-          <DailyForecast data={data.daily} />
-        </div>
-      </Card>
+      <Link href="/weather/forecast" className="news-card news-card-hover block p-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          7-day forecast
+        </h2>
+        <DailyForecast data={data.daily} />
+      </Link>
 
       <p className="text-xs text-muted-foreground mt-4 text-center">
         Forecast & air quality from Open-Meteo · cached 10 min · sun arc updates as the day progresses

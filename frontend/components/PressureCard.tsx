@@ -9,6 +9,8 @@ interface Props {
   trend3h: number | null
   /** 24-48h MSL pressure forecast starting at "now" plus matching ISO times. */
   series: { values: number[]; times: string[] } | null
+  /** Detail-page mode — taller chart, bigger headline number. */
+  expanded?: boolean
 }
 
 // Meteorological norms (hPa):
@@ -52,7 +54,7 @@ function classifyTrend(rate: number | null): Trend | null {
   return                { rate, label: 'Steady',          emoji: '→',  color: 'text-muted-foreground',                  meaning: 'stable conditions' }
 }
 
-export default function PressureCard({ current, trend3h, series }: Props) {
+export default function PressureCard({ current, trend3h, series, expanded = false }: Props) {
   const trend = useMemo(() => classifyTrend(trend3h), [trend3h])
 
   return (
@@ -62,16 +64,16 @@ export default function PressureCard({ current, trend3h, series }: Props) {
       </h2>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-bold tabular-nums leading-none">{Math.round(current)}</span>
-        <span className="text-xs text-muted-foreground uppercase">hPa</span>
+        <span className={`${expanded ? 'text-6xl' : 'text-3xl'} font-bold tabular-nums leading-none`}>{Math.round(current)}</span>
+        <span className={`${expanded ? 'text-base' : 'text-xs'} text-muted-foreground uppercase tracking-wider`}>hPa</span>
         <span className="text-[11px] text-muted-foreground ml-auto tabular-nums">
           vs ISA {((current - REFERENCE_HPA) > 0 ? '+' : '')}{(current - REFERENCE_HPA).toFixed(1)}
         </span>
       </div>
 
       {trend && (
-        <div className="mt-1 flex items-baseline gap-1.5">
-          <span className={`text-sm font-medium ${trend.color}`}>
+        <div className={`${expanded ? 'mt-3' : 'mt-1'} flex items-baseline gap-1.5`}>
+          <span className={`${expanded ? 'text-base' : 'text-sm'} font-medium ${trend.color}`}>
             {trend.emoji} {trend.label}
           </span>
           <span className="text-[11px] text-muted-foreground tabular-nums">
@@ -81,16 +83,16 @@ export default function PressureCard({ current, trend3h, series }: Props) {
       )}
 
       {series && series.values.length >= 2
-        ? <Chart series={series} />
+        ? <Chart series={series} expanded={expanded} />
         : <p className="text-[11px] text-muted-foreground mt-3">Trend forecast unavailable.</p>
       }
     </div>
   )
 }
 
-function Chart({ series }: { series: NonNullable<Props['series']> }) {
+function Chart({ series, expanded = false }: { series: NonNullable<Props['series']>; expanded?: boolean }) {
   const W = 320
-  const H = 110
+  const H = expanded ? 240 : 110
   const padL = 30
   const padR = 8
   const padT = 14

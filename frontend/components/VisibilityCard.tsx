@@ -7,6 +7,8 @@ interface Props {
   currentM: number
   /** Next 24h visibility in meters + ISO times. */
   hourly: { meters: number[]; times: string[] } | null
+  /** Detail-page mode. */
+  expanded?: boolean
 }
 
 // In the dataset, 10 mi (16093 m) is the typical max; visibility only matters
@@ -49,7 +51,7 @@ function formatMi(mi: number): string {
   return `${(mi * 5280).toFixed(0)} ft`
 }
 
-export default function VisibilityCard({ currentM, hourly }: Props) {
+export default function VisibilityCard({ currentM, hourly, expanded = false }: Props) {
   const currentMi = currentM / 1609.34
   const band = bandFor(currentMi)
 
@@ -71,14 +73,14 @@ export default function VisibilityCard({ currentM, hourly }: Props) {
       </h2>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-bold tabular-nums leading-none">{formatMi(currentMi)}</span>
-        <span className={`text-sm font-medium ${band.tone} ml-auto`}>{band.label}</span>
+        <span className={`${expanded ? 'text-6xl' : 'text-3xl'} font-bold tabular-nums leading-none`}>{formatMi(currentMi)}</span>
+        <span className={`${expanded ? 'text-base' : 'text-sm'} font-medium ${band.tone} ml-auto`}>{band.label}</span>
       </div>
 
-      <div className="text-[11px] text-muted-foreground mt-1">{band.meaning}</div>
+      <div className={`${expanded ? 'text-sm mt-2' : 'text-[11px] mt-1'} text-muted-foreground`}>{band.meaning}</div>
 
       {hourly && hourly.meters.length >= 2
-        ? <Chart hourly={hourly} />
+        ? <Chart hourly={hourly} expanded={expanded} />
         : <p className="text-[11px] text-muted-foreground mt-3">Forecast unavailable.</p>
       }
 
@@ -93,9 +95,9 @@ export default function VisibilityCard({ currentM, hourly }: Props) {
   )
 }
 
-function Chart({ hourly }: { hourly: NonNullable<Props['hourly']> }) {
+function Chart({ hourly, expanded = false }: { hourly: NonNullable<Props['hourly']>; expanded?: boolean }) {
   const W = 320
-  const H = 100
+  const H = expanded ? 220 : 100
   const padL = 26
   const padR = 8
   const padT = 8

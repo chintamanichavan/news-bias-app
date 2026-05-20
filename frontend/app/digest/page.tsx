@@ -166,7 +166,13 @@ export default function DigestPage() {
                 <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background via-background/80 to-transparent" />
               </div>
             ) : (
-              <div className={`w-full h-[20%] md:h-[25%] shrink-0 ${cat.gradient}`} />
+              <div className={`relative w-full h-[30%] md:h-[35%] shrink-0 overflow-hidden ${cat.gradient}`}>
+                <div className="absolute inset-0 flex items-center justify-center px-6">
+                  <span className="text-[clamp(36px,8vw,80px)] font-bold tracking-tighter leading-none text-foreground opacity-[0.1] select-none text-center line-clamp-2">
+                    {a.source.name}
+                  </span>
+                </div>
+              </div>
             )}
 
             {/* Content — Apple-News-style editorial layout */}

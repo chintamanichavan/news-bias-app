@@ -9,6 +9,8 @@ interface Props {
   currentDewF: number
   /** 24h forecast of dew point + RH, starting at "now". Both arrays plus ISO times. */
   hourly: { dewF: number[]; rh: number[]; times: string[] } | null
+  /** Detail-page mode. */
+  expanded?: boolean
 }
 
 // Meteorological comfort bands keyed on dew point (°F). Dew point is the
@@ -53,7 +55,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d
 }
 
-export default function HumidityCard({ currentRh, currentDewF, hourly }: Props) {
+export default function HumidityCard({ currentRh, currentDewF, hourly, expanded = false }: Props) {
   const band = bandFor(currentDewF)
   const peak = useMemo(() => {
     if (!hourly?.dewF?.length) return null
@@ -69,19 +71,21 @@ export default function HumidityCard({ currentRh, currentDewF, hourly }: Props) 
       </h2>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-bold tabular-nums leading-none">{Math.round(currentRh)}<span className="text-base font-normal text-muted-foreground">%</span></span>
-        <span className="text-xs text-muted-foreground tabular-nums ml-auto">
+        <span className={`${expanded ? 'text-6xl' : 'text-3xl'} font-bold tabular-nums leading-none`}>
+          {Math.round(currentRh)}<span className={`${expanded ? 'text-2xl' : 'text-base'} font-normal text-muted-foreground`}>%</span>
+        </span>
+        <span className={`${expanded ? 'text-sm' : 'text-xs'} text-muted-foreground tabular-nums ml-auto`}>
           dew {Math.round(currentDewF)}°
         </span>
       </div>
 
-      <div className="mt-1 flex items-baseline gap-1.5">
-        <span className={`text-sm font-medium ${band.text}`}>{band.label}</span>
+      <div className={`${expanded ? 'mt-3' : 'mt-1'} flex items-baseline gap-1.5`}>
+        <span className={`${expanded ? 'text-base' : 'text-sm'} font-medium ${band.text}`}>{band.label}</span>
         <span className="text-[11px] text-muted-foreground">· {band.meaning}</span>
       </div>
 
       {hourly && hourly.dewF.length >= 2
-        ? <Chart hourly={hourly} />
+        ? <Chart hourly={hourly} expanded={expanded} />
         : <p className="text-[11px] text-muted-foreground mt-3">Forecast unavailable.</p>
       }
 
@@ -96,9 +100,9 @@ export default function HumidityCard({ currentRh, currentDewF, hourly }: Props) 
   )
 }
 
-function Chart({ hourly }: { hourly: NonNullable<Props['hourly']> }) {
+function Chart({ hourly, expanded = false }: { hourly: NonNullable<Props['hourly']>; expanded?: boolean }) {
   const W = 320
-  const H = 110
+  const H = expanded ? 240 : 110
   const padL = 26
   const padR = 8
   const padT = 10

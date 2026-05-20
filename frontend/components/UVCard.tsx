@@ -7,6 +7,8 @@ interface Props {
   current: number
   /** Next 24h UV index + ISO times. */
   hourly: { uv: number[]; times: string[] } | null
+  /** Detail-page mode. */
+  expanded?: boolean
 }
 
 // WHO / EPA UV-index risk bands.
@@ -48,7 +50,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d
 }
 
-export default function UVCard({ current, hourly }: Props) {
+export default function UVCard({ current, hourly, expanded = false }: Props) {
   const band = bandFor(current)
 
   const peak = useMemo(() => {
@@ -66,14 +68,14 @@ export default function UVCard({ current, hourly }: Props) {
       </h2>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-bold tabular-nums leading-none">{current.toFixed(1)}</span>
-        <span className={`text-sm font-medium ${band.tone} ml-auto`}>{band.label}</span>
+        <span className={`${expanded ? 'text-6xl' : 'text-3xl'} font-bold tabular-nums leading-none`}>{current.toFixed(1)}</span>
+        <span className={`${expanded ? 'text-base' : 'text-sm'} font-medium ${band.tone} ml-auto`}>{band.label}</span>
       </div>
 
-      <div className="text-[11px] text-muted-foreground mt-1">{band.meaning}</div>
+      <div className={`${expanded ? 'text-sm mt-2' : 'text-[11px] mt-1'} text-muted-foreground`}>{band.meaning}</div>
 
       {hourly && hourly.uv.length >= 2
-        ? <Chart hourly={hourly} />
+        ? <Chart hourly={hourly} expanded={expanded} />
         : <p className="text-[11px] text-muted-foreground mt-3">Forecast unavailable.</p>
       }
 
@@ -88,9 +90,9 @@ export default function UVCard({ current, hourly }: Props) {
   )
 }
 
-function Chart({ hourly }: { hourly: NonNullable<Props['hourly']> }) {
+function Chart({ hourly, expanded = false }: { hourly: NonNullable<Props['hourly']>; expanded?: boolean }) {
   const W = 320
-  const H = 100
+  const H = expanded ? 220 : 100
   const padL = 24
   const padR = 8
   const padT = 8
