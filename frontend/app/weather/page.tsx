@@ -141,7 +141,7 @@ export default function WeatherPage() {
 
   if (loading && !data) {
     return (
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         <div className="h-[360px] rounded-2xl bg-muted/30 animate-pulse mb-4" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 h-56 rounded-xl bg-muted/30 animate-pulse" />
@@ -152,7 +152,7 @@ export default function WeatherPage() {
   }
   if (error || !data) {
     return (
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20 text-center">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 text-center">
         <p className="text-lg font-medium">Couldn't load weather</p>
         <p className="text-sm text-muted-foreground mt-1">{error}</p>
         <Button size="sm" variant="outline" className="mt-4" onClick={() => { setRefreshing(true); fetchWeather() }}>Retry</Button>
@@ -258,7 +258,7 @@ export default function WeatherPage() {
   })()
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
       {/* Atmospheric hero */}
       <AtmosphericHero
         temp={cur.temperature_2m}
