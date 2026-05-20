@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import ArticleCard from '@/components/ArticleCard'
-import FeedSidebar from '@/components/FeedSidebar'
+import FilterDrawer from '@/components/FilterDrawer'
 import InfoStrip from '@/components/InfoStrip'
 import { Button } from '@/components/ui/button'
 
@@ -64,6 +64,7 @@ export default function HomePage() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const fetchArticles = useCallback(async (f: Filters, p: number) => {
     setLoading(true)
@@ -136,83 +137,121 @@ export default function HomePage() {
     subheading = `${total} articles · ${scope} · ${windowLabel}`
   }
 
+  // Display label for the current source filter, when one is selected
+  const activeSourceLabel = filters.sourceId
+    ? sources.find(s => s.id === filters.sourceId)?.name ?? 'source'
+    : null
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      <div className="flex gap-8">
-        <FeedSidebar sources={sources} filters={filters} onFiltersChange={setFilters} />
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+      <InfoStrip />
 
-        <div className="flex-1 min-w-0">
-          <InfoStrip />
-
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="text-2xl font-bold">{heading}</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">{subheading}</p>
-            </div>
-            <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing}>
-              {refreshing ? 'Refreshing...' : 'Refresh feeds'}
-            </Button>
-          </div>
-
-          {!filters.sourceId && (
-            <div className="flex flex-wrap items-center gap-3 mb-5 text-sm">
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground mr-1">Window:</span>
-                {WINDOW_OPTIONS.map(o => (
-                  <button
-                    key={o.label}
-                    onClick={() => setFilters(f => ({ ...f, lookbackHours: o.hours }))}
-                    className={`text-xs px-2.5 py-1 rounded-md transition-colors ${
-                      filters.lookbackHours === o.hours
-                        ? 'bg-primary/10 text-foreground font-medium'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-              {!filters.category && (
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters.includeAll}
-                    onChange={e => setFilters(f => ({ ...f, includeAll: e.target.checked }))}
-                    className="cursor-pointer"
-                  />
-                  Show all sources (incl. tabloid/opinion)
-                </label>
+      <div className="flex items-end justify-between gap-3 mb-4">
+        <div className="min-w-0">
+          <p className="news-section-label">Feed</p>
+          <h1 className="mt-1 text-3xl sm:text-4xl font-bold tracking-tight leading-none">{heading}</h1>
+          <p className="text-sm text-muted-foreground mt-2">{subheading}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setDrawerOpen(true)}
+            className="gap-1.5"
+          >
+            <span className="inline-block w-3.5 leading-none text-base relative -top-px">⛂</span>
+            <span>
+              Filter
+              {(filters.category || filters.sourceId) && (
+                <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-[hsl(var(--accent-news))] align-middle" />
               )}
-            </div>
-          )}
-
-          {loading && articles.length === 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="rounded-xl border border-border bg-muted/30 h-64 animate-pulse" />
-              ))}
-            </div>
-          ) : articles.length === 0 ? (
-            <div className="text-center py-20 text-muted-foreground">
-              <p className="text-lg font-medium">No articles yet</p>
-              <p className="text-sm mt-1">Click &quot;Refresh feeds&quot; to fetch the latest news</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {articles.map(a => <ArticleCard key={a.id} article={a} />)}
-              </div>
-              {articles.length < total && (
-                <div className="mt-8 text-center">
-                  <Button variant="outline" onClick={loadMore} disabled={loading}>
-                    {loading ? 'Loading...' : `Load more (${total - articles.length} remaining)`}
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
+            </span>
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </Button>
         </div>
       </div>
+
+      {/* Active filter chip — shows what's currently filtered, with a clear button */}
+      {(filters.category || filters.sourceId) && (
+        <div className="flex items-center gap-2 mb-4 text-[13px]">
+          <span className="text-muted-foreground">Showing:</span>
+          <button
+            onClick={() => setFilters(f => ({ ...f, category: null, sourceId: null }))}
+            className="inline-flex items-center gap-1.5 bg-foreground text-background px-2.5 py-1 rounded-full font-medium hover:opacity-80 transition-opacity"
+          >
+            <span>{activeSourceLabel ?? CATEGORY_HEADING[filters.category ?? ''] ?? filters.category}</span>
+            <span className="opacity-70">×</span>
+          </button>
+        </div>
+      )}
+
+      <FilterDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        sources={sources}
+        filters={filters}
+        onFiltersChange={setFilters}
+      />
+
+      {!filters.sourceId && (
+        <div className="flex flex-wrap items-center gap-3 mb-5 text-sm">
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground mr-2">Window</span>
+            {WINDOW_OPTIONS.map(o => (
+              <button
+                key={o.label}
+                onClick={() => setFilters(f => ({ ...f, lookbackHours: o.hours }))}
+                className={`text-[12px] px-2.5 py-1 rounded-md transition-colors ${
+                  filters.lookbackHours === o.hours
+                    ? 'bg-muted text-foreground font-medium'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          {!filters.category && (
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer ml-1">
+              <input
+                type="checkbox"
+                checked={filters.includeAll}
+                onChange={e => setFilters(f => ({ ...f, includeAll: e.target.checked }))}
+                className="cursor-pointer"
+              />
+              Show all sources (incl. tabloid/opinion)
+            </label>
+          )}
+        </div>
+      )}
+
+      {loading && articles.length === 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="news-card h-64 animate-pulse bg-muted/30" />
+          ))}
+        </div>
+      ) : articles.length === 0 ? (
+        <div className="news-card text-center py-20">
+          <p className="font-semibold">No articles yet</p>
+          <p className="text-sm text-muted-foreground mt-1.5">Click <span className="font-medium text-foreground">Refresh</span> to pull the latest.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {articles.map(a => <ArticleCard key={a.id} article={a} />)}
+          </div>
+          {articles.length < total && (
+            <div className="mt-8 text-center">
+              <Button variant="outline" onClick={loadMore} disabled={loading}>
+                {loading ? 'Loading…' : `Load more (${total - articles.length} remaining)`}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
