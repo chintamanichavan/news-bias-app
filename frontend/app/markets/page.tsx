@@ -67,7 +67,7 @@ export default function MarketsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <div className="px-4 sm:px-6 lg:px-10 xl:px-14 py-8">
       {/* Apple-Stocks-style masthead */}
       <header className="mb-7 flex items-end justify-between gap-3">
         <div>

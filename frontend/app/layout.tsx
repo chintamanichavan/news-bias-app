@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
+import { Newsreader } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 import TopNav from '@/components/TopNav'
@@ -19,6 +20,17 @@ const geistSans = localFont({
   weight: '100 900',
 })
 
+// Editorial serif for headlines + article body. Newsreader is the open-source
+// font closest in feel to Apple's New York / NYT editorial serifs — designed
+// specifically for news-style display + reading sizes.
+const newsreader = Newsreader({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+  variable: '--font-serif',
+})
+
 export const metadata: Metadata = {
   title: 'ClearLens — Unbiased News',
   description: 'Read the news with political bias clearly shown.',
@@ -26,7 +38,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={geistSans.variable} suppressHydrationWarning>
+    <html lang="en" className={`${geistSans.variable} ${newsreader.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
