@@ -188,7 +188,7 @@ export default function DigestPage() {
                 )}
               </div>
 
-              <h2 className="text-[26px] md:text-[36px] font-bold leading-[1.1] tracking-tight mb-5">
+              <h2 className="font-serif text-[28px] md:text-[40px] font-bold leading-[1.08] tracking-tight mb-5 [text-wrap:balance]">
                 {a.title}
               </h2>
 

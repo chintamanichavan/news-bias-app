@@ -1,14 +1,17 @@
+import { Fragment } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import BiasGauge from '@/components/BiasGauge'
 import SentimentPanel from '@/components/SentimentPanel'
 import FeedbackPanel from '@/components/FeedbackPanel'
+import RelatedReading from '@/components/RelatedReading'
 
 interface Article {
   id: string
   title: string
   url: string
   body: string | null
+  summary: string | null
   image_url: string | null
   published: string | null
   source: {
@@ -57,6 +60,67 @@ function formatDate(iso: string | null) {
   })
 }
 
+/** Pick a single representative sentence for the pull-quote from the LexRank
+ *  summary. Skip sentences that just restate the title (FT-style stubs). */
+function buildPullQuote(title: string, summary: string, paragraphs: string[]): string | null {
+  if (!summary) return null
+  const norm = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim()
+  const titleNorm = norm(title)
+  // Split summary into sentences, score by length (favor 80-180 char "essay" sentences)
+  const sentences = summary
+    .split(/(?<=[.!?])\s+(?=[A-Z"'])/)
+    .map(s => s.trim())
+    .filter(s => {
+      const n = norm(s)
+      if (n.length < 30) return false                                  // too short
+      if (n === titleNorm) return false                                // title repeat
+      if (n.startsWith(titleNorm) && n.length < titleNorm.length + 30) return false
+      return true
+    })
+  if (!sentences.length) return null
+  // Sweet spot ~120 chars
+  sentences.sort((a, b) => Math.abs(a.length - 120) - Math.abs(b.length - 120))
+  const chosen = sentences[0]
+  // Don't quote a sentence that's already in the first 2 paragraphs (it'd
+  // appear duplicated in the layout).
+  const head = (paragraphs[0] + ' ' + (paragraphs[1] || '')).toLowerCase()
+  if (head.includes(chosen.toLowerCase().slice(0, 40))) return null
+  return chosen
+}
+
+function PullQuote({ text }: { text: string }) {
+  return (
+    <figure className="my-8 sm:my-10 px-4 sm:px-8">
+      <blockquote className="font-serif italic text-[24px] sm:text-[28px] leading-[1.3] text-foreground text-center [text-wrap:balance]">
+        <span className="news-kicker not-italic relative -top-1 mr-2 text-[18px]">“</span>
+        {text.replace(/^["“”]+|["“”]+$/g, '')}
+        <span className="news-kicker not-italic relative -top-1 ml-2 text-[18px]">”</span>
+      </blockquote>
+    </figure>
+  )
+}
+
+/** Estimated reading time in minutes — based on a 230 wpm reading speed
+ *  (typical for editorial nonfiction). Floors to 1 so very short summaries
+ *  still show a meaningful number. */
+function readingTime(body: string | null): number {
+  if (!body) return 1
+  const words = body.trim().split(/\s+/).length
+  return Math.max(1, Math.round(words / 230))
+}
+
+// RSS bodies come as one string with mixed whitespace. We split on blank
+// lines first, fall back to single newlines, then drop empties. Each chunk
+// becomes a real <p> so the drop-cap CSS can target it.
+function splitParagraphs(body: string): string[] {
+  if (!body) return []
+  const text = body.replace(/\r\n/g, '\n').trim()
+  const blocks = text.includes('\n\n')
+    ? text.split(/\n{2,}/)
+    : text.split(/\n/)
+  return blocks.map(s => s.trim()).filter(Boolean)
+}
+
 export default async function ArticlePage({ params }: { params: { id: string } }) {
   const article = await getArticle(params.id)
   if (!article) notFound()
@@ -77,9 +141,18 @@ export default async function ArticlePage({ params }: { params: { id: string } }
         ← Top Stories
       </Link>
 
-      {/* Editorial meta strip — Apple-News-style uppercase source + dot date */}
+      {/* Editorial meta strip — source · reading time · published */}
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.12em] mb-4">
-        <span className={tone}>{article.source.name}</span>
+        <Link
+          href={`/channel/${article.source.id}`}
+          className={`${tone} hover:opacity-70 transition-opacity`}
+        >
+          {article.source.name}
+        </Link>
+        <span className="text-muted-foreground/60">·</span>
+        <span className="text-muted-foreground tabular-nums normal-case tracking-normal">
+          {readingTime(article.body)} min read
+        </span>
         {article.published && (
           <>
             <span className="text-muted-foreground/60">·</span>
@@ -88,8 +161,8 @@ export default async function ArticlePage({ params }: { params: { id: string } }
         )}
       </div>
 
-      {/* Oversized editorial headline */}
-      <h1 className="text-3xl sm:text-[40px] font-bold leading-[1.1] tracking-tight mb-6">
+      {/* Oversized editorial headline — serif, generous, balanced wrap */}
+      <h1 className="font-serif text-[32px] sm:text-[44px] font-bold leading-[1.08] tracking-tight mb-6 [text-wrap:balance]">
         {article.title}
       </h1>
 
@@ -114,12 +187,26 @@ export default async function ArticlePage({ params }: { params: { id: string } }
         </div>
       )}
 
-      {/* RSS body — generous reading column with serif-y proportions */}
-      {article.body && (
-        <div className="text-[17px] leading-[1.65] text-foreground/90 mb-8 whitespace-pre-line">
-          {article.body}
-        </div>
-      )}
+      {/* Article body — serif editorial reader with drop cap on the first
+          paragraph. We split on blank lines so the drop cap targets a real
+          <p>. For longer articles, we lift the LexRank summary into a
+          centered serif italic pull-quote between paragraphs 2 and 3. */}
+      {article.body && (() => {
+        const paragraphs = splitParagraphs(article.body)
+        const pullQuote = paragraphs.length >= 6 && article.summary ? buildPullQuote(article.title, article.summary, paragraphs) : null
+        return (
+          <div className="news-prose mb-8">
+            {paragraphs.map((p, i) => (
+              <Fragment key={i}>
+                <p className={i > 0 ? 'mt-5' : ''}>{p}</p>
+                {pullQuote && i === 1 && (
+                  <PullQuote text={pullQuote} />
+                )}
+              </Fragment>
+            ))}
+          </div>
+        )
+      })()}
 
       <a
         href={article.url}
@@ -129,6 +216,13 @@ export default async function ArticlePage({ params }: { params: { id: string } }
       >
         Read full article at {article.source.name} →
       </a>
+
+      {/* End-of-article: cross-source coverage + more from this publication */}
+      <RelatedReading
+        articleId={article.id}
+        sourceName={article.source.name}
+        sourceId={article.source.id}
+      />
 
       {/* Bias analysis — shown after the read so it doesn't prime the reader */}
       <section className="news-card p-6 sm:p-7 mb-4">

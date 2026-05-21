@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -21,8 +22,17 @@ function isActive(pathname: string, href: string): boolean {
 
 export default function TopNav() {
   const pathname = usePathname() ?? '/'
+  // Hairline divider only appears after the user has scrolled — mimics
+  // macOS toolbars where the separator is dynamic.
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
   return (
-    <header className="sticky top-0 z-50 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 border-b border-border/40">
+    <header className={`sticky top-0 z-50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65 transition-shadow ${scrolled ? 'shadow-[0_1px_0_0_hsl(var(--border))]' : ''}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3 min-w-0">
         <Link
           href="/"

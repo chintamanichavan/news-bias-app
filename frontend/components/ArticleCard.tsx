@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 
 interface Source {
@@ -102,7 +104,7 @@ export default function ArticleCard({ article }: { article: Article }) {
           )}
         </div>
 
-        <h2 className="text-[15px] sm:text-base font-semibold leading-snug tracking-tight line-clamp-3 group-hover:text-foreground/80 transition-colors">
+        <h2 className="font-serif text-[17px] sm:text-[18px] font-semibold leading-[1.22] tracking-tight line-clamp-3 group-hover:text-foreground/80 transition-colors [text-wrap:balance]">
           {article.title}
         </h2>
 

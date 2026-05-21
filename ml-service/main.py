@@ -269,6 +269,86 @@ def get_article(article_id: str):
     return _enrich(article)
 
 
+@app.get("/articles/{article_id}/related")
+def get_related(article_id: str, limit: int = Query(6, ge=1, le=20)):
+    """Return:
+      - same_story: other articles in the same story_group (cross-outlet coverage)
+      - more_from_source: recent articles from the same publication
+    Used by the article-reader "Read next" block + channel pages.
+    """
+    conn = db.get_conn()
+    article = db.get_article(conn, article_id)
+    if not article:
+        conn.close()
+        raise HTTPException(404, "Article not found")
+
+    source_id = article["source_id"]
+
+    # Cross-source coverage via story_groups
+    same_story: list[dict] = []
+    group_row = conn.execute(
+        "SELECT article_ids FROM story_groups WHERE article_ids LIKE ?",
+        (f'%"{article_id}"%',),
+    ).fetchone()
+    if group_row:
+        try:
+            ids = [aid for aid in json.loads(group_row["article_ids"]) if aid != article_id]
+        except (TypeError, json.JSONDecodeError):
+            ids = []
+        if ids:
+            placeholders = ",".join("?" * len(ids))
+            rows = conn.execute(
+                f"SELECT * FROM articles WHERE id IN ({placeholders}) ORDER BY published DESC NULLS LAST",
+                ids,
+            ).fetchall()
+            same_story = [_enrich(dict(r)) for r in rows]
+
+    # More from this publication, newest first, excluding the current article
+    rows = conn.execute(
+        "SELECT * FROM articles WHERE source_id = ? AND id != ? ORDER BY published DESC NULLS LAST LIMIT ?",
+        (source_id, article_id, limit),
+    ).fetchall()
+    more_from_source = [_enrich(dict(r)) for r in rows]
+
+    conn.close()
+    return {
+        "same_story": same_story[:limit],
+        "more_from_source": more_from_source[:limit],
+    }
+
+
+@app.get("/channels/{source_id}")
+def get_channel(source_id: str, limit: int = Query(30, ge=1, le=100)):
+    """Channel destination page payload — publication metadata + recent articles."""
+    src = feed_manager.SOURCE_MAP.get(source_id)
+    if not src:
+        raise HTTPException(404, "Channel not found")
+
+    conn = db.get_conn()
+    total = conn.execute(
+        "SELECT COUNT(*) FROM articles WHERE source_id = ?", (source_id,),
+    ).fetchone()[0]
+    rows = conn.execute(
+        "SELECT * FROM articles WHERE source_id = ? ORDER BY published DESC NULLS LAST LIMIT ?",
+        (source_id, limit),
+    ).fetchall()
+    articles = [_enrich(dict(r)) for r in rows]
+    conn.close()
+
+    return {
+        "source": {
+            "id": src["id"],
+            "name": src["name"],
+            "category": src.get("category"),
+            "topic": src.get("topic"),
+            "allsides_score": src.get("allsides_score", 0.0),
+            "allsides_label": src.get("allsides_label", "center"),
+        },
+        "total": total,
+        "articles": articles,
+    }
+
+
 @app.get("/sources")
 def list_sources():
     conn = db.get_conn()

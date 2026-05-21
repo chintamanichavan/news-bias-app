@@ -67,21 +67,32 @@ function useSnippet(story: TopStory): string | null {
   return candidate
 }
 
-function MetaRow({ story, accent }: { story: TopStory; accent?: string }) {
+// Apple-News-style italic-serif kicker for the hero — categorizes the story
+// in editorial voice ("ANALYSIS", "POLITICS", etc).
+const CATEGORY_KICKER: Record<string, string> = {
+  finance:     'Finance',
+  geopolitics: 'Geopolitics',
+  science:     'Science',
+  general:     'Top Story',
+}
+
+function MetaRow({ story, accent, light }: { story: TopStory; accent?: string; light?: boolean }) {
   const tone = CATEGORY_TONE[story.source.category ?? 'general'] ?? CATEGORY_TONE.general
+  const meta = light ? 'text-white/75' : 'text-muted-foreground'
+  const dot = light ? 'text-white/50' : 'text-muted-foreground'
   return (
     <div className="flex items-center gap-1.5 text-[11px] font-medium">
-      <span className={`uppercase tracking-wider ${accent ?? tone}`}>{story.source.name}</span>
+      <span className={`uppercase tracking-wider ${light ? 'text-white' : (accent ?? tone)}`}>{story.source.name}</span>
       {story.published && (
         <>
-          <span className="text-muted-foreground">·</span>
-          <span className="text-muted-foreground tabular-nums">{formatTime(story.published)}</span>
+          <span className={dot}>·</span>
+          <span className={`${meta} tabular-nums`}>{formatTime(story.published)}</span>
         </>
       )}
       {story.coverage.count > 1 && (
         <>
-          <span className="text-muted-foreground">·</span>
-          <span className="text-muted-foreground tabular-nums" title={story.coverage.sources.join(', ')}>
+          <span className={dot}>·</span>
+          <span className={`${meta} tabular-nums`} title={story.coverage.sources.join(', ')}>
             {story.coverage.count} sources
           </span>
         </>
@@ -96,36 +107,68 @@ function MetaRow({ story, accent }: { story: TopStory; accent?: string }) {
 export function HeroStoryCard({ story }: { story: TopStory }) {
   const snippet = useSnippet(story)
   const tint = CATEGORY_TINT[story.source.category ?? 'general'] ?? CATEGORY_TINT.general
-  return (
-    <Link href={`/article/${story.id}`} className="group block news-card news-card-hover overflow-hidden">
-      {story.image_url ? (
-        <div className="relative w-full aspect-[16/9] sm:aspect-[2/1] bg-muted overflow-hidden">
+  const kicker = CATEGORY_KICKER[story.source.category ?? 'general'] ?? CATEGORY_KICKER.general
+
+  // With an image: text overlay over the photo with a bottom-up dark gradient.
+  // Without an image: traditional stack (watermark hero → meta + headline below).
+  if (story.image_url) {
+    return (
+      <Link href={`/article/${story.id}`} className="group block news-card news-card-hover overflow-hidden">
+        <div className="relative w-full aspect-[16/9] sm:aspect-[2/1] xl:aspect-[5/2] 2xl:aspect-[3/1] max-h-[72vh] bg-muted overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={story.image_url}
             alt=""
-            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
-        </div>
-      ) : (
-        <div className={`relative w-full aspect-[16/7] sm:aspect-[5/2] overflow-hidden ${tint}`}>
-          {/* Big oversized headline ghost — visual anchor on text-only stories.
-              Inherits category tone via the gradient above. */}
-          <div className="absolute inset-0 flex items-center justify-center p-8">
-            <span className="text-[clamp(40px,8vw,80px)] font-bold tracking-tighter leading-none text-foreground opacity-[0.08] select-none">
-              {story.source.name}
+          {/* Bottom-up scrim — Apple News-style dark gradient for legibility */}
+          <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+          {/* Editorial kicker — top left, italic serif */}
+          <div className="absolute top-5 left-5 sm:top-7 sm:left-7">
+            <span className="news-kicker text-white" style={{ color: 'rgba(255,255,255,0.95)' }}>
+              <em>{kicker}</em>
             </span>
           </div>
+          {/* Headline + meta — bottom left */}
+          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
+            <h2 className="font-serif text-white text-[26px] sm:text-[34px] xl:text-[40px] font-bold leading-[1.1] tracking-tight max-w-[26ch] [text-wrap:balance]">
+              {story.title}
+            </h2>
+            {snippet && (
+              <p className="mt-3 text-[14px] sm:text-[15px] leading-relaxed text-white/85 line-clamp-2 max-w-[60ch]">
+                {snippet}
+              </p>
+            )}
+            <div className="mt-3">
+              <MetaRow story={story} light />
+            </div>
+          </div>
         </div>
-      )}
-      <div className="p-6 sm:p-7">
+      </Link>
+    )
+  }
+
+  // No image — original stacked layout with the watermark fallback
+  return (
+    <Link href={`/article/${story.id}`} className="group block news-card news-card-hover overflow-hidden">
+      <div className={`relative w-full aspect-[16/7] sm:aspect-[5/2] xl:aspect-[3/1] 2xl:aspect-[16/5] max-h-[64vh] overflow-hidden ${tint}`}>
+        <div className="absolute inset-0 flex items-center justify-center p-8">
+          <span className="text-[clamp(40px,8vw,80px)] font-bold tracking-tighter leading-none text-foreground opacity-[0.08] select-none">
+            {story.source.name}
+          </span>
+        </div>
+        <div className="absolute top-5 left-6 sm:top-7 sm:left-8">
+          <span className="news-kicker"><em>{kicker}</em></span>
+        </div>
+      </div>
+      <div className="p-6 sm:p-8">
         <MetaRow story={story} />
-        <h2 className="mt-2.5 text-2xl sm:text-[28px] font-bold leading-[1.15] tracking-tight group-hover:text-foreground/80 transition-colors">
+        <h2 className="mt-3 font-serif text-[26px] sm:text-[32px] xl:text-[36px] font-bold leading-[1.12] tracking-tight group-hover:text-foreground/80 transition-colors [text-wrap:balance]">
           {story.title}
         </h2>
         {snippet && (
-          <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground line-clamp-3">
+          <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground line-clamp-3 max-w-[62ch]">
             {snippet}
           </p>
         )}
@@ -162,7 +205,7 @@ export function MediumStoryCard({ story }: { story: TopStory }) {
       )}
       <div className="p-4 sm:p-5 flex-1 flex flex-col">
         <MetaRow story={story} />
-        <h3 className="mt-2 text-[17px] sm:text-[19px] font-semibold leading-snug tracking-tight line-clamp-3 group-hover:text-foreground/80 transition-colors">
+        <h3 className="mt-2 font-serif text-[19px] sm:text-[21px] font-semibold leading-[1.18] tracking-tight line-clamp-3 group-hover:text-foreground/80 transition-colors [text-wrap:balance]">
           {story.title}
         </h3>
       </div>
@@ -177,7 +220,7 @@ export function CompactStoryRow({ story }: { story: TopStory }) {
   return (
     <Link href={`/article/${story.id}`} className="group block py-3.5 first:pt-0 last:pb-0 border-b border-border/60 last:border-b-0">
       <MetaRow story={story} />
-      <h3 className="mt-1 text-[15px] sm:text-base font-semibold leading-snug tracking-tight line-clamp-2 group-hover:text-foreground/80 transition-colors">
+      <h3 className="mt-1 font-serif text-[16px] sm:text-[17px] font-semibold leading-snug tracking-tight line-clamp-2 group-hover:text-foreground/80 transition-colors">
         {story.title}
       </h3>
     </Link>

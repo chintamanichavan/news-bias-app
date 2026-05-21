@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import BiasGauge from '@/components/BiasGauge'
+import ExploreFooter from '@/components/ExploreFooter'
 
 interface Source {
   id: string
@@ -82,7 +83,7 @@ export default function StoriesPage() {
   const visible = filtered()
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+    <div className="px-4 sm:px-6 lg:px-10 xl:px-14 py-8">
       {/* Editorial masthead */}
       <header className="mb-7">
         <p className="news-section-label">Cross-source clustering</p>
@@ -166,6 +167,8 @@ export default function StoriesPage() {
           })}
         </div>
       )}
+
+      <ExploreFooter excludeHrefs={['/stories']} />
     </div>
   )
 }

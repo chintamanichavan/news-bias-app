@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import ArticleCard from '@/components/ArticleCard'
 import FilterDrawer from '@/components/FilterDrawer'
 import InfoStrip from '@/components/InfoStrip'
+import ExploreFooter from '@/components/ExploreFooter'
 import { Button } from '@/components/ui/button'
 
 interface Source {
@@ -143,7 +144,7 @@ export default function HomePage() {
     : null
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+    <div className="px-4 sm:px-6 lg:px-10 xl:px-14 py-6">
       <InfoStrip />
 
       <div className="flex items-end justify-between gap-3 mb-4">
@@ -228,7 +229,7 @@ export default function HomePage() {
       )}
 
       {loading && articles.length === 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="news-card h-64 animate-pulse bg-muted/30" />
           ))}
@@ -240,7 +241,7 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {articles.map(a => <ArticleCard key={a.id} article={a} />)}
           </div>
           {articles.length < total && (
@@ -252,6 +253,8 @@ export default function HomePage() {
           )}
         </>
       )}
+
+      <ExploreFooter excludeHrefs={['/feed']} />
     </div>
   )
 }
