@@ -18,13 +18,36 @@ SOURCES_PATH = Path(__file__).parent / "data" / "sources.json"
 REFRESH_INTERVAL = 900  # 15 minutes
 
 
-def load_sources() -> list[dict]:
+def load_all_sources() -> list[dict]:
+    """Every source in the file, active or not."""
     with open(SOURCES_PATH) as f:
-        return [s for s in json.load(f) if s.get("active")]
+        return json.load(f)
 
 
-SOURCES = load_sources()
+def load_sources() -> list[dict]:
+    return [s for s in load_all_sources() if s.get("active")]
+
+
+# ALL_SOURCES is what "do we still know about this id" is judged against, so
+# that deactivating a source does not read as retiring it. SOURCES/SOURCE_MAP
+# remain the fetch + enrichment set.
+ALL_SOURCES = load_all_sources()
+SOURCES = [s for s in ALL_SOURCES if s.get("active")]
 SOURCE_MAP: dict[str, dict] = {s["id"]: s for s in SOURCES}
+
+
+# Feeds occasionally emit a garbage <pubDate> — a template default, an epoch
+# zero, or a stamp years off. One such row (an NBC item dated 2021) was enough
+# to make the Insights masthead claim five years of ingestion, so anything
+# outside a sane window is treated as "no date" rather than trusted.
+MAX_PUB_AGE_DAYS = 400
+MAX_PUB_FUTURE_HOURS = 48
+
+
+def _plausible_pub_date(stamp: datetime) -> bool:
+    now = datetime.now(timezone.utc)
+    age_days = (now - stamp).total_seconds() / 86_400
+    return -MAX_PUB_FUTURE_HOURS / 24 <= age_days <= MAX_PUB_AGE_DAYS
 
 
 class _HTMLStripper(HTMLParser):
@@ -105,9 +128,12 @@ def _extract_image(entry) -> str | None:
     return None
 
 
-def _parse_feed(source: dict) -> list[dict]:
+def _parse_feed(source: dict) -> tuple[list[dict], str | None]:
+    """Returns (articles, feed_newest) — the second being the newest item date
+    the feed claims, unfiltered, for staleness detection."""
     feed = feedparser.parse(source["rss_url"])
     articles = []
+    feed_newest: datetime | None = None
     for entry in feed.entries[:30]:
         url = entry.get("link", "")
         if not url:
@@ -134,7 +160,12 @@ def _parse_feed(source: dict) -> list[dict]:
         )
         if time_struct:
             try:
-                published = datetime(*time_struct[:6], tzinfo=timezone.utc).isoformat()
+                stamp = datetime(*time_struct[:6], tzinfo=timezone.utc)
+                # Track the feed's claim before filtering — a feed serving only
+                # ancient items would otherwise leave no trace of being dead.
+                if feed_newest is None or stamp > feed_newest:
+                    feed_newest = stamp
+                published = stamp.isoformat() if _plausible_pub_date(stamp) else None
             except Exception:
                 pass
 
@@ -147,18 +178,20 @@ def _parse_feed(source: dict) -> list[dict]:
             "image_url": _extract_image(entry),
             "published": published,
         })
-    return articles
+    return articles, (feed_newest.isoformat() if feed_newest else None)
 
 
 async def fetch_all_feeds(bias_model=None, sentiment_model=None) -> int:
     total_new = 0
     for source in SOURCES:
         try:
-            articles = await asyncio.to_thread(_parse_feed, source)
+            articles, feed_newest = await asyncio.to_thread(_parse_feed, source)
             conn = db.get_conn()
             for art in articles:
                 db.upsert_article(conn, art)
-            db.upsert_source_fetch(conn, source["id"], len(articles))
+            db.upsert_source_fetch(
+                conn, source["id"], len(articles), feed_newest=feed_newest
+            )
             conn.commit()
             conn.close()
             total_new += len(articles)

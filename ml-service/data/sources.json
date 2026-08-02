@@ -1,40 +1,412 @@
 [
-  {"id": "huffpost", "name": "HuffPost", "rss_url": "https://www.huffpost.com/section/front-page/feed", "active": false, "category": "opinion", "topic": null, "allsides_score": -2.0, "allsides_label": "left"},
-  {"id": "msnbc", "name": "MSNBC", "rss_url": "https://www.msnbc.com/feeds/latest", "active": false, "category": "opinion", "topic": null, "allsides_score": -2.0, "allsides_label": "left"},
-
-  {"id": "nyt", "name": "New York Times", "rss_url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "active": false, "category": "news", "topic": null, "allsides_score": -1.0, "allsides_label": "lean_left"},
-  {"id": "wapo", "name": "Washington Post", "rss_url": "https://feeds.washingtonpost.com/rss/world", "active": false, "category": "news", "topic": null, "allsides_score": -1.0, "allsides_label": "lean_left"},
-  {"id": "npr", "name": "NPR", "rss_url": "https://feeds.npr.org/1001/rss.xml", "active": false, "category": "news", "topic": null, "allsides_score": -1.0, "allsides_label": "lean_left"},
-  {"id": "cnn", "name": "CNN", "rss_url": "http://rss.cnn.com/rss/edition.rss", "active": false, "category": "news", "topic": null, "allsides_score": -1.0, "allsides_label": "lean_left"},
-  {"id": "guardian", "name": "The Guardian", "rss_url": "https://www.theguardian.com/world/rss", "active": false, "category": "news", "topic": null, "allsides_score": -1.0, "allsides_label": "lean_left"},
-  {"id": "bbc", "name": "BBC News", "rss_url": "http://feeds.bbci.co.uk/news/world/rss.xml", "active": false, "category": "news", "topic": null, "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "ap", "name": "AP News", "rss_url": "https://apnews.com/index.rss", "active": false, "category": "news", "topic": null, "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "reuters", "name": "Reuters", "rss_url": "https://feeds.reuters.com/reuters/topNews", "active": false, "category": "news", "topic": null, "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "axios", "name": "Axios", "rss_url": "https://api.axios.com/feed/", "active": false, "category": "news", "topic": null, "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "thehill", "name": "The Hill", "rss_url": "https://thehill.com/feed/", "active": false, "category": "news", "topic": null, "allsides_score": 1.0, "allsides_label": "lean_right"},
-
-  {"id": "nypost", "name": "New York Post", "rss_url": "https://nypost.com/feed/", "active": false, "category": "opinion", "topic": null, "allsides_score": 1.0, "allsides_label": "lean_right"},
-  {"id": "foxnews", "name": "Fox News", "rss_url": "https://moxie.foxnews.com/google-publisher/latest.xml", "active": false, "category": "opinion", "topic": null, "allsides_score": 2.0, "allsides_label": "right"},
-  {"id": "national_review", "name": "National Review", "rss_url": "https://www.nationalreview.com/feed/", "active": false, "category": "opinion", "topic": null, "allsides_score": 2.0, "allsides_label": "right"},
-  {"id": "washingtontimes", "name": "Washington Times", "rss_url": "https://www.washingtontimes.com/rss/headlines/news/", "active": false, "category": "opinion", "topic": null, "allsides_score": 2.0, "allsides_label": "right"},
-  {"id": "dailywire", "name": "Daily Wire", "rss_url": "https://www.dailywire.com/feeds/rss.xml", "active": false, "category": "opinion", "topic": null, "allsides_score": 2.0, "allsides_label": "right"},
-  {"id": "breitbart", "name": "Breitbart", "rss_url": "https://feeds.feedburner.com/breitbart", "active": false, "category": "opinion", "topic": null, "allsides_score": 3.0, "allsides_label": "far_right"},
-
-  {"id": "ft_markets", "name": "Financial Times \u2014 Markets", "rss_url": "https://www.ft.com/markets?format=rss", "active": false, "category": "finance", "topic": "markets", "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "wsj_markets", "name": "WSJ Markets", "rss_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml", "active": false, "category": "finance", "topic": "markets", "allsides_score": 1.0, "allsides_label": "lean_right"},
-  {"id": "calculated_risk", "name": "Calculated Risk", "rss_url": "https://www.calculatedriskblog.com/feeds/posts/default", "active": false, "category": "finance", "topic": "macro", "allsides_score": -0.5, "allsides_label": "center"},
-  {"id": "marginal_revolution", "name": "Marginal Revolution", "rss_url": "https://marginalrevolution.com/feed", "active": true, "category": "finance", "topic": "economics", "allsides_score": 0.5, "allsides_label": "center"},
-  {"id": "ritholtz", "name": "Ritholtz \u2014 The Big Picture", "rss_url": "https://ritholtz.com/feed/", "active": true, "category": "finance", "topic": "markets", "allsides_score": -0.5, "allsides_label": "center"},
-  {"id": "liberty_street", "name": "Liberty Street Economics", "rss_url": "https://libertystreeteconomics.newyorkfed.org/feed/", "active": true, "category": "finance", "topic": "macro", "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "econbrowser", "name": "Econbrowser", "rss_url": "https://econbrowser.com/feed", "active": true, "category": "finance", "topic": "macro", "allsides_score": 0.0, "allsides_label": "center"},
-
-  {"id": "foreign_affairs", "name": "Foreign Affairs", "rss_url": "https://www.foreignaffairs.com/rss.xml", "active": true, "category": "geopolitics", "topic": null, "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "foreign_policy", "name": "Foreign Policy", "rss_url": "https://foreignpolicy.com/feed/", "active": true, "category": "geopolitics", "topic": null, "allsides_score": -0.5, "allsides_label": "center"},
-  {"id": "war_on_rocks", "name": "War on the Rocks", "rss_url": "https://warontherocks.com/feed/", "active": true, "category": "geopolitics", "topic": "defense", "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "cfr", "name": "Council on Foreign Relations", "rss_url": "https://www.cfr.org/rss-feeds", "active": false, "category": "geopolitics", "topic": null, "allsides_score": 0.0, "allsides_label": "center"},
-
-  {"id": "nature", "name": "Nature", "rss_url": "http://feeds.nature.com/nature/rss/current", "active": true, "category": "science", "topic": null, "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "science_mag", "name": "Science Magazine", "rss_url": "https://www.science.org/rss/news_current.xml", "active": true, "category": "science", "topic": null, "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "quanta", "name": "Quanta Magazine", "rss_url": "https://api.quantamagazine.org/feed/", "active": true, "category": "science", "topic": null, "allsides_score": 0.0, "allsides_label": "center"},
-  {"id": "scientific_american", "name": "Scientific American", "rss_url": "https://rss.sciam.com/ScientificAmerican-Global", "active": false, "category": "science", "topic": null, "allsides_score": -1.0, "allsides_label": "lean_left"}
+  {
+    "id": "huffpost",
+    "name": "HuffPost",
+    "rss_url": "https://www.huffpost.com/section/world-news/feed",
+    "active": false,
+    "category": "opinion",
+    "topic": null,
+    "allsides_score": -2.0,
+    "allsides_label": "left"
+  },
+  {
+    "id": "msnbc",
+    "name": "MSNBC",
+    "rss_url": "https://www.msnbc.com/feeds/latest",
+    "active": false,
+    "category": "opinion",
+    "topic": null,
+    "allsides_score": -2.0,
+    "allsides_label": "left"
+  },
+  {
+    "id": "nyt",
+    "name": "New York Times",
+    "rss_url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": -1.0,
+    "allsides_label": "lean_left"
+  },
+  {
+    "id": "wapo",
+    "name": "Washington Post",
+    "rss_url": "https://feeds.washingtonpost.com/rss/world",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": -1.0,
+    "allsides_label": "lean_left"
+  },
+  {
+    "id": "npr",
+    "name": "NPR",
+    "rss_url": "https://feeds.npr.org/1001/rss.xml",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": -1.0,
+    "allsides_label": "lean_left"
+  },
+  {
+    "id": "cnn",
+    "name": "CNN",
+    "rss_url": "http://rss.cnn.com/rss/edition.rss",
+    "active": false,
+    "category": "news",
+    "topic": null,
+    "allsides_score": -1.0,
+    "allsides_label": "lean_left"
+  },
+  {
+    "id": "guardian",
+    "name": "The Guardian",
+    "rss_url": "https://www.theguardian.com/world/rss",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": -1.0,
+    "allsides_label": "lean_left"
+  },
+  {
+    "id": "bbc",
+    "name": "BBC News",
+    "rss_url": "http://feeds.bbci.co.uk/news/world/rss.xml",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "ap",
+    "name": "AP News",
+    "rss_url": "https://apnews.com/index.rss",
+    "active": false,
+    "category": "news",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "reuters",
+    "name": "Reuters",
+    "rss_url": "https://feeds.reuters.com/reuters/topNews",
+    "active": false,
+    "category": "news",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "axios",
+    "name": "Axios",
+    "rss_url": "https://api.axios.com/feed/",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "thehill",
+    "name": "The Hill",
+    "rss_url": "https://thehill.com/feed/",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": 1.0,
+    "allsides_label": "lean_right"
+  },
+  {
+    "id": "nypost",
+    "name": "New York Post",
+    "rss_url": "https://nypost.com/feed/",
+    "active": true,
+    "category": "opinion",
+    "topic": null,
+    "allsides_score": 1.0,
+    "allsides_label": "lean_right"
+  },
+  {
+    "id": "foxnews",
+    "name": "Fox News",
+    "rss_url": "https://moxie.foxnews.com/google-publisher/latest.xml",
+    "active": true,
+    "category": "opinion",
+    "topic": null,
+    "allsides_score": 2.0,
+    "allsides_label": "right"
+  },
+  {
+    "id": "national_review",
+    "name": "National Review",
+    "rss_url": "https://www.nationalreview.com/feed/",
+    "active": true,
+    "category": "opinion",
+    "topic": null,
+    "allsides_score": 2.0,
+    "allsides_label": "right"
+  },
+  {
+    "id": "washingtontimes",
+    "name": "Washington Times",
+    "rss_url": "https://www.washingtontimes.com/rss/headlines/news/",
+    "active": true,
+    "category": "opinion",
+    "topic": null,
+    "allsides_score": 2.0,
+    "allsides_label": "right"
+  },
+  {
+    "id": "dailywire",
+    "name": "Daily Wire",
+    "rss_url": "https://www.dailywire.com/feeds/rss.xml",
+    "active": false,
+    "category": "opinion",
+    "topic": null,
+    "allsides_score": 2.0,
+    "allsides_label": "right"
+  },
+  {
+    "id": "breitbart",
+    "name": "Breitbart",
+    "rss_url": "https://feeds.feedburner.com/breitbart",
+    "active": false,
+    "category": "opinion",
+    "topic": null,
+    "allsides_score": 3.0,
+    "allsides_label": "far_right"
+  },
+  {
+    "id": "ft_markets",
+    "name": "Financial Times \u2014 Markets",
+    "rss_url": "https://www.ft.com/markets?format=rss",
+    "active": true,
+    "category": "finance",
+    "topic": "markets",
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "wsj_markets",
+    "name": "WSJ Markets",
+    "rss_url": "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain",
+    "active": true,
+    "category": "finance",
+    "topic": "markets",
+    "allsides_score": 1.0,
+    "allsides_label": "lean_right"
+  },
+  {
+    "id": "calculated_risk",
+    "name": "Calculated Risk",
+    "rss_url": "https://www.calculatedriskblog.com/feeds/posts/default",
+    "active": false,
+    "category": "finance",
+    "topic": "macro",
+    "allsides_score": -0.5,
+    "allsides_label": "center"
+  },
+  {
+    "id": "marginal_revolution",
+    "name": "Marginal Revolution",
+    "rss_url": "https://marginalrevolution.com/feed",
+    "active": false,
+    "category": "finance",
+    "topic": "economics",
+    "allsides_score": 0.5,
+    "allsides_label": "center"
+  },
+  {
+    "id": "ritholtz",
+    "name": "Ritholtz \u2014 The Big Picture",
+    "rss_url": "https://ritholtz.com/feed/",
+    "active": false,
+    "category": "finance",
+    "topic": "markets",
+    "allsides_score": -0.5,
+    "allsides_label": "center"
+  },
+  {
+    "id": "liberty_street",
+    "name": "Liberty Street Economics",
+    "rss_url": "https://libertystreeteconomics.newyorkfed.org/feed/",
+    "active": false,
+    "category": "finance",
+    "topic": "macro",
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "econbrowser",
+    "name": "Econbrowser",
+    "rss_url": "https://econbrowser.com/feed",
+    "active": false,
+    "category": "finance",
+    "topic": "macro",
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "foreign_affairs",
+    "name": "Foreign Affairs",
+    "rss_url": "https://www.foreignaffairs.com/rss.xml",
+    "active": true,
+    "category": "geopolitics",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "foreign_policy",
+    "name": "Foreign Policy",
+    "rss_url": "https://foreignpolicy.com/feed/",
+    "active": true,
+    "category": "geopolitics",
+    "topic": null,
+    "allsides_score": -0.5,
+    "allsides_label": "center"
+  },
+  {
+    "id": "war_on_rocks",
+    "name": "War on the Rocks",
+    "rss_url": "https://warontherocks.com/feed/",
+    "active": false,
+    "category": "geopolitics",
+    "topic": "defense",
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "cfr",
+    "name": "Council on Foreign Relations",
+    "rss_url": "https://feeds.cfr.org/publication/all",
+    "active": false,
+    "category": "geopolitics",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "nature",
+    "name": "Nature",
+    "rss_url": "http://feeds.nature.com/nature/rss/current",
+    "active": true,
+    "category": "science",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "science_mag",
+    "name": "Science Magazine",
+    "rss_url": "https://www.science.org/rss/news_current.xml",
+    "active": true,
+    "category": "science",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "quanta",
+    "name": "Quanta Magazine",
+    "rss_url": "https://api.quantamagazine.org/feed/",
+    "active": false,
+    "category": "science",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "scientific_american",
+    "name": "Scientific American",
+    "rss_url": "https://www.scientificamerican.com/platform/syndication/rss/",
+    "active": false,
+    "category": "science",
+    "topic": null,
+    "allsides_score": -1.0,
+    "allsides_label": "lean_left"
+  },
+  {
+    "id": "nbcnews",
+    "name": "NBC News",
+    "rss_url": "https://feeds.nbcnews.com/nbcnews/public/news",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": -1.0,
+    "allsides_label": "lean_left"
+  },
+  {
+    "id": "politico",
+    "name": "Politico",
+    "rss_url": "https://rss.politico.com/politics-news.xml",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": -1.0,
+    "allsides_label": "lean_left"
+  },
+  {
+    "id": "pbs",
+    "name": "PBS NewsHour",
+    "rss_url": "https://www.pbs.org/newshour/feeds/rss/headlines",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "cbsnews",
+    "name": "CBS News",
+    "rss_url": "https://www.cbsnews.com/latest/rss/main",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "aljazeera",
+    "name": "Al Jazeera",
+    "rss_url": "https://www.aljazeera.com/xml/rss/all.xml",
+    "active": false,
+    "category": "news",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "dw",
+    "name": "Deutsche Welle",
+    "rss_url": "https://rss.dw.com/rdf/rss-en-all",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "economist",
+    "name": "The Economist",
+    "rss_url": "https://www.economist.com/latest/rss.xml",
+    "active": true,
+    "category": "news",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  },
+  {
+    "id": "bloomberg",
+    "name": "Bloomberg",
+    "rss_url": "https://feeds.bloomberg.com/markets/news.rss",
+    "active": true,
+    "category": "finance",
+    "topic": null,
+    "allsides_score": 0.0,
+    "allsides_label": "center"
+  }
 ]

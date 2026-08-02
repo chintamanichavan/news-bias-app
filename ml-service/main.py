@@ -3,6 +3,7 @@ import json
 import re
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Awaitable, Callable, Optional
 
 import httpx
@@ -11,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 import db
+import divergence
 import feed_manager
 import retrain
 import signal_manager
@@ -52,24 +54,44 @@ async def _background_startup():
 
 
 def _cleanup_orphaned_articles():
-    """Delete articles whose source is no longer in sources.json."""
-    active_ids = set(feed_manager.SOURCE_MAP.keys())
-    if not active_ids:
+    """Delete articles whose source has been removed from sources.json entirely.
+
+    Deliberately keyed on *known* ids rather than *active* ones. Toggling
+    `"active": false` is an editorial decision that should be reversible —
+    keying this on the active set meant flipping one flag silently and
+    permanently destroyed every article that source had ever contributed
+    (887 rows the first time it happened here). An id disappearing from the
+    file altogether is the only unambiguous "this source is retired" signal.
+    """
+    known_ids = {s["id"] for s in feed_manager.ALL_SOURCES}
+    if not known_ids:
         return
-    placeholders = ",".join("?" * len(active_ids))
+    placeholders = ",".join("?" * len(known_ids))
+    params = list(known_ids)
     conn = db.get_conn()
-    deleted = conn.execute(
-        f"DELETE FROM articles WHERE source_id NOT IN ({placeholders})",
-        list(active_ids),
-    ).rowcount
+    doomed = conn.execute(
+        f"SELECT COUNT(*) FROM articles WHERE source_id NOT IN ({placeholders})",
+        params,
+    ).fetchone()[0]
+    # A config typo shouldn't be able to wipe the corpus in one boot.
+    total = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
+    if total and doomed > total * 0.5:
+        print(
+            f"[startup] REFUSING cleanup: {doomed}/{total} articles have no source "
+            f"in sources.json. Check the file before restarting."
+        )
+        conn.close()
+        return
     conn.execute(
-        f"DELETE FROM source_fetches WHERE source_id NOT IN ({placeholders})",
-        list(active_ids),
+        f"DELETE FROM articles WHERE source_id NOT IN ({placeholders})", params
+    )
+    conn.execute(
+        f"DELETE FROM source_fetches WHERE source_id NOT IN ({placeholders})", params
     )
     conn.commit()
     conn.close()
-    if deleted > 0:
-        print(f"[startup] Cleaned up {deleted} orphaned articles")
+    if doomed > 0:
+        print(f"[startup] Cleaned up {doomed} orphaned articles")
 
 
 @asynccontextmanager
@@ -404,11 +426,46 @@ async def submit_feedback(body: FeedbackIn):
 CROSS_REF_KEYWORDS = [
     "iran", "russia", "ukraine", "putin", "zelensky", "china", "taiwan",
     "israel", "gaza", "hamas", "hezbollah", "north korea", "houthi",
+    # Event nouns, not just actors — Polymarket phrases its geopolitics
+    # contracts around the event ("… ceasefire continues through …"), so a
+    # headline that names the event but not the country can still match.
+    "ceasefire", "nato", "blockade",
     "fed", "powell", "rate", "cpi", "inflation", "recession",
     "bitcoin", "ethereum", "crypto", "tether",
     "trump", "biden", "harris", "musk", "election",
     "oil", "opec", "wti", "gold", "copper",
 ]
+
+
+def _unresolved(signals: list[dict]) -> list[dict]:
+    """Keep only contracts that have not reached their end_date.
+
+    A settled market is a fact, not an expectation, and the refresh job can lag
+    a day behind — without this the UI happily shows yesterday's resolved odds
+    as a live signal.
+
+    Rows with no end_date are kept: Polymarket leaves it null on open-ended
+    markets, and dropping those would silently hide live questions.
+    """
+    now = datetime.now(timezone.utc)
+    out = []
+    for s in signals:
+        end = s.get("end_date")
+        if not end:
+            out.append(s)
+            continue
+        try:
+            stamp = datetime.fromisoformat(str(end).replace("Z", "+00:00"))
+            # Polymarket sometimes stores a stamp with no offset; comparing that
+            # to an aware `now` raises TypeError, which would 500 both /top and
+            # /analytics for a single bad row.
+            if stamp.tzinfo is None:
+                stamp = stamp.replace(tzinfo=timezone.utc)
+            if stamp > now:
+                out.append(s)
+        except (ValueError, TypeError):
+            out.append(s)  # unparseable stamp — better shown than swallowed
+    return out
 
 
 def _cross_ref_signal(title: str, signals: list[dict]) -> dict | None:
@@ -444,7 +501,7 @@ def top_stories(limit: int = Query(12, ge=1, le=30)):
     conn = db.get_conn()
     # Over-fetch so post-filter still hits the requested limit
     stories = db.get_top_stories(conn, limit=limit * 3, lookback_hours=36)
-    signals = db.get_signals(conn, sort="movers", limit=80)
+    signals = _unresolved(db.get_signals(conn, sort="movers", limit=120))
     conn.close()
 
     stories = [s for s in stories if not feed_manager._is_low_signal_title(s.get("title") or "")][:limit]
@@ -455,6 +512,7 @@ def top_stories(limit: int = Query(12, ge=1, le=30)):
         # Build coverage info
         member_ids = s.pop("_group_members", []) or []
         member_sources: list[str] = []
+        member_source_ids: list[str] = []
         if member_ids and len(member_ids) > 1:
             conn2 = db.get_conn()
             placeholders = ",".join("?" * len(member_ids))
@@ -464,12 +522,16 @@ def top_stories(limit: int = Query(12, ge=1, le=30)):
             ).fetchall()
             conn2.close()
             for r in rows:
+                member_source_ids.append(r["source_id"])
                 src = feed_manager.SOURCE_MAP.get(r["source_id"], {})
                 if src.get("name"):
                     member_sources.append(src["name"])
         s["coverage"] = {
             "count": s.pop("_group_size", 1),
             "sources": sorted(set(member_sources)),
+            # Political spread of the outlets covering it — lets the story cards
+            # show the same left/centre/right bar the /stories clusters use.
+            "spread": _spread_of(member_source_ids or [s["source_id"]]),
         }
         s.pop("_group_id", None)
         s.pop("_score", None)
@@ -552,6 +614,219 @@ def get_stats():
     stats = db.get_stats(conn)
     conn.close()
     return stats
+
+
+# ── Analytics ────────────────────────────────────────────────────────────────
+# One payload behind the /insights dashboard. db.get_analytics does the SQL
+# rollups; this layer joins publication metadata and folds in the model, signal
+# and blindspot numbers that already exist elsewhere in the API.
+
+def _lean_of(source_id: str) -> str:
+    label = feed_manager.SOURCE_MAP.get(source_id, {}).get("allsides_label", "center")
+    if label in _LEFT_LABELS:
+        return "left"
+    if label in _RIGHT_LABELS:
+        return "right"
+    return "center"
+
+
+def _spread_of(source_ids: list[str]) -> dict:
+    """One vote per distinct outlet, matching _compute_blindspot's rule."""
+    leans = [_lean_of(sid) for sid in dict.fromkeys(source_ids)]
+    left = leans.count("left")
+    right = leans.count("right")
+    center = leans.count("center")
+    total = left + center + right
+    partisan = left + right
+    direction: Optional[str] = None
+    skew = 0.0
+    if total >= MIN_OUTLETS_FOR_BLINDSPOT and partisan > 0:
+        right_share, left_share = right / partisan, left / partisan
+        if right_share >= BLINDSPOT_SKEW_THRESHOLD:
+            direction, skew = "left", right_share
+        elif left_share >= BLINDSPOT_SKEW_THRESHOLD:
+            direction, skew = "right", left_share
+    return {
+        "total": total, "left": left, "center": center, "right": right,
+        "direction": direction, "skew": round(skew, 4),
+    }
+
+
+# Full-corpus rollup: a dozen GROUP BYs plus per-row bucketing. Cheap at a few
+# thousand articles, linear in corpus size, and the underlying data only moves
+# when the 15-minute refresh lands — so serve a short-lived snapshot rather than
+# recomputing per request.
+_ANALYTICS_TTL_SECONDS = 90
+_analytics_cache: dict[tuple, tuple[float, dict]] = {}
+
+
+@app.get("/analytics")
+def get_analytics(
+    window_hours: int = Query(24, ge=1, le=24 * 7),
+    trend_days: int = Query(14, ge=2, le=90),
+    top_groups: int = Query(8, ge=1, le=30),
+):
+    key = (window_hours, trend_days, top_groups)
+    hit = _analytics_cache.get(key)
+    if hit and time.time() - hit[0] < _ANALYTICS_TTL_SECONDS:
+        return hit[1]
+
+    conn = db.get_conn()
+    data = db.get_analytics(conn, window_hours=window_hours, trend_days=trend_days)
+    model_stats = db.get_stats(conn)
+    # Over-fetch, then drop contracts whose end_date has passed: a settled market
+    # is a fact, not an expectation, and the refresh job can lag a day behind.
+    signals = _unresolved(db.get_signals(conn, sort="movers", limit=60))[:12]
+    signals_by_volume = _unresolved(db.get_signals(conn, sort="volume", limit=40))[:6]
+    signals_meta = db.get_signals_meta(conn)
+    live_signals = _unresolved(db.get_signals(conn, sort="volume", limit=10_000))
+    live_signal_count = len(live_signals)
+    divergence_articles = [
+        dict(r)
+        for r in conn.execute(
+            f"""SELECT id, source_id, title, summary, sentiment_score
+                  FROM articles
+                 WHERE datetime(published) > datetime('now', '-{int(trend_days)} days')"""
+        ).fetchall()
+    ]
+    signal_categories = db.get_signal_categories(conn)
+    conn.close()
+
+    # ── Outlets: join publication metadata ──────────────────────────────────
+    # Keyed off the configured active set, not off rows in `articles`: a feed
+    # that 404s on every refresh has no articles, so an article-derived list
+    # left it invisible while the UI reported "all fetching cleanly".
+    by_source = {row["source_id"]: row for row in data["outlets"]}
+    fetch_rows = data.get("source_fetches", {})
+    orphaned_articles = sum(
+        row["articles"] for sid, row in by_source.items()
+        if sid not in feed_manager.SOURCE_MAP
+    )
+    outlets = []
+    for source_id, src in feed_manager.SOURCE_MAP.items():
+        row = by_source.get(source_id) or {
+            "source_id": source_id,
+            "articles": 0, "articles_window": 0, "full_text": 0,
+            "mean_bias": None, "mean_tone": None, "mean_intensity": None,
+            "mean_confidence": None, "mean_body_chars": 0, "latest": None,
+            **fetch_rows.get(source_id, {"last_fetched": None, "error_count": 0,
+                                         "feed_newest": None}),
+            "silent_hours": None, "median_gap_hours": None, "stale": False,
+        }
+        outlets.append({
+            **row,
+            "name": src.get("name", row["source_id"]),
+            "category": src.get("category", "general"),
+            "topic": src.get("topic"),
+            "allsides_score": src.get("allsides_score", 0.0),
+            "allsides_label": src.get("allsides_label", "center"),
+            "lean": _lean_of(row["source_id"]),
+            "essential": row["source_id"] in db.ESSENTIAL_SOURCES,
+        })
+    data["outlets"] = outlets
+    data["totals"]["sources_active"] = len(feed_manager.SOURCES)
+    data["totals"]["sources_erroring"] = sum(1 for o in outlets if (o["error_count"] or 0) > 0)
+    # Distinct from erroring: these fetch cleanly, they've just stopped publishing.
+    data["totals"]["sources_stale"] = sum(1 for o in outlets if o.get("stale"))
+    # Articles from deactivated/retired sources: still counted corpus-wide but
+    # absent from the outlet leaderboard, so the two no longer sum. Reported
+    # rather than hidden, since the discrepancy is otherwise unexplainable.
+    data["totals"]["articles_unlisted"] = orphaned_articles
+    data.pop("source_fetches", None)
+
+    # ── Category rollup — weighted from the per-outlet aggregates ───────────
+    cats: dict[str, dict] = {}
+    for o in outlets:
+        c = cats.setdefault(o["category"], {
+            "category": o["category"], "articles": 0, "outlets": 0,
+            "_bias_w": 0.0, "_bias_n": 0, "_tone_w": 0.0, "_tone_n": 0,
+        })
+        c["articles"] += o["articles"]
+        c["outlets"] += 1
+        if o["mean_bias"] is not None:
+            c["_bias_w"] += o["mean_bias"] * o["articles"]
+            c["_bias_n"] += o["articles"]
+        if o["mean_tone"] is not None:
+            c["_tone_w"] += o["mean_tone"] * o["articles"]
+            c["_tone_n"] += o["articles"]
+    categories = []
+    for c in cats.values():
+        categories.append({
+            "category": c["category"],
+            "articles": c["articles"],
+            "outlets": c["outlets"],
+            "mean_bias": round(c["_bias_w"] / c["_bias_n"], 4) if c["_bias_n"] else None,
+            "mean_tone": round(c["_tone_w"] / c["_tone_n"], 4) if c["_tone_n"] else None,
+        })
+    categories.sort(key=lambda c: -c["articles"])
+    data["categories"] = categories
+
+    # ── Outlet lean split — how balanced the corpus itself is ───────────────
+    lean_split = {"left": 0, "center": 0, "right": 0}
+    lean_articles = {"left": 0, "center": 0, "right": 0}
+    for o in outlets:
+        lean_split[o["lean"]] += 1
+        lean_articles[o["lean"]] += o["articles"]
+    data["lean_split"] = {"outlets": lean_split, "articles": lean_articles}
+
+    # ── Coverage: spread + blindspot per cluster, trimmed to the top N ──────
+    groups = data["coverage"].pop("groups")
+    blindspots = {"left": 0, "right": 0}
+    shaped = []
+    for g in groups:
+        source_ids = [a["source_id"] for a in g["articles"]]
+        spread = _spread_of(source_ids)
+        if spread["direction"]:
+            blindspots[spread["direction"]] += 1
+        by_bias = sorted(
+            g["articles"],
+            key=lambda a: a["bias_score"] if a["bias_score"] is not None else 0.0,
+        )
+        median = by_bias[len(by_bias) // 2]
+        biases = [a["bias_score"] for a in g["articles"] if a["bias_score"] is not None]
+        shaped.append({
+            "group_id": g["group_id"],
+            "outlets": g["outlets"],
+            "articles": len(g["articles"]),
+            "headline": median["title"],
+            "article_id": median["id"],
+            "published": max((a["published"] or "" for a in g["articles"]), default=None) or None,
+            "spread": spread,
+            # How far apart the outlets are on this one story — the honest measure
+            # of "is this contested or agreed-upon coverage".
+            "bias_range": round(max(biases) - min(biases), 2) if len(biases) > 1 else 0.0,
+            "sources": sorted({
+                feed_manager.SOURCE_MAP.get(sid, {}).get("name", sid)
+                for sid in source_ids
+            }),
+        })
+    data["coverage"]["blindspots"] = blindspots
+    data["coverage"]["total_groups"] = len(shaped)
+    data["coverage"]["top"] = shaped[:top_groups]
+    data["coverage"]["widest_spread"] = sorted(
+        shaped, key=lambda g: -g["bias_range"]
+    )[:top_groups]
+
+    data["models"] = model_stats
+    data["signals"] = {
+        "movers": signals,
+        "by_volume": signals_by_volume,
+        "categories": signal_categories,
+        # The UI labels this "live", so it has to exclude settled contracts the
+        # same way movers/by_volume do — get_signals_meta counts every row.
+        "count": live_signal_count,
+        "count_total": signals_meta["count"],
+        "last_updated": signals_meta["last_updated"],
+    }
+    # Coverage volume vs priced probability. Both sides measured, neither
+    # forecast — the panel reports the gap, it does not predict the outcome.
+    data["divergence"] = {
+        **divergence.build(live_signals, divergence_articles, limit=10),
+        "window_days": trend_days,
+    }
+    data["generated_at"] = int(time.time())
+    _analytics_cache[key] = (time.time(), data)
+    return data
 
 
 @app.post("/debug/train")
