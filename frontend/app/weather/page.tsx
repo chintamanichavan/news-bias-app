@@ -153,7 +153,7 @@ export default function WeatherPage() {
   if (error || !data) {
     return (
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 py-20 text-center">
-        <p className="text-lg font-medium">Couldn't load weather</p>
+        <p className="text-lg font-medium">Couldn&rsquo;t load weather</p>
         <p className="text-sm text-muted-foreground mt-1">{error}</p>
         <Button size="sm" variant="outline" className="mt-4" onClick={() => { setRefreshing(true); fetchWeather() }}>Retry</Button>
       </div>
