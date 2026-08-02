@@ -933,16 +933,23 @@ _BY_CATEGORY = _active_sources_by_category()
 # and the whole digest page came back empty. Deriving them from the config the
 # feeds already use means the two can no longer drift apart.
 
-# Homepage digest: reporting-led beats only — opinion and commentary belong in
-# /feed, not in a curated digest.
-PRESTIGE_SOURCES = set().union(
-    *(_BY_CATEGORY.get(c, set()) for c in ("news", "geopolitics", "science"))
-) or set()
+# Both are exclusions rather than allowlists: an allowlist of category names has
+# the same failure mode as the id lists these replaced — add a source in a new
+# category ("tech", "climate") and it vanishes from curation with no error.
+# Excluding is the safe default; a new beat shows up until someone says otherwise.
+
+# Homepage digest: reporting-led beats only. Opinion is commentary, and markets
+# coverage is continuous price noise — both belong in /feed, not a curated digest.
+_DIGEST_EXCLUDED = {"opinion", "finance"}
+PRESTIGE_SOURCES = {
+    sid for cat, ids in _BY_CATEGORY.items() if cat not in _DIGEST_EXCLUDED
+    for sid in ids
+}
 
 # Default /feed view: everything active except opinion.
-ESSENTIAL_SOURCES = set().union(
-    *(v for k, v in _BY_CATEGORY.items() if k != "opinion")
-) or set()
+ESSENTIAL_SOURCES = {
+    sid for cat, ids in _BY_CATEGORY.items() if cat != "opinion" for sid in ids
+}
 
 
 def get_top_stories(conn, limit: int = 12, lookback_hours: int = 36):
