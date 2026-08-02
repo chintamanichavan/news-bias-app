@@ -124,7 +124,7 @@ export default function AirQualityCard({ current, hourly, expanded = false }: Pr
           </div>
         ))}
         <p className="text-[10px] text-muted-foreground/80 pt-1">
-          The vertical tick marks where readings cross into "moderate"; bars past it are unhealthy.
+          The vertical tick marks where readings cross into &ldquo;moderate&rdquo;; bars past it are unhealthy.
         </p>
       </div>
 
@@ -132,7 +132,7 @@ export default function AirQualityCard({ current, hourly, expanded = false }: Pr
       {pollens.length > 0 && (
         <div className="mt-4 pt-3 border-t border-border/60">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-            Pollen — today's peak
+            Pollen — today&rsquo;s peak
           </div>
           <div className="space-y-1">
             {pollens.slice(0, 4).map(p => {

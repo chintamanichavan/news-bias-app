@@ -116,7 +116,7 @@ export default function ForecastDetailPage() {
               <p className="news-section-label mb-3">About</p>
               <div className="space-y-3 text-[14px] leading-relaxed text-foreground/85 max-w-prose">
                 <p>Open-Meteo forecasts are updated every 15 minutes from the German Weather Service and ECMWF model blend. Hourly resolution is good to ±1°F within the next 24 hours; daily highs/lows are within ±2°F most of the week.</p>
-                <p>Precipitation probability is the chance of any measurable precipitation within the hour, not the intensity. "Sum" is the day's total accumulation in inches; "hours" is the number of hours expected to see precip.</p>
+                <p>Precipitation probability is the chance of any measurable precipitation within the hour, not the intensity. &ldquo;Sum&rdquo; is the day&rsquo;s total accumulation in inches; &ldquo;hours&rdquo; is the number of hours expected to see precip.</p>
               </div>
             </div>
           </Card>

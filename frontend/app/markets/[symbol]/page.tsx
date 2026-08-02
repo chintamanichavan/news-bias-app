@@ -101,7 +101,7 @@ export default function StockDetailPage() {
   if (error && !data) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-20 text-center">
-        <p className="text-lg font-semibold">Couldn't load {symbol}</p>
+        <p className="text-lg font-semibold">Couldn&rsquo;t load {symbol}</p>
         <p className="text-sm text-muted-foreground mt-1">{error}</p>
         <Link href="/markets" className="inline-block mt-4 text-sm font-medium text-foreground hover:opacity-60 transition-opacity">← Markets</Link>
       </div>

@@ -101,7 +101,7 @@ export default function MarketsPage() {
 
       {error && (
         <div className="news-card text-center py-10 mb-6">
-          <p className="font-semibold">Couldn't load markets</p>
+          <p className="font-semibold">Couldn&rsquo;t load markets</p>
           <p className="text-xs text-muted-foreground mt-1">{error}</p>
         </div>
       )}

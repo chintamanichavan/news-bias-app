@@ -3,12 +3,6 @@
 import { useMemo } from 'react'
 import { compass } from '@/lib/weather'
 
-interface HourlyWind {
-  time: string[]
-  wind_speed_10m: number[]
-  wind_gusts_10m: number[]
-}
-
 interface Props {
   /** Current sustained wind, mph */
   current: number

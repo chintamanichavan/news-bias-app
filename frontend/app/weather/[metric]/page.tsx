@@ -172,7 +172,7 @@ export default function WeatherDetailPage({ params }: { params: { metric: string
   if (error) {
     return (
       <DetailLayout label={meta.label} blurb={meta.blurb}>
-        <Card><div className="p-6 text-center text-sm text-muted-foreground">Couldn't load weather: {error}</div></Card>
+        <Card><div className="p-6 text-center text-sm text-muted-foreground">Couldn&rsquo;t load weather: {error}</div></Card>
       </DetailLayout>
     )
   }
