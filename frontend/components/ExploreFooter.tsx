@@ -33,6 +33,13 @@ const ALL_ENTRIES: Entry[] = [
     tint: 'bg-gradient-to-br from-stone-100 via-stone-50 to-background',
   },
   {
+    href: '/insights',
+    label: 'Insights',
+    blurb: 'Corpus-wide bias, tone, cadence and coverage',
+    tone: 'text-foreground',
+    tint: 'bg-gradient-to-br from-stone-100 via-stone-50 to-background',
+  },
+  {
     href: '/markets',
     label: 'Markets',
     blurb: 'Indices, equities, commodities, futures',

@@ -28,6 +28,31 @@
     --radius: 0.875rem;
     /* Apple News editorial accent — used sparingly on section labels + links */
     --accent-news: 354 90% 56%;
+
+    /* ── Data-viz ramps ──────────────────────────────────────────────────
+       Two diverging scales, three steps per arm, ordered centre → pole.
+       Bias reuses the app's existing blue↔red politics semantics; tone uses
+       amber↔emerald so a negative headline never reads as "right-wing".
+       Both arms and both pole pairs were run through the palette validator
+       against the card surface (#fff light, #020817 dark) — do not nudge a
+       step by eye, re-validate. */
+    --viz-bias-l1: #8db4f5;
+    --viz-bias-l2: #4a86e6;
+    --viz-bias-l3: #1a56db;
+    --viz-bias-r1: #ef9494;
+    --viz-bias-r2: #dd5c5f;
+    --viz-bias-r3: #c02828;
+    --viz-tone-n1: #e5a83f;   /* amber — negative */
+    --viz-tone-n2: #c07d10;
+    --viz-tone-n3: #8a4a04;
+    --viz-tone-p1: #5fbb98;   /* emerald — positive */
+    --viz-tone-p2: #12a37b;
+    --viz-tone-p3: #00785b;
+    /* Neutral midpoint of both diverging scales, and the fill for plain
+       magnitude bars where length already carries the value. */
+    --viz-mid: #dedbd6;
+    --viz-magnitude: #57534e;
+    --viz-grid: #e7e5e1;
   }
 
   .dark {
@@ -50,6 +75,25 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Dark steps are *selected* for the dark surface, not an automatic flip:
+       the pole is the brightest step here, and pale near-white poles were
+       rejected because amber↔emerald fell under the normal-vision floor. */
+    --viz-bias-l1: #3d6fd0;
+    --viz-bias-l2: #6a9cf2;
+    --viz-bias-l3: #8fb4f8;
+    --viz-bias-r1: #c9484b;
+    --viz-bias-r2: #d96a6d;
+    --viz-bias-r3: #ef8f8f;
+    --viz-tone-n1: #a86807;
+    --viz-tone-n2: #cf8c1e;
+    --viz-tone-n3: #e5ae4a;
+    --viz-tone-p1: #0b8a6a;
+    --viz-tone-p2: #22b48c;
+    --viz-tone-p3: #5fd0aa;
+    --viz-mid: #2b3243;
+    --viz-magnitude: #94a3b8;
+    --viz-grid: #1e293b;
   }
 
   * {
@@ -114,6 +158,41 @@
     margin-bottom: -0.12em;
     color: hsl(var(--foreground));
   }
+}
+
+/* Skeleton shimmer — a highlight sweeping left-to-right across the placeholder.
+   Tailwind's animate-pulse only fades opacity, which against this warm off-white
+   surface is close to invisible; a moving specular band reads as "working" the
+   way iOS placeholder content does. */
+@keyframes skeleton-sweep {
+  from { background-position: -150% 0; }
+  to   { background-position: 250% 0; }
+}
+
+.skeleton {
+  background-color: hsl(var(--muted));
+  background-image: linear-gradient(
+    90deg,
+    transparent 20%,
+    hsl(var(--foreground) / 0.07) 40%,
+    hsl(var(--foreground) / 0.12) 50%,
+    hsl(var(--foreground) / 0.07) 60%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-sweep 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Staggered starts so a stack of placeholders ripples instead of strobing. */
+.skeleton:nth-child(2) { animation-delay: 0.12s; }
+.skeleton:nth-child(3) { animation-delay: 0.24s; }
+.skeleton:nth-child(4) { animation-delay: 0.36s; }
+.skeleton:nth-child(5) { animation-delay: 0.48s; }
+.skeleton:nth-child(6) { animation-delay: 0.6s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
 }
 
 @keyframes ticker-marquee {
