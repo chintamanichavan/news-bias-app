@@ -181,7 +181,7 @@ def _parse_feed(source: dict) -> tuple[list[dict], str | None]:
     return articles, (feed_newest.isoformat() if feed_newest else None)
 
 
-async def fetch_all_feeds(bias_model=None, sentiment_model=None) -> int:
+async def fetch_all_feeds(sentiment_model=None) -> int:
     total_new = 0
     for source in SOURCES:
         try:
@@ -209,9 +209,8 @@ async def fetch_all_feeds(bias_model=None, sentiment_model=None) -> int:
     # so the summarizer has real content to work with.
     await _enrich_short_bodies()
 
-    if (bias_model and bias_model.model is not None) or \
-       (sentiment_model and sentiment_model.polarity_clf is not None):
-        await _score_unscored_feed(bias_model, sentiment_model)
+    if sentiment_model and sentiment_model.polarity_clf is not None:
+        await _score_unscored_feed(sentiment_model)
 
     conn = db.get_conn()
     _group_stories(conn)
@@ -258,48 +257,34 @@ async def _enrich_short_bodies(max_attempts: int = 40):
             await asyncio.sleep(0.3)  # be polite to upstream publishers
 
 
-async def _score_unscored_feed(bias_model, sentiment_model=None):
-    """Score articles missing bias OR sentiment scores. Batched writes.
+async def _score_unscored_feed(sentiment_model=None):
+    """Fill in sentiment and summary for freshly-ingested articles.
 
-    Picks WHERE clause to match the models we actually have. Critical: if we
-    selected on `bias_score IS NULL OR sentiment_score IS NULL` but only one
-    model is loaded, articles missing the other score would never get updated
-    and the loop would spin forever at 100% CPU.
+    `bias_score` is deliberately not written any more — see main.py. It stays
+    NULL, which is also why it must not appear in the predicate below: selecting
+    on a column nothing ever fills would return the same rows forever and spin
+    the loop at 100% CPU.
     """
-    has_bias = bool(bias_model and bias_model.model is not None)
     has_sent = bool(sentiment_model and sentiment_model.polarity_clf is not None)
-    if not has_bias and not has_sent:
+    if not has_sent:
         return
 
-    # Predicate covers bias + sentiment + summary so a freshly-ingested article
-    # gets all three filled in one pass.
-    where_parts = []
-    if has_bias:
-        where_parts.append("bias_score IS NULL")
-    if has_sent:
-        where_parts.append("sentiment_score IS NULL")
-    where_parts.append("summary IS NULL")
-    where = " OR ".join(where_parts)
+    where = "sentiment_score IS NULL OR summary IS NULL"
 
     while True:
         conn = db.get_conn()
         rows = conn.execute(
-            f"SELECT id, source_id, title, body, bias_score, sentiment_score, summary FROM articles WHERE {where} LIMIT 20"
+            f"SELECT id, source_id, title, body, sentiment_score, summary FROM articles WHERE {where} LIMIT 20"
         ).fetchall()
         conn.close()
         if not rows:
             break
         conn = db.get_conn()
         for row in rows:
-            source = SOURCE_MAP.get(row["source_id"], {})
             title = row["title"] or ""
             body = row["body"] or ""
 
-            if has_bias and row["bias_score"] is None:
-                score, conf = bias_model.predict(title, body, source.get("allsides_score", 0.0))
-                db.update_article_scores(conn, row["id"], score, conf, bias_model.version)
-
-            if has_sent and row["sentiment_score"] is None:
+            if row["sentiment_score"] is None:
                 pol, intensity, breakdown = sentiment_model.predict(title, body)
                 db.update_article_sentiment(conn, row["id"], pol, intensity, breakdown,
                                             sentiment_model.version)
@@ -389,7 +374,7 @@ def _group_stories(conn):
     db.save_story_groups(conn, groups)
 
 
-async def periodic_refresh(bias_model, sentiment_model=None):
+async def periodic_refresh(sentiment_model=None):
     while True:
-        await fetch_all_feeds(bias_model, sentiment_model)
+        await fetch_all_feeds(sentiment_model)
         await asyncio.sleep(REFRESH_INTERVAL)

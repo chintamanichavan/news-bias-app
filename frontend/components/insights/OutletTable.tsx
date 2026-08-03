@@ -4,12 +4,12 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Outlet, ago, divergingVar, duration, signed } from '@/lib/analytics'
 
-type SortKey = 'articles' | 'articles_window' | 'mean_bias' | 'mean_tone' | 'full_text' | 'latest'
+type SortKey = 'articles' | 'articles_window' | 'allsides_score' | 'mean_tone' | 'full_text' | 'latest'
 
 const COLUMNS: { key: SortKey; label: string; numeric: boolean }[] = [
   { key: 'articles', label: 'Articles', numeric: true },
   { key: 'articles_window', label: '24h', numeric: true },
-  { key: 'mean_bias', label: 'Mean bias', numeric: true },
+  { key: 'allsides_score', label: 'Lean', numeric: true },
   { key: 'mean_tone', label: 'Mean tone', numeric: true },
   { key: 'full_text', label: 'Full text', numeric: true },
   { key: 'latest', label: 'Newest', numeric: false },
@@ -125,17 +125,19 @@ export default function OutletTable({ outlets }: { outlets: Outlet[] }) {
                   {o.articles_window > 0 ? o.articles_window : <span className="text-muted-foreground">—</span>}
                 </td>
 
-                {/* The swatch carries the sign/strength; the number stays in
-                    text ink so it never inherits a series color. */}
+                {/* The outlet's published AllSides rating — an attribute of the
+                    masthead, not a measurement of its articles. The swatch
+                    carries sign and strength; the label stays in text ink so it
+                    never inherits a series color. */}
                 <td className="px-3 py-2.5">
-                  <div className="flex items-center justify-end gap-1.5 tabular-nums">
-                    {o.mean_bias != null && (
-                      <span
-                        className="w-2 h-2 rounded-[2px] shrink-0"
-                        style={{ background: divergingVar(o.mean_bias, 5, 'bias') }}
-                      />
-                    )}
-                    {signed(o.mean_bias)}
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span
+                      className="w-2 h-2 rounded-[2px] shrink-0"
+                      style={{ background: divergingVar(o.allsides_score, 2, 'bias') }}
+                    />
+                    <span className="whitespace-nowrap">
+                      {o.allsides_label.replace(/_/g, ' ')}
+                    </span>
                   </div>
                 </td>
 

@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import BiasGauge from '@/components/BiasGauge'
+import OutletLean from '@/components/OutletLean'
 import SentimentPanel from '@/components/SentimentPanel'
 import FeedbackPanel from '@/components/FeedbackPanel'
 import RelatedReading from '@/components/RelatedReading'
@@ -18,8 +18,6 @@ interface Article {
     id: string; name: string; category?: string
     allsides_score: number; allsides_label: string
   }
-  bias_score: number | null
-  confidence: number | null
   sentiment_score: number | null
   intensity_score: number | null
   emotion_breakdown: Record<string, number> | null
@@ -125,8 +123,7 @@ export default async function ArticlePage({ params }: { params: { id: string } }
   const article = await getArticle(params.id)
   if (!article) notFound()
 
-  const biasScore = article.bias_score ?? article.source.allsides_score
-  const confidence = article.confidence ?? 0.3
+  const leanScore = article.source.allsides_score
   const polarity = article.sentiment_score ?? 0
   const intensity = article.intensity_score ?? 0
   const tone = CATEGORY_TONE[article.source.category ?? 'general'] ?? CATEGORY_TONE.general
@@ -224,16 +221,24 @@ export default async function ArticlePage({ params }: { params: { id: string } }
         sourceId={article.source.id}
       />
 
-      {/* Bias analysis — shown after the read so it doesn't prime the reader */}
+      {/* Publisher lean — shown after the read so it doesn't prime the reader.
+          This is the outlet's rating, not a measurement of this article: the
+          model that used to claim the latter was reading the former back out.
+          Saying "publisher" in the heading is the whole point. */}
       <section className="news-card p-6 sm:p-7 mb-4">
-        <p className="news-section-label mb-4">Political bias</p>
-        <BiasGauge score={biasScore} confidence={confidence} size="lg" />
+        <p className="news-section-label mb-4">Publisher lean</p>
+        <OutletLean
+          score={leanScore}
+          label={article.source.allsides_label}
+          outlet={article.source.name}
+          size="lg"
+        />
         <p className="text-[13px] text-muted-foreground mt-4 leading-relaxed">
-          Source baseline: AllSides rates <strong className="font-semibold text-foreground">{article.source.name}</strong> as{' '}
-          <strong className="font-semibold text-foreground">{article.source.allsides_label.replace('_', ' ')}</strong>.
-          {article.bias_score !== null
-            ? ' Our ML model analysed this article\'s specific language.'
-            : ' Score shown is the source baseline (not yet analysed).'}
+          AllSides rates <strong className="font-semibold text-foreground">{article.source.name}</strong> as{' '}
+          <strong className="font-semibold text-foreground">{article.source.allsides_label.replace(/_/g, ' ')}</strong>.
+          That is a judgement about the masthead, not this piece — a wire report and an op-ed
+          from the same outlet carry the same rating. For something measured from this
+          article&rsquo;s own text, see tone and emotion below.
         </p>
       </section>
 
@@ -248,10 +253,10 @@ export default async function ArticlePage({ params }: { params: { id: string } }
       </section>
 
       <section className="mb-6">
-        <p className="news-section-label mb-3">Help improve the model</p>
+        <p className="news-section-label mb-3">Rate this article</p>
         <FeedbackPanel
           articleId={article.id}
-          bias={{ score: biasScore, confidence }}
+          lean={{ score: leanScore, label: article.source.allsides_label }}
           sentiment={{ polarity, intensity }}
         />
       </section>

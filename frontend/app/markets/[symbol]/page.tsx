@@ -33,9 +33,8 @@ interface NewsArticle {
   title: string
   url: string
   published: string | null
-  bias_score: number | null
   sentiment_score: number | null
-  source: { id: string; name: string; category: string; allsides_label: string }
+  source: { id: string; name: string; category: string; allsides_label: string; allsides_score: number }
 }
 
 interface NewsResponse {
@@ -316,7 +315,9 @@ function RelatedNews({ news }: { news: NewsResponse | null }) {
 function SentimentSummary({ articles }: { articles: NewsArticle[] }) {
   const stats = useMemo(() => {
     const sents = articles.map(a => a.sentiment_score).filter((s): s is number => s != null)
-    const biases = articles.map(a => a.bias_score).filter((b): b is number => b != null)
+    // Publisher ratings, not per-article scores — this counts who covered the
+    // symbol, which is what the panel below actually claims.
+    const biases = articles.map(a => a.source.allsides_score)
 
     const pos = sents.filter(s => s >=  0.3).length
     const neg = sents.filter(s => s <= -0.3).length

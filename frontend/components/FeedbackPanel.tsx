@@ -3,14 +3,14 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import BiasGauge from '@/components/BiasGauge'
+import OutletLean from '@/components/OutletLean'
 import SpectrumGauge from '@/components/SpectrumGauge'
 
 type Dimension = 'bias' | 'sentiment' | 'intensity'
 
 interface FeedbackPanelProps {
   articleId: string
-  bias: { score: number; confidence: number }
+  lean: { score: number; label: string }
   sentiment: { polarity: number; intensity: number }
 }
 
@@ -25,22 +25,22 @@ const INTENSITY_GRADIENT =
   'linear-gradient(to right, #3b82f6 0%, #93c5fd 35%, #fde047 65%, #f97316 85%, #dc2626 100%)'
 
 const DIMENSION_LABEL: Record<Dimension, string> = {
-  bias: 'Bias',
+  bias: 'Lean',
   sentiment: 'Tone',
   intensity: 'Intensity',
 }
 
-export default function FeedbackPanel({ articleId, bias, sentiment }: FeedbackPanelProps) {
+export default function FeedbackPanel({ articleId, lean, sentiment }: FeedbackPanelProps) {
   const [active, setActive] = useState<Dimension>('bias')
   const [loading, setLoading] = useState(false)
   const [perDim, setPerDim] = useState<Record<Dimension, PerDimState>>({
-    bias:      { state: 'idle', userValue: bias.score },
+    bias:      { state: 'idle', userValue: lean.score },
     sentiment: { state: 'idle', userValue: sentiment.polarity },
     intensity: { state: 'idle', userValue: sentiment.intensity },
   })
 
   const current = perDim[active]
-  const predicted = active === 'bias' ? bias.score
+  const predicted = active === 'bias' ? lean.score
                   : active === 'sentiment' ? sentiment.polarity
                   : sentiment.intensity
 
@@ -73,7 +73,9 @@ export default function FeedbackPanel({ articleId, bias, sentiment }: FeedbackPa
       toast.success(
         data.retrain_triggered
           ? `${DIMENSION_LABEL[active]} model is retraining…`
-          : `${DIMENSION_LABEL[active]} feedback saved (${data.feedback_count_since_retrain}/50 to next retrain)`
+          : active === 'bias'
+            ? `Saved as an article-level label (${data.feedback_count_since_retrain} so far)`
+            : `${DIMENSION_LABEL[active]} feedback saved (${data.feedback_count_since_retrain}/50 to next retrain)`
       )
     } catch {
       toast.error('Failed to submit feedback')
@@ -119,10 +121,12 @@ export default function FeedbackPanel({ articleId, bias, sentiment }: FeedbackPa
           {/* Prediction display */}
           <div>
             <p className="text-xs text-muted-foreground mb-2">
-              Our {DIMENSION_LABEL[active].toLowerCase()} estimate:
+              {active === 'bias'
+                ? 'Where its publisher sits, per AllSides:'
+                : `Our ${DIMENSION_LABEL[active].toLowerCase()} estimate:`}
             </p>
             {active === 'bias' && (
-              <BiasGauge score={bias.score} confidence={bias.confidence} size="md" />
+              <OutletLean score={lean.score} label={lean.label} size="md" />
             )}
             {active === 'sentiment' && (
               <SpectrumGauge
@@ -169,9 +173,9 @@ export default function FeedbackPanel({ articleId, bias, sentiment }: FeedbackPa
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">Drag to where it should be:</p>
               {active === 'bias' && (
-                <BiasGauge
+                <OutletLean
                   score={current.userValue}
-                  confidence={1}
+                  label={lean.label}
                   size="lg"
                   interactive
                   onChange={v => patch(active, { userValue: v })}

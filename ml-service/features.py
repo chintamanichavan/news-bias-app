@@ -3,39 +3,15 @@ import re
 from pathlib import Path
 
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 DATA_DIR = Path(__file__).parent / "data"
-NRC_PATH = DATA_DIR / "nrc_lexicon.txt"
+NRC_PATH = DATA_DIR / "nrc_lexicon.txt"   # fallback for the emotion lexicon
 EMOTION_LEXICON_PATH = DATA_DIR / "emotion_lexicon.json"
-
-HEDGING_WORDS = {
-    "allegedly", "reportedly", "purportedly", "apparently", "seemingly",
-    "may", "might", "could", "would", "should", "possibly", "perhaps",
-    "claims", "suggests", "appears", "seems", "believed", "thought",
-    "according", "sources", "officials", "experts", "analysts",
-}
-
-TFIDF_MAX_FEATURES = 5000
 
 # Emotion categories used by SentimentFeatureExtractor (order matters for feature vector)
 EMOTION_CATEGORIES = [
     "anger", "fear", "joy", "sadness", "disgust", "trust", "anticipation", "surprise",
 ]
-
-
-def _load_nrc(path: Path) -> set[str]:
-    """Legacy single-set loader used by the bias FeatureExtractor."""
-    emotion_words: set[str] = set()
-    if not path.exists():
-        return emotion_words
-    with open(path) as f:
-        for line in f:
-            parts = line.strip().split("\t")
-            if len(parts) >= 3 and parts[2] == "1":
-                if parts[1] in ("negative", "positive", "anger", "fear", "disgust"):
-                    emotion_words.add(parts[0].lower())
-    return emotion_words
 
 
 def _load_emotion_lexicon() -> dict[str, set[str]]:
@@ -56,61 +32,6 @@ def _load_emotion_lexicon() -> dict[str, set[str]]:
                 if len(parts) >= 3 and parts[2] == "1" and parts[1] in lex:
                     lex[parts[1]].add(parts[0].lower())
     return lex
-
-
-class FeatureExtractor:
-    """Bias feature extractor (existing). Unchanged external API."""
-
-    def __init__(self):
-        self.nrc: set[str] = _load_nrc(NRC_PATH)
-        self.tfidf = TfidfVectorizer(
-            max_features=TFIDF_MAX_FEATURES,
-            ngram_range=(1, 2),
-            stop_words="english",
-            min_df=2,
-            sublinear_tf=True,
-        )
-        self.fitted = False
-
-    def fit(self, texts: list[str]):
-        self.tfidf.fit(texts)
-        self.fitted = True
-
-    def _linguistic(self, title: str, body: str, source_score: float) -> np.ndarray:
-        text = f"{title} {body}"
-        words = re.findall(r"\b\w+\b", text.lower())
-        word_count = max(len(words), 1)
-
-        # allsides_score runs -2..+2; normalise to -1..+1 so this feature is on
-        # the same footing as the ratios below.
-        source_prior = source_score / 2.0
-
-        emotion_count = sum(1 for w in words if w in self.nrc)
-        emotional_score = emotion_count / word_count
-
-        hedge_count = sum(1 for w in words if w in HEDGING_WORDS)
-        hedging_ratio = hedge_count / word_count
-
-        quote_chars = sum(len(m.group()) for m in re.finditer(r'"[^"]{10,}"', text))
-        quote_density = quote_chars / max(len(text), 1)
-
-        sentences = max(text.count(".") + text.count("!") + text.count("?"), 1)
-        exclamation_ratio = text.count("!") / sentences
-
-        return np.array([source_prior, emotional_score, hedging_ratio,
-                         quote_density, exclamation_ratio], dtype=np.float32)
-
-    def extract(self, title: str, body: str, source_score: float) -> np.ndarray:
-        linguistic = self._linguistic(title, body, source_score)
-        text = f"{title} {body}"
-        if self.fitted:
-            tfidf_vec = self.tfidf.transform([text]).toarray()[0].astype(np.float32)
-        else:
-            tfidf_vec = np.zeros(TFIDF_MAX_FEATURES, dtype=np.float32)
-        return np.concatenate([linguistic, tfidf_vec])
-
-    def n_features(self) -> int:
-        return 5 + TFIDF_MAX_FEATURES
 
 
 # ── Sentiment ────────────────────────────────────────────────────────────────

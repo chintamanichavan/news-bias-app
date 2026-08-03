@@ -1,6 +1,7 @@
 import ExploreFooter from '@/components/ExploreFooter'
 import CadenceChart from '@/components/insights/CadenceChart'
 import CoveragePanel from '@/components/insights/CoveragePanel'
+import CompositionPanel from '@/components/insights/CompositionPanel'
 import DistributionChart from '@/components/insights/DistributionChart'
 import OutletTable from '@/components/insights/OutletTable'
 import DivergencePanel from '@/components/insights/DivergencePanel'
@@ -19,7 +20,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Insights · ClearLens',
-  description: 'What the whole corpus looks like — bias, tone, cadence, coverage and markets.',
+  description: 'What the whole corpus looks like — composition, tone, cadence, coverage and markets.',
 }
 
 const EMOTION_LABEL: Record<string, string> = {
@@ -49,7 +50,7 @@ export default async function InsightsPage() {
     )
   }
 
-  const { totals, bias, tone, cadence, outlets, coverage, categories, lean_split, signals, divergence } = a
+  const { totals, tone, cadence, outlets, coverage, categories, composition, lean_split, signals, divergence } = a
 
   const windowDelta =
     totals.articles_prev_window > 0
@@ -74,7 +75,7 @@ export default async function InsightsPage() {
         <h1 className="mt-1 text-3xl sm:text-4xl font-bold tracking-tight leading-none">Insights</h1>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-prose">
           Everything ClearLens has read, measured in aggregate — how much arrives and when, how the
-          bias and sentiment models actually score it, which outlets carry the load, and where
+          sentiment model actually scores it, which outlets carry the load, and where
           coverage concentrates.
           {spanDays && ` Spanning ${spanDays} days of ingestion.`}
         </p>
@@ -133,43 +134,26 @@ export default async function InsightsPage() {
         </div>
       </section>
 
-      {/* ────── Bias ────── */}
+      {/* ────── Composition ────── */}
       <section className="mb-12">
         <SectionHead
-          kicker="Model output"
-          title="Political bias"
-          blurb="Where every scored article falls on the −2 (left) to +2 (right) scale."
+          kicker="Reading list"
+          title="Publisher lean"
+          blurb="What this corpus is made of, by the AllSides rating of each outlet."
           aside={
             <div className="text-[11px] text-muted-foreground leading-relaxed">
-              <div className="tabular-nums font-medium text-foreground">{signed(bias.mean)}</div>
-              <div>mean score</div>
-              <div className="mt-1 tabular-nums">{pct(bias.mean_confidence)} confidence</div>
+              <div className="tabular-nums font-medium text-foreground">
+                {composition.outlets}
+              </div>
+              <div>rated outlets</div>
+              <div className="mt-1 tabular-nums">
+                {lean_split.outlets.left}L · {lean_split.outlets.center}C ·{' '}
+                {lean_split.outlets.right}R
+              </div>
             </div>
           }
         />
-        <div className="news-card p-5">
-          <DistributionChart
-            buckets={bias.histogram}
-            bins={bias.fine_histogram}
-            quantiles={bias.quantiles}
-            nominalMin={bias.nominal_min}
-            nominalMax={bias.nominal_max}
-            scaleUsed={bias.scale_used}
-            scored={bias.scored}
-            scale="bias"
-            negLabel="Left"
-            posLabel="Right"
-          />
-          <div className="mt-4">
-            <Caveat>
-              The outlet&rsquo;s own AllSides rating is one of the model&rsquo;s input features, and on
-              this corpus it dominates: every source&rsquo;s articles cluster within about ±0.05 of
-              its published rating. Read this as &ldquo;how the corpus is composed by outlet
-              lean&rdquo; rather than as an independent per-article judgement — the text features
-              are not yet strong enough to move an article away from its publisher.
-            </Caveat>
-          </div>
-        </div>
+        <CompositionPanel composition={composition} />
       </section>
 
       {/* ────── Tone ────── */}

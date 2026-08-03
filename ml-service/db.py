@@ -212,7 +212,6 @@ def mark_scrape_attempted(conn, article_id: str):
 
 
 def get_articles(conn, page: int, per_page: int, source_id: str | None,
-                 min_score: float | None, max_score: float | None,
                  source_ids: list[str] | None = None,
                  lookback_hours: int | None = None,
                  per_source_cap: int | None = None):
@@ -225,12 +224,6 @@ def get_articles(conn, page: int, per_page: int, source_id: str | None,
         placeholders = ",".join("?" * len(source_ids))
         where.append(f"source_id IN ({placeholders})")
         params.extend(source_ids)
-    if min_score is not None:
-        where.append("(bias_score IS NULL OR bias_score >= ?)")
-        params.append(min_score)
-    if max_score is not None:
-        where.append("(bias_score IS NULL OR bias_score <= ?)")
-        params.append(max_score)
     if lookback_hours is not None:
         where.append(f"datetime(published) > datetime('now', '-{int(lookback_hours)} hours')")
 
@@ -461,21 +454,9 @@ def get_story_groups(conn):
 # Everything the /insights dashboard reads. All of it is derived from columns we
 # already write during ingestion — nothing here needs a new model run.
 #
-# Bucket edges are shared with the frontend histograms. Seven buckets per scale
-# (three per arm + a neutral middle) so a diverging bar chart can colour each arm
-# with a validated three-step ramp.
-
-# Edges are the old -5..+5 set scaled by 1/2.5 onto the -2..+2 scale the model
-# and `allsides_score` actually use. Proportions are unchanged.
-BIAS_BUCKETS = [
-    ("far_left",   "Far left",   -2.0, -1.4),
-    ("left",       "Left",       -1.4, -0.6),
-    ("lean_left",  "Lean left",  -0.6, -0.2),
-    ("center",     "Center",     -0.2,  0.2),
-    ("lean_right", "Lean right",  0.2,  0.6),
-    ("right",      "Right",       0.6,  1.4),
-    ("far_right",  "Far right",   1.4,  2.0),
-]
+# Bucket edges are shared with the frontend histogram. Seven buckets (three per
+# arm + a neutral middle) so a diverging bar chart can colour each arm with a
+# validated three-step ramp.
 
 TONE_BUCKETS = [
     ("very_negative", "Very negative", -1.00, -0.60),
@@ -680,7 +661,6 @@ def get_analytics(conn, window_hours: int = 24, trend_days: int = 14):
         "articles_7d": scalar(
             "SELECT COUNT(*) FROM articles WHERE datetime(published) > datetime('now', '-7 days')"
         ),
-        "scored_bias": scalar("SELECT COUNT(*) FROM articles WHERE bias_score IS NOT NULL"),
         "scored_tone": scalar("SELECT COUNT(*) FROM articles WHERE sentiment_score IS NOT NULL"),
         "with_body": scalar("SELECT COUNT(*) FROM articles WHERE body IS NOT NULL AND LENGTH(body) > 400"),
         "with_summary": scalar("SELECT COUNT(*) FROM articles WHERE summary IS NOT NULL"),
@@ -699,21 +679,8 @@ def get_analytics(conn, window_hours: int = 24, trend_days: int = 14):
         ).fetchone()[0],
     }
 
-    # ── Bias distribution ───────────────────────────────────────────────────
-    bias_rows = conn.execute(
-        "SELECT bias_score, confidence FROM articles WHERE bias_score IS NOT NULL"
-    ).fetchall()
-    bias_values = [r["bias_score"] for r in bias_rows]
-    confidences = [r["confidence"] for r in bias_rows if r["confidence"] is not None]
-    bias = {
-        **_describe(bias_values, BIAS_BUCKETS, (-2.0, 2.0)),
-        "mean": _mean(bias_values),
-        "mean_confidence": _mean(confidences),
-        "confidence_quantiles": _quantiles(confidences),
-        "left": sum(1 for v in bias_values if v <= -0.2),
-        "center": sum(1 for v in bias_values if -0.2 < v < 0.2),
-        "right": sum(1 for v in bias_values if v >= 0.2),
-    }
+    # No bias distribution: nothing writes `bias_score` any more. The corpus is
+    # described by publisher lean instead — see `composition` in main.py.
 
     # ── Tone, intensity, emotions ───────────────────────────────────────────
     tone_rows = conn.execute(
@@ -813,10 +780,8 @@ def get_analytics(conn, window_hours: int = 24, trend_days: int = 14):
     outlet_rows = conn.execute(
         f"""SELECT a.source_id,
                    COUNT(*)                                        AS articles,
-                   AVG(a.bias_score)                               AS mean_bias,
                    AVG(a.sentiment_score)                          AS mean_tone,
                    AVG(a.intensity_score)                          AS mean_intensity,
-                   AVG(a.confidence)                               AS mean_confidence,
                    MAX(a.published)                                AS latest,
                    SUM(CASE WHEN datetime(a.published) > datetime('now', '-{int(window_hours)} hours')
                             THEN 1 ELSE 0 END)                     AS articles_window,
@@ -848,7 +813,7 @@ def get_analytics(conn, window_hours: int = 24, trend_days: int = 14):
     outlets = []
     for r in outlet_rows:
         d = dict(r)
-        for k in ("mean_bias", "mean_tone", "mean_intensity", "mean_confidence"):
+        for k in ("mean_tone", "mean_intensity"):
             d[k] = round(d[k], 4) if d[k] is not None else None
         d["mean_body_chars"] = int(d["mean_body_chars"] or 0)
         d.update(_staleness(d, cadence_by_source.get(d["source_id"])))
@@ -898,7 +863,6 @@ def get_analytics(conn, window_hours: int = 24, trend_days: int = 14):
     return {
         "window_hours": window_hours,
         "totals": totals,
-        "bias": bias,
         "tone": tone,
         "cadence": cadence,
         "outlets": outlets,
