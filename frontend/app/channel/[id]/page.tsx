@@ -44,10 +44,10 @@ async function getChannel(id: string): Promise<ChannelPayload | null> {
 }
 
 const CATEGORY_META: Record<string, { label: string; tint: string; dot: string }> = {
-  finance:     { label: 'Finance',     tint: 'from-emerald-200 via-emerald-100 to-stone-50', dot: 'bg-emerald-500' },
-  geopolitics: { label: 'Geopolitics', tint: 'from-indigo-200 via-sky-100 to-stone-50',      dot: 'bg-indigo-500' },
-  science:     { label: 'Science',     tint: 'from-violet-200 via-fuchsia-100 to-stone-50',  dot: 'bg-violet-500' },
-  general:     { label: 'General',     tint: 'from-stone-200 via-stone-100 to-background',   dot: 'bg-stone-500' },
+  finance:     { label: 'Finance',     tint: 'from-[var(--wash-emerald-1)] via-[var(--wash-emerald-1)] to-background', dot: 'bg-emerald-500' },
+  geopolitics: { label: 'Geopolitics', tint: 'from-[var(--wash-indigo-1)] via-[var(--wash-sky-1)] to-background',      dot: 'bg-indigo-500' },
+  science:     { label: 'Science',     tint: 'from-[var(--wash-violet-1)] via-[var(--wash-fuchsia-1)] to-background',  dot: 'bg-violet-500' },
+  general:     { label: 'General',     tint: 'from-[var(--wash-stone-1)] via-[var(--wash-stone-1)] to-background',   dot: 'bg-stone-500' },
 }
 
 const BIAS_LABEL: Record<string, string> = {

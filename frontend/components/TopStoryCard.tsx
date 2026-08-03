@@ -30,20 +30,20 @@ export interface TopStory {
 }
 
 const CATEGORY_TONE: Record<string, string> = {
-  finance:     'text-emerald-700',
-  geopolitics: 'text-indigo-700',
-  science:     'text-violet-700',
-  general:     'text-stone-600',
+  finance:     'text-[var(--ink-emerald)]',
+  geopolitics: 'text-[var(--ink-indigo)]',
+  science:     'text-[var(--ink-violet)]',
+  general:     'text-muted-foreground',
 }
 
 // Fallback art for image-less cards — a soft category-tinted gradient that
 // occupies the same visual slot the image would, so a no-image card doesn't
 // collapse into "headline floating in white space" next to siblings with images.
 const CATEGORY_TINT: Record<string, string> = {
-  finance:     'bg-gradient-to-br from-emerald-100 via-emerald-50 to-stone-50',
-  geopolitics: 'bg-gradient-to-br from-indigo-100 via-sky-50 to-stone-50',
-  science:     'bg-gradient-to-br from-violet-100 via-fuchsia-50 to-stone-50',
-  general:     'bg-gradient-to-br from-stone-100 via-stone-50 to-background',
+  finance:     'bg-gradient-to-br from-[var(--wash-emerald-1)] via-[var(--wash-emerald-2)] to-background',
+  geopolitics: 'bg-gradient-to-br from-[var(--wash-indigo-1)] via-[var(--wash-sky-2)] to-background',
+  science:     'bg-gradient-to-br from-[var(--wash-violet-1)] via-[var(--wash-fuchsia-2)] to-background',
+  general:     'bg-gradient-to-br from-[var(--wash-stone-1)] via-[var(--wash-stone-2)] to-background',
 }
 
 function formatTime(iso: string | null) {

@@ -47,10 +47,10 @@ interface Trend {
 
 function classifyTrend(rate: number | null): Trend | null {
   if (rate == null || !Number.isFinite(rate)) return null
-  if (rate >= 2)    return { rate, label: 'Rising fast',  emoji: '⤴︎', color: 'text-emerald-700 dark:text-emerald-400', meaning: 'clearing soon' }
-  if (rate >= 0.5)  return { rate, label: 'Rising',       emoji: '↗︎', color: 'text-emerald-700 dark:text-emerald-400', meaning: 'improving' }
-  if (rate <= -2)   return { rate, label: 'Falling fast', emoji: '⤵︎', color: 'text-rose-700 dark:text-rose-400',       meaning: 'storm possible' }
-  if (rate <= -0.5) return { rate, label: 'Falling',      emoji: '↘︎', color: 'text-rose-700 dark:text-rose-400',       meaning: 'weather may worsen' }
+  if (rate >= 2)    return { rate, label: 'Rising fast',  emoji: '⤴︎', color: 'text-[var(--ink-emerald)] dark:text-emerald-400', meaning: 'clearing soon' }
+  if (rate >= 0.5)  return { rate, label: 'Rising',       emoji: '↗︎', color: 'text-[var(--ink-emerald)] dark:text-emerald-400', meaning: 'improving' }
+  if (rate <= -2)   return { rate, label: 'Falling fast', emoji: '⤵︎', color: 'text-[var(--ink-rose)] dark:text-rose-400',       meaning: 'storm possible' }
+  if (rate <= -0.5) return { rate, label: 'Falling',      emoji: '↘︎', color: 'text-[var(--ink-rose)] dark:text-rose-400',       meaning: 'weather may worsen' }
   return                { rate, label: 'Steady',          emoji: '→',  color: 'text-muted-foreground',                  meaning: 'stable conditions' }
 }
 

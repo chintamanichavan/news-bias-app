@@ -25,12 +25,12 @@ interface Article {
 }
 
 const CATEGORY_META: Record<string, { label: string; tone: string; gradient: string }> = {
-  finance:     { label: 'Finance',     tone: 'text-emerald-700',
-                 gradient: 'bg-gradient-to-br from-emerald-100 via-emerald-50 to-background' },
-  geopolitics: { label: 'Geopolitics', tone: 'text-indigo-700',
-                 gradient: 'bg-gradient-to-br from-indigo-100 via-sky-50 to-background' },
-  science:     { label: 'Science',     tone: 'text-violet-700',
-                 gradient: 'bg-gradient-to-br from-violet-100 via-fuchsia-50 to-background' },
+  finance:     { label: 'Finance',     tone: 'text-[var(--ink-emerald)]',
+                 gradient: 'bg-gradient-to-br from-[var(--wash-emerald-1)] via-[var(--wash-emerald-2)] to-background' },
+  geopolitics: { label: 'Geopolitics', tone: 'text-[var(--ink-indigo)]',
+                 gradient: 'bg-gradient-to-br from-[var(--wash-indigo-1)] via-[var(--wash-sky-2)] to-background' },
+  science:     { label: 'Science',     tone: 'text-[var(--ink-violet)]',
+                 gradient: 'bg-gradient-to-br from-[var(--wash-violet-1)] via-[var(--wash-fuchsia-2)] to-background' },
 }
 
 function formatTime(iso: string | null): string {
@@ -152,8 +152,8 @@ export default function DigestPage() {
       {articles.map((a, i) => {
         const text = (a.summary && a.summary.trim().length > 10) ? a.summary : (a.body ?? '')
         const cat = CATEGORY_META[a.source.category] ?? {
-          label: a.source.category, tone: 'text-stone-700',
-          gradient: 'bg-gradient-to-br from-stone-100 via-stone-50 to-background',
+          label: a.source.category, tone: 'text-[var(--ink-stone)]',
+          gradient: 'bg-gradient-to-br from-[var(--wash-stone-1)] via-[var(--wash-stone-2)] to-background',
         }
         const hasImage = !!a.image_url && !imageFailed[a.id]
         return (

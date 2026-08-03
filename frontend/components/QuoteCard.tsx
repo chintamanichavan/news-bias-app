@@ -57,10 +57,10 @@ export default function QuoteCard({ q }: { q: Quote }) {
   const up = (q.change ?? 0) >= 0
   const changeColor =
     q.change == null ? 'text-muted-foreground' :
-    up ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'
+    up ? 'text-[var(--ink-emerald)] dark:text-emerald-300' : 'text-[var(--ink-rose)] dark:text-rose-300'
   const changeBg =
     q.change == null ? 'bg-muted' :
-    up ? 'bg-emerald-100 dark:bg-emerald-950/40' : 'bg-rose-100 dark:bg-rose-950/40'
+    up ? 'bg-[var(--wash-emerald-1)] dark:bg-emerald-950/40' : 'bg-[var(--wash-rose-1)] dark:bg-rose-950/40'
   const borderTint =
     q.change == null ? 'border-l-border' :
     up ? 'border-l-emerald-400' : 'border-l-rose-400'

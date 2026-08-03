@@ -53,6 +53,39 @@
     --viz-mid: #dedbd6;
     --viz-magnitude: #57534e;
     --viz-grid: #e7e5e1;
+
+    /* ── Accent hues ────────────────────────────────────────────────────
+     * Category tints, lean colours and metric accents used to be written as
+     * raw Tailwind steps (text-emerald-700, from-indigo-100). Those are
+     * light-mode-only: in dark mode a -700 ink lands on a dark background and
+     * a -100 wash stays bright, which is how the digest hero ended up as a
+     * white panel with invisible white text on it.
+     *
+     * Two roles per hue, so a component states intent rather than a step:
+     *   --ink-*    text and 1px strokes. Light = Tailwind -700 (unchanged);
+     *              dark = -300/-400, all >= 4.5:1 on the dark card.
+     *   --wash-*-1 the leading stop of a tint or gradient panel
+     *   --wash-*-2 the trailing stop, closer to the page
+     * Gradients end at `background`, so a panel fades into the page in both
+     * themes without naming a colour at all.
+     */
+    --ink-emerald: #047857;  --wash-emerald-1: #d1fae5;  --wash-emerald-2: #ecfdf5;
+    --ink-green:   #15803d;  --wash-green-1:   #dcfce7;  --wash-green-2:   #f0fdf4;
+    --ink-teal:    #0f766e;  --wash-teal-1:    #ccfbf1;  --wash-teal-2:    #f0fdfa;
+    --ink-sky:     #0369a1;  --wash-sky-1:     #e0f2fe;  --wash-sky-2:     #f0f9ff;
+    --ink-blue:    #1d4ed8;  --wash-blue-1:    #dbeafe;  --wash-blue-2:    #eff6ff;
+    --ink-indigo:  #4338ca;  --wash-indigo-1:  #e0e7ff;  --wash-indigo-2:  #eef2ff;
+    --ink-violet:  #6d28d9;  --wash-violet-1:  #ede9fe;  --wash-violet-2:  #f5f3ff;
+    --ink-purple:  #7e22ce;  --wash-purple-1:  #f3e8ff;  --wash-purple-2:  #faf5ff;
+    --ink-fuchsia: #a21caf;  --wash-fuchsia-1: #fae8ff;  --wash-fuchsia-2: #fdf4ff;
+    --ink-rose:    #be123c;  --wash-rose-1:    #ffe4e6;  --wash-rose-2:    #fff1f2;
+    --ink-red:     #b91c1c;  --wash-red-1:     #fee2e2;  --wash-red-2:     #fef2f2;
+    --ink-orange:  #c2410c;  --wash-orange-1:  #ffedd5;  --wash-orange-2:  #fff7ed;
+    --ink-amber:   #b45309;  --wash-amber-1:   #fef3c7;  --wash-amber-2:   #fffbeb;
+    --ink-yellow:  #a16207;  --wash-yellow-1:  #fef9c3;  --wash-yellow-2:  #fefce8;
+    --ink-slate:   #334155;  --wash-slate-1:   #f1f5f9;  --wash-slate-2:   #f8fafc;
+    --ink-stone:   #44403c;  --wash-stone-1:   #f5f5f4;  --wash-stone-2:   #fafaf9;
+    --ink-gray:    #374151;  --wash-gray-1:    #f3f4f6;  --wash-gray-2:    #f9fafb;
   }
 
   .dark {
@@ -94,6 +127,30 @@
     --viz-mid: #2b3243;
     --viz-magnitude: #94a3b8;
     --viz-grid: #1e293b;
+
+    /* Inks step up to -300/-400; washes drop to near-black tints of the same
+       hue. The card here is hsl(222.2 84% 4.9%) — luminance 0.0025 — so 4.5:1
+       needs L >= 0.186, which every ink below clears (emerald-400 0.50,
+       blue-400 0.36, the rest higher). The washes are deliberately dark: the
+       digest hero paints its outlet name as foreground at 10% opacity, which
+       only reads as a watermark if what's behind it is dark. */
+    --ink-emerald: #34d399;  --wash-emerald-1: #052e26;  --wash-emerald-2: #03211c;
+    --ink-green:   #4ade80;  --wash-green-1:   #052e16;  --wash-green-2:   #032012;
+    --ink-teal:    #5eead4;  --wash-teal-1:    #042f2e;  --wash-teal-2:    #032222;
+    --ink-sky:     #7dd3fc;  --wash-sky-1:     #082f49;  --wash-sky-2:     #062235;
+    --ink-blue:    #60a5fa;  --wash-blue-1:    #172554;  --wash-blue-2:    #101a3d;
+    --ink-indigo:  #a5b4fc;  --wash-indigo-1:  #1e1b4b;  --wash-indigo-2:  #161436;
+    --ink-violet:  #c4b5fd;  --wash-violet-1:  #2e1065;  --wash-violet-2:  #210b49;
+    --ink-purple:  #d8b4fe;  --wash-purple-1:  #3b0764;  --wash-purple-2:  #2b0549;
+    --ink-fuchsia: #f0abfc;  --wash-fuchsia-1: #4a044e;  --wash-fuchsia-2: #360338;
+    --ink-rose:    #fda4af;  --wash-rose-1:    #4c0519;  --wash-rose-2:    #380412;
+    --ink-red:     #fca5a5;  --wash-red-1:     #450a0a;  --wash-red-2:     #330707;
+    --ink-orange:  #fdba74;  --wash-orange-1:  #431407;  --wash-orange-2:  #310e05;
+    --ink-amber:   #fbbf24;  --wash-amber-1:   #451a03;  --wash-amber-2:   #331302;
+    --ink-yellow:  #fde047;  --wash-yellow-1:  #422006;  --wash-yellow-2:  #301704;
+    --ink-slate:   #cbd5e1;  --wash-slate-1:   #1e293b;  --wash-slate-2:   #172033;
+    --ink-stone:   #d6d3d1;  --wash-stone-1:   #292524;  --wash-stone-2:   #1c1917;
+    --ink-gray:    #d1d5db;  --wash-gray-1:    #1f2937;  --wash-gray-2:    #161d2b;
   }
 
   * {

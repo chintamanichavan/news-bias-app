@@ -54,7 +54,7 @@ export default function QuoteRow({ q }: { q: Quote }) {
   // for down. The pill is the only color in the entire row — everything else
   // is monochrome.
   const pillClass = neutral
-    ? 'bg-stone-100 text-stone-500'
+    ? 'bg-[var(--wash-stone-1)] text-muted-foreground'
     : up
       ? 'bg-emerald-500 text-white'
       : 'bg-rose-500 text-white'
