@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import QuoteRow, { Quote } from '@/components/QuoteRow'
+import LoadError from '@/components/LoadError'
+import { useResource } from '@/lib/useResource'
 
 interface MarketsData {
   indices: Quote[]
@@ -39,32 +40,7 @@ function timeAgo(ts: number): string {
 }
 
 export default function MarketsPage() {
-  const [data, setData] = useState<MarketsData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchMarkets = useCallback(async () => {
-    try {
-      const res = await fetch('/api/markets')
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const d = await res.json()
-      setData(d)
-      setError(null)
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchMarkets() }, [fetchMarkets])
-
-  function handleRefresh() {
-    setRefreshing(true)
-    fetchMarkets()
-  }
+  const { data, loading, refreshing, error, reload } = useResource<MarketsData>('/api/markets')
 
   return (
     <div className="px-4 sm:px-6 lg:px-10 xl:px-14 py-8">
@@ -81,7 +57,7 @@ export default function MarketsPage() {
             </p>
           )}
         </div>
-        <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing}>
+        <Button size="sm" variant="outline" onClick={reload} disabled={refreshing || loading}>
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </Button>
       </header>
@@ -99,12 +75,7 @@ export default function MarketsPage() {
         ))}
       </nav>
 
-      {error && (
-        <div className="news-card text-center py-10 mb-6">
-          <p className="font-semibold">Couldn&rsquo;t load markets</p>
-          <p className="text-xs text-muted-foreground mt-1">{error}</p>
-        </div>
-      )}
+      {error && <LoadError message={error} onRetry={reload} retrying={refreshing || loading} />}
 
       {loading && !data ? (
         <div className="space-y-8">

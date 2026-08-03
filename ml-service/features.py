@@ -81,7 +81,9 @@ class FeatureExtractor:
         words = re.findall(r"\b\w+\b", text.lower())
         word_count = max(len(words), 1)
 
-        source_prior = source_score / 5.0
+        # allsides_score runs -2..+2; normalise to -1..+1 so this feature is on
+        # the same footing as the ratios below.
+        source_prior = source_score / 2.0
 
         emotion_count = sum(1 for w in words if w in self.nrc)
         emotional_score = emotion_count / word_count

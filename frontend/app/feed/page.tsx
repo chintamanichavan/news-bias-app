@@ -5,7 +5,9 @@ import ArticleCard from '@/components/ArticleCard'
 import FilterDrawer from '@/components/FilterDrawer'
 import InfoStrip from '@/components/InfoStrip'
 import ExploreFooter from '@/components/ExploreFooter'
+import LoadError from '@/components/LoadError'
 import { Button } from '@/components/ui/button'
+import { fetchJSON } from '@/lib/useResource'
 
 interface Source {
   id: string
@@ -39,7 +41,7 @@ interface Filters {
 }
 
 const DEFAULT_FILTERS: Filters = {
-  category: null, sourceId: null, minScore: -5, maxScore: 5,
+  category: null, sourceId: null, minScore: -2, maxScore: 2,
   lookbackHours: 24, includeAll: false,
 }
 const PER_PAGE = 24
@@ -66,14 +68,15 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchArticles = useCallback(async (f: Filters, p: number) => {
     setLoading(true)
     const params = new URLSearchParams({ page: String(p), per_page: String(PER_PAGE) })
     if (f.sourceId) params.set('source_id', f.sourceId)
     if (f.category) params.set('category', f.category)
-    if (f.minScore > -5) params.set('min_score', String(f.minScore))
-    if (f.maxScore < 5) params.set('max_score', String(f.maxScore))
+    if (f.minScore > -2) params.set('min_score', String(f.minScore))
+    if (f.maxScore < 2) params.set('max_score', String(f.maxScore))
     // Picking a specific source means "show me everything from them" — skip the
     // lookback window in that case so slow-publishing sources (e.g. Liberty
     // Street, 0 posts in the last 24h) don't look empty when clicked.
@@ -81,19 +84,20 @@ export default function HomePage() {
     if (f.includeAll) params.set('include_all', 'true')
 
     try {
-      const res = await fetch(`/api/articles?${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        setArticles(prev => p === 1 ? data.articles : [...prev, ...data.articles])
-        setTotal(data.total)
-      }
+      const data = await fetchJSON<{ articles: Article[]; total: number }>(`/api/articles?${params}`)
+      setArticles(prev => p === 1 ? data.articles : [...prev, ...data.articles])
+      setTotal(data.total)
+      setError(null)
+    } catch (e) {
+      // Leave whatever is already on screen; the banner offers a retry.
+      setError((e as Error).message)
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetch('/api/sources').then(r => r.json()).then(setSources).catch(() => {})
+    fetchJSON<Source[]>('/api/sources').then(setSources).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -234,6 +238,12 @@ export default function HomePage() {
             <div key={i} className="news-card h-64 animate-pulse bg-muted/30" />
           ))}
         </div>
+      ) : error && articles.length === 0 ? (
+        <LoadError
+          message={error}
+          onRetry={() => fetchArticles(filters, 1)}
+          retrying={loading}
+        />
       ) : articles.length === 0 ? (
         <div className="news-card text-center py-20">
           <p className="font-semibold">No articles yet</p>

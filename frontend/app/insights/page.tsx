@@ -138,7 +138,7 @@ export default async function InsightsPage() {
         <SectionHead
           kicker="Model output"
           title="Political bias"
-          blurb="Where every scored article falls on the −5 (left) to +5 (right) scale."
+          blurb="Where every scored article falls on the −2 (left) to +2 (right) scale."
           aside={
             <div className="text-[11px] text-muted-foreground leading-relaxed">
               <div className="tabular-nums font-medium text-foreground">{signed(bias.mean)}</div>
@@ -160,6 +160,15 @@ export default async function InsightsPage() {
             negLabel="Left"
             posLabel="Right"
           />
+          <div className="mt-4">
+            <Caveat>
+              The outlet&rsquo;s own AllSides rating is one of the model&rsquo;s input features, and on
+              this corpus it dominates: every source&rsquo;s articles cluster within about ±0.05 of
+              its published rating. Read this as &ldquo;how the corpus is composed by outlet
+              lean&rdquo; rather than as an independent per-article judgement — the text features
+              are not yet strong enough to move an article away from its publisher.
+            </Caveat>
+          </div>
         </div>
       </section>
 
