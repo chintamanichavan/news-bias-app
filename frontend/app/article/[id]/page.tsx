@@ -37,20 +37,20 @@ async function getArticle(id: string): Promise<Article | null> {
 }
 
 const CATEGORY_TONE: Record<string, string> = {
-  finance:     'text-emerald-700',
-  geopolitics: 'text-indigo-700',
-  science:     'text-violet-700',
-  general:     'text-stone-600',
+  finance:     'text-[var(--ink-emerald)]',
+  geopolitics: 'text-[var(--ink-indigo)]',
+  science:     'text-[var(--ink-violet)]',
+  general:     'text-muted-foreground',
 }
 
 // Category-tinted gradient used as the hero fallback when an article has no
 // image. Matches the Top-page / Feed-card treatment so a no-image article
 // still has visual anchor at the top of the reader.
 const CATEGORY_TINT: Record<string, string> = {
-  finance:     'bg-gradient-to-br from-emerald-100 via-emerald-50 to-stone-50',
-  geopolitics: 'bg-gradient-to-br from-indigo-100 via-sky-50 to-stone-50',
-  science:     'bg-gradient-to-br from-violet-100 via-fuchsia-50 to-stone-50',
-  general:     'bg-gradient-to-br from-stone-100 via-stone-50 to-background',
+  finance:     'bg-gradient-to-br from-[var(--wash-emerald-1)] via-[var(--wash-emerald-2)] to-background',
+  geopolitics: 'bg-gradient-to-br from-[var(--wash-indigo-1)] via-[var(--wash-sky-2)] to-background',
+  science:     'bg-gradient-to-br from-[var(--wash-violet-1)] via-[var(--wash-fuchsia-2)] to-background',
+  general:     'bg-gradient-to-br from-[var(--wash-stone-1)] via-[var(--wash-stone-2)] to-background',
 }
 
 function formatDate(iso: string | null) {

@@ -183,11 +183,11 @@ function DailyForecast({ data }: { data: WeatherData['daily'] }) {
             <div className="text-right text-[11px] text-muted-foreground tabular-nums flex items-center justify-end gap-1.5">
               {tag && (
                 <span className={`text-[9px] uppercase font-semibold px-1.5 py-0.5 rounded
-                  ${tag === 'warmest' ? 'bg-orange-100 text-orange-800' :
-                    tag === 'coldest' ? 'bg-sky-100 text-sky-800' :
-                    'bg-blue-100 text-blue-800'}`}>{tag}</span>
+                  ${tag === 'warmest' ? 'bg-[var(--wash-orange-1)] text-[var(--ink-orange)]' :
+                    tag === 'coldest' ? 'bg-[var(--wash-sky-1)] text-[var(--ink-sky)]' :
+                    'bg-[var(--wash-blue-1)] text-[var(--ink-blue)]'}`}>{tag}</span>
               )}
-              <span className={pop >= 30 ? 'text-sky-600' : ''} title={precip > 0 ? `${precip.toFixed(2)}" over ~${Math.round(hours)}h` : 'no precip expected'}>
+              <span className={pop >= 30 ? 'text-[var(--ink-sky)]' : ''} title={precip > 0 ? `${precip.toFixed(2)}" over ~${Math.round(hours)}h` : 'no precip expected'}>
                 {pop}%
               </span>
             </div>

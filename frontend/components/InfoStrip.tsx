@@ -66,8 +66,8 @@ function fmtPct(p: number | null): string {
 function pctClass(p: number | null): string {
   if (p == null) return 'text-muted-foreground'
   return p >= 0
-    ? 'text-emerald-700 dark:text-emerald-300'
-    : 'text-rose-700 dark:text-rose-300'
+    ? 'text-[var(--ink-emerald)] dark:text-emerald-300'
+    : 'text-[var(--ink-rose)] dark:text-rose-300'
 }
 
 function fmtPrice(p: number | null): string {

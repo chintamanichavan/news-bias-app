@@ -389,9 +389,9 @@ function DailyForecast({ data }: { data: WeatherData['daily'] }) {
             <div className="text-right text-[11px] text-muted-foreground tabular-nums flex items-center justify-end gap-1.5">
               {tag && (
                 <span className={`text-[9px] uppercase font-semibold px-1.5 py-0.5 rounded
-                  ${tag === 'warmest' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200' :
-                    tag === 'coldest' ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200' :
-                    'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'}`}>{tag}</span>
+                  ${tag === 'warmest' ? 'bg-[var(--wash-orange-1)] text-[var(--ink-orange)] dark:bg-orange-900/40 dark:text-orange-200' :
+                    tag === 'coldest' ? 'bg-[var(--wash-sky-1)] text-[var(--ink-sky)] dark:bg-sky-900/40 dark:text-sky-200' :
+                    'bg-[var(--wash-blue-1)] text-[var(--ink-blue)] dark:bg-blue-900/40 dark:text-blue-200'}`}>{tag}</span>
               )}
               <span className={pop >= 30 ? 'text-sky-600 dark:text-sky-400' : ''}>💧{pop}%</span>
             </div>

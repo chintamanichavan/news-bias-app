@@ -25,12 +25,12 @@ interface Band {
 }
 
 const BANDS: Band[] = [
-  { upTo: 55,  label: 'Dry',        meaning: 'comfortable',         fill: 'fill-emerald-100 dark:fill-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300' },
-  { upTo: 60,  label: 'Pleasant',   meaning: 'pleasant',            fill: 'fill-teal-100 dark:fill-teal-950/40',       text: 'text-teal-700 dark:text-teal-300' },
-  { upTo: 65,  label: 'Noticeable', meaning: 'noticeable',          fill: 'fill-yellow-100 dark:fill-yellow-950/40',   text: 'text-yellow-700 dark:text-yellow-300' },
-  { upTo: 70,  label: 'Sticky',     meaning: 'sticky',              fill: 'fill-amber-100 dark:fill-amber-950/40',     text: 'text-amber-700 dark:text-amber-300' },
-  { upTo: 75,  label: 'Oppressive', meaning: 'oppressive',          fill: 'fill-orange-100 dark:fill-orange-950/40',   text: 'text-orange-700 dark:text-orange-300' },
-  { upTo: 999, label: 'Tropical',   meaning: 'tropical, miserable', fill: 'fill-red-100 dark:fill-red-950/40',         text: 'text-red-700 dark:text-red-300' },
+  { upTo: 55,  label: 'Dry',        meaning: 'comfortable',         fill: 'fill-emerald-100 dark:fill-emerald-950/40', text: 'text-[var(--ink-emerald)] dark:text-emerald-300' },
+  { upTo: 60,  label: 'Pleasant',   meaning: 'pleasant',            fill: 'fill-teal-100 dark:fill-teal-950/40',       text: 'text-[var(--ink-teal)] dark:text-teal-300' },
+  { upTo: 65,  label: 'Noticeable', meaning: 'noticeable',          fill: 'fill-yellow-100 dark:fill-yellow-950/40',   text: 'text-[var(--ink-yellow)] dark:text-yellow-300' },
+  { upTo: 70,  label: 'Sticky',     meaning: 'sticky',              fill: 'fill-amber-100 dark:fill-amber-950/40',     text: 'text-[var(--ink-amber)] dark:text-amber-300' },
+  { upTo: 75,  label: 'Oppressive', meaning: 'oppressive',          fill: 'fill-orange-100 dark:fill-orange-950/40',   text: 'text-[var(--ink-orange)] dark:text-orange-300' },
+  { upTo: 999, label: 'Tropical',   meaning: 'tropical, miserable', fill: 'fill-red-100 dark:fill-red-950/40',         text: 'text-[var(--ink-red)] dark:text-red-300' },
 ]
 
 function bandFor(dewF: number): Band {

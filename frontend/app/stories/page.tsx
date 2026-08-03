@@ -42,13 +42,13 @@ interface StoryGroup {
 type Filter = 'all' | 'left' | 'right'
 
 const SOURCE_TONE: Record<string, string> = {
-  far_left:   'text-blue-700',
-  left:       'text-blue-700',
-  lean_left:  'text-blue-700',
-  center:     'text-stone-600',
-  lean_right: 'text-red-700',
-  right:      'text-red-700',
-  far_right:  'text-red-700',
+  far_left:   'text-[var(--ink-blue)]',
+  left:       'text-[var(--ink-blue)]',
+  lean_left:  'text-[var(--ink-blue)]',
+  center:     'text-muted-foreground',
+  lean_right: 'text-[var(--ink-red)]',
+  right:      'text-[var(--ink-red)]',
+  far_right:  'text-[var(--ink-red)]',
 }
 
 function enrichArticle(a: Article) {
@@ -97,10 +97,10 @@ export default function StoriesPage() {
         <Chip active={filter === 'all'}   onClick={() => setFilter('all')}
           label="All stories" count={counts.all} />
         <Chip active={filter === 'left'}  onClick={() => setFilter('left')}
-          label="Left blindspot" count={counts.left} dot="bg-blue-500"
+          label="Left blindspot" count={counts.left} dot="bg-[var(--viz-bias-l2)]"
           tip="Mostly covered by right-leaning outlets — left-readers are missing it" />
         <Chip active={filter === 'right'} onClick={() => setFilter('right')}
-          label="Right blindspot" count={counts.right} dot="bg-red-500"
+          label="Right blindspot" count={counts.right} dot="bg-[var(--viz-bias-r2)]"
           tip="Mostly covered by left-leaning outlets — right-readers are missing it" />
       </div>
 
@@ -148,7 +148,7 @@ export default function StoriesPage() {
                       }`}
                     >
                       <div className="min-w-0">
-                        <div className={`text-[11px] font-medium uppercase tracking-[0.12em] mb-0.5 ${SOURCE_TONE[a.source.allsides_label] ?? 'text-stone-600'}`}>
+                        <div className={`text-[11px] font-medium uppercase tracking-[0.12em] mb-0.5 ${SOURCE_TONE[a.source.allsides_label] ?? 'text-muted-foreground'}`}>
                           {a.source.name}
                         </div>
                         <p className="text-[14px] leading-snug line-clamp-2 group-hover:text-foreground/70 transition-colors">
@@ -201,8 +201,8 @@ function Chip({
 function BlindspotPill({ bs }: { bs: Blindspot }) {
   const isLeftBs = bs.direction === 'left'
   const cls = isLeftBs
-    ? 'bg-blue-100 text-blue-800'
-    : 'bg-red-100 text-red-800'
+    ? 'bg-[var(--wash-blue-1)] text-[var(--ink-blue)]'
+    : 'bg-[var(--wash-red-1)] text-[var(--ink-red)]'
   const which = isLeftBs ? 'right' : 'left'
   const pct = Math.round(bs.skew * 100)
   return (
@@ -224,9 +224,9 @@ function DistributionBar({ bs, className = '' }: { bs: Blindspot; className?: st
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <div className="flex h-1.5 rounded-full overflow-hidden bg-muted flex-1 max-w-sm">
-        {bs.left   > 0 && <div className="bg-blue-500"            style={{ width: seg(bs.left)   }} title={`${bs.left} left`}   />}
+        {bs.left   > 0 && <div className="bg-[var(--viz-bias-l2)]"            style={{ width: seg(bs.left)   }} title={`${bs.left} left`}   />}
         {bs.center > 0 && <div className="bg-muted-foreground/40" style={{ width: seg(bs.center) }} title={`${bs.center} center`} />}
-        {bs.right  > 0 && <div className="bg-red-500"             style={{ width: seg(bs.right)  }} title={`${bs.right} right`}  />}
+        {bs.right  > 0 && <div className="bg-[var(--viz-bias-r2)]"             style={{ width: seg(bs.right)  }} title={`${bs.right} right`}  />}
       </div>
       <span className="text-[10px] text-muted-foreground tabular-nums">
         {bs.left}L · {bs.center}C · {bs.right}R

@@ -111,7 +111,7 @@ export default function StockDetailPage() {
   const up = (data?.change ?? 0) >= 0
   const hasChange = data?.change != null && data?.change_pct != null
   const pillClass = !hasChange
-    ? 'bg-stone-100 text-stone-500'
+    ? 'bg-[var(--wash-stone-1)] text-muted-foreground'
     : up
       ? 'bg-emerald-500 text-white'
       : 'bg-rose-500 text-white'
@@ -214,24 +214,27 @@ export default function StockDetailPage() {
   )
 }
 
+// The insights charts already define a validated three-step ramp per arm, with
+// separate light and dark values. Reuse it rather than picking Tailwind steps
+// that only read correctly on white.
 const BIAS_DOT: Record<string, string> = {
-  far_left:   'bg-blue-700',
-  left:       'bg-blue-500',
-  lean_left:  'bg-blue-300',
+  far_left:   'bg-[var(--viz-bias-l3)]',
+  left:       'bg-[var(--viz-bias-l2)]',
+  lean_left:  'bg-[var(--viz-bias-l1)]',
   center:     'bg-muted-foreground/40',
-  lean_right: 'bg-red-300',
-  right:      'bg-red-500',
-  far_right:  'bg-red-700',
+  lean_right: 'bg-[var(--viz-bias-r1)]',
+  right:      'bg-[var(--viz-bias-r2)]',
+  far_right:  'bg-[var(--viz-bias-r3)]',
 }
 
 const SOURCE_TONE: Record<string, string> = {
-  far_left:   'text-blue-700',
-  left:       'text-blue-700',
-  lean_left:  'text-blue-700',
-  center:     'text-stone-600',
-  lean_right: 'text-red-700',
-  right:      'text-red-700',
-  far_right:  'text-red-700',
+  far_left:   'text-[var(--ink-blue)]',
+  left:       'text-[var(--ink-blue)]',
+  lean_left:  'text-[var(--ink-blue)]',
+  center:     'text-muted-foreground',
+  lean_right: 'text-[var(--ink-red)]',
+  right:      'text-[var(--ink-red)]',
+  far_right:  'text-[var(--ink-red)]',
 }
 
 function timeAgo(iso: string | null): string {
@@ -280,7 +283,7 @@ function RelatedNews({ news }: { news: NewsResponse | null }) {
           <div className="news-card divide-y divide-border/40 overflow-hidden">
             {news.articles.map(a => {
               const dot = BIAS_DOT[a.source.allsides_label] ?? BIAS_DOT.center
-              const tone = SOURCE_TONE[a.source.allsides_label] ?? 'text-stone-600'
+              const tone = SOURCE_TONE[a.source.allsides_label] ?? 'text-muted-foreground'
               return (
                 <a
                   key={a.id}
@@ -336,8 +339,8 @@ function SentimentSummary({ articles }: { articles: NewsArticle[] }) {
     : 'Mixed'
 
   const labelColor = stats.avg == null ? 'text-muted-foreground'
-    : stats.avg >=  0.15 ? 'text-emerald-700'
-    : stats.avg <= -0.15 ? 'text-rose-700'
+    : stats.avg >=  0.15 ? 'text-[var(--ink-emerald)]'
+    : stats.avg <= -0.15 ? 'text-[var(--ink-rose)]'
     : 'text-foreground'
 
   const total = stats.sents

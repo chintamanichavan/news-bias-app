@@ -16,11 +16,11 @@ interface Props {
 // precision: aviation has stricter cut-offs at 1/4 mi etc., but for a personal
 // dashboard "fog vs clear" is enough.
 const BANDS = [
-  { upToMi: 0.25, label: 'Dense fog', meaning: 'driving dangerous', tone: 'text-rose-700 dark:text-rose-300',     fillCss: 'fill-rose-200/60 dark:fill-rose-900/30' },
-  { upToMi: 1,    label: 'Fog',       meaning: 'limited visibility', tone: 'text-orange-700 dark:text-orange-300', fillCss: 'fill-orange-200/50 dark:fill-orange-900/25' },
-  { upToMi: 3,    label: 'Mist',      meaning: 'reduced visibility', tone: 'text-amber-700 dark:text-amber-300',   fillCss: 'fill-amber-200/50 dark:fill-amber-900/20' },
-  { upToMi: 6,    label: 'Hazy',      meaning: 'slight haze',        tone: 'text-yellow-700 dark:text-yellow-300', fillCss: 'fill-yellow-200/40 dark:fill-yellow-900/15' },
-  { upToMi: 999,  label: 'Clear',     meaning: 'wide open',          tone: 'text-emerald-700 dark:text-emerald-300', fillCss: '' },
+  { upToMi: 0.25, label: 'Dense fog', meaning: 'driving dangerous', tone: 'text-[var(--ink-rose)] dark:text-rose-300',     fillCss: 'fill-rose-200/60 dark:fill-[var(--ink-rose)]/30' },
+  { upToMi: 1,    label: 'Fog',       meaning: 'limited visibility', tone: 'text-[var(--ink-orange)] dark:text-orange-300', fillCss: 'fill-orange-200/50 dark:fill-[var(--ink-orange)]/25' },
+  { upToMi: 3,    label: 'Mist',      meaning: 'reduced visibility', tone: 'text-[var(--ink-amber)] dark:text-amber-300',   fillCss: 'fill-amber-200/50 dark:fill-[var(--ink-amber)]/20' },
+  { upToMi: 6,    label: 'Hazy',      meaning: 'slight haze',        tone: 'text-[var(--ink-yellow)] dark:text-yellow-300', fillCss: 'fill-yellow-200/40 dark:fill-[var(--ink-yellow)]/15' },
+  { upToMi: 999,  label: 'Clear',     meaning: 'wide open',          tone: 'text-[var(--ink-emerald)] dark:text-emerald-300', fillCss: '' },
 ]
 
 function bandFor(mi: number) {

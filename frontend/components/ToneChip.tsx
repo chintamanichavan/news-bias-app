@@ -14,18 +14,18 @@ interface ChipMeta {
 function classify(polarity: number, intensity: number): ChipMeta {
   // Intensity overrides polarity when high — rage-bait reads as intensity, not polarity
   if (intensity >= 0.66) {
-    return { icon: '🔥', label: 'Inflammatory', bg: 'bg-red-100 dark:bg-red-950/40', fg: 'text-red-700 dark:text-red-300' }
+    return { icon: '🔥', label: 'Inflammatory', bg: 'bg-[var(--wash-red-1)] dark:bg-red-950/40', fg: 'text-[var(--ink-red)] dark:text-red-300' }
   }
   if (intensity >= 0.4) {
-    return { icon: '⚡', label: 'Charged', bg: 'bg-orange-100 dark:bg-orange-950/40', fg: 'text-orange-700 dark:text-orange-300' }
+    return { icon: '⚡', label: 'Charged', bg: 'bg-[var(--wash-orange-1)] dark:bg-orange-950/40', fg: 'text-[var(--ink-orange)] dark:text-orange-300' }
   }
   if (polarity >= 0.3) {
-    return { icon: '✨', label: 'Positive', bg: 'bg-green-100 dark:bg-green-950/40', fg: 'text-green-700 dark:text-green-300' }
+    return { icon: '✨', label: 'Positive', bg: 'bg-[var(--wash-green-1)] dark:bg-green-950/40', fg: 'text-[var(--ink-green)] dark:text-green-300' }
   }
   if (polarity <= -0.3) {
-    return { icon: '😟', label: 'Negative', bg: 'bg-slate-200 dark:bg-slate-800', fg: 'text-slate-700 dark:text-slate-300' }
+    return { icon: '😟', label: 'Negative', bg: 'bg-[var(--wash-slate-1)] dark:bg-slate-800', fg: 'text-[var(--ink-slate)] dark:text-slate-300' }
   }
-  return { icon: '💼', label: 'Neutral', bg: 'bg-gray-100 dark:bg-gray-800', fg: 'text-gray-600 dark:text-gray-400' }
+  return { icon: '💼', label: 'Neutral', bg: 'bg-[var(--wash-gray-1)] dark:bg-gray-800', fg: 'text-gray-600 dark:text-gray-400' }
 }
 
 export default function ToneChip({ polarity, intensity, size = 'sm' }: ToneChipProps) {

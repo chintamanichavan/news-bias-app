@@ -12,11 +12,11 @@ interface Props {
 }
 
 function classify(cover: number): { label: string; tone: string } {
-  if (cover < 12) return { label: 'Clear',         tone: 'text-amber-700 dark:text-amber-400' }
-  if (cover < 38) return { label: 'Mostly clear',  tone: 'text-amber-700 dark:text-amber-400' }
-  if (cover < 62) return { label: 'Partly cloudy', tone: 'text-sky-700 dark:text-sky-400' }
-  if (cover < 88) return { label: 'Mostly cloudy', tone: 'text-slate-700 dark:text-slate-300' }
-  return            { label: 'Overcast',           tone: 'text-slate-700 dark:text-slate-300' }
+  if (cover < 12) return { label: 'Clear',         tone: 'text-[var(--ink-amber)] dark:text-amber-400' }
+  if (cover < 38) return { label: 'Mostly clear',  tone: 'text-[var(--ink-amber)] dark:text-amber-400' }
+  if (cover < 62) return { label: 'Partly cloudy', tone: 'text-[var(--ink-sky)] dark:text-sky-400' }
+  if (cover < 88) return { label: 'Mostly cloudy', tone: 'text-[var(--ink-slate)] dark:text-slate-300' }
+  return            { label: 'Overcast',           tone: 'text-[var(--ink-slate)] dark:text-slate-300' }
 }
 
 function smoothPath(pts: { x: number; y: number }[]): string {

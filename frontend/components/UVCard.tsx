@@ -21,11 +21,11 @@ interface Band {
 }
 
 const BANDS: Band[] = [
-  { upTo: 3,   label: 'Low',       tone: 'text-emerald-700 dark:text-emerald-300', fill: 'fill-emerald-200/40 dark:fill-emerald-900/25', meaning: 'no protection needed' },
-  { upTo: 6,   label: 'Moderate',  tone: 'text-yellow-700 dark:text-yellow-300',   fill: 'fill-yellow-200/40 dark:fill-yellow-900/25',   meaning: 'SPF 30, hat' },
-  { upTo: 8,   label: 'High',      tone: 'text-orange-700 dark:text-orange-300',   fill: 'fill-orange-200/45 dark:fill-orange-900/30',   meaning: 'avoid midday sun' },
-  { upTo: 11,  label: 'Very high', tone: 'text-rose-700 dark:text-rose-300',       fill: 'fill-rose-200/45 dark:fill-rose-900/30',       meaning: 'minimize exposure' },
-  { upTo: 999, label: 'Extreme',   tone: 'text-purple-700 dark:text-purple-300',   fill: 'fill-purple-200/45 dark:fill-purple-900/30',   meaning: 'stay indoors' },
+  { upTo: 3,   label: 'Low',       tone: 'text-[var(--ink-emerald)] dark:text-emerald-300', fill: 'fill-emerald-200/40 dark:fill-[var(--ink-emerald)]/25', meaning: 'no protection needed' },
+  { upTo: 6,   label: 'Moderate',  tone: 'text-[var(--ink-yellow)] dark:text-yellow-300',   fill: 'fill-yellow-200/40 dark:fill-[var(--ink-yellow)]/25',   meaning: 'SPF 30, hat' },
+  { upTo: 8,   label: 'High',      tone: 'text-[var(--ink-orange)] dark:text-orange-300',   fill: 'fill-orange-200/45 dark:fill-[var(--ink-orange)]/30',   meaning: 'avoid midday sun' },
+  { upTo: 11,  label: 'Very high', tone: 'text-[var(--ink-rose)] dark:text-rose-300',       fill: 'fill-rose-200/45 dark:fill-[var(--ink-rose)]/30',       meaning: 'minimize exposure' },
+  { upTo: 999, label: 'Extreme',   tone: 'text-[var(--ink-purple)] dark:text-purple-300',   fill: 'fill-purple-200/45 dark:fill-[var(--ink-purple)]/30',   meaning: 'stay indoors' },
 ]
 
 function bandFor(uv: number): Band {
