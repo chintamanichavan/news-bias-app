@@ -122,7 +122,7 @@ export default function TopNav() {
           />
           <span
             aria-hidden
-            className={`pointer-events-none absolute right-9 inset-y-0 w-8 z-10 bg-gradient-to-l from-background to-transparent transition-opacity duration-200 ${
+            className={`pointer-events-none absolute right-[100px] inset-y-0 w-8 z-10 bg-gradient-to-l from-background to-transparent transition-opacity duration-200 ${
               edges.right ? 'opacity-100' : 'opacity-0'
             }`}
           />

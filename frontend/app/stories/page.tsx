@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import BiasGauge from '@/components/BiasGauge'
 import ExploreFooter from '@/components/ExploreFooter'
+import LoadError from '@/components/LoadError'
+import { useResource } from '@/lib/useResource'
 
 interface Source {
   id: string
@@ -58,15 +60,10 @@ function enrichArticle(a: Article) {
 }
 
 export default function StoriesPage() {
-  const [groups, setGroups] = useState<StoryGroup[] | null>(null)
+  const { data, loading, error, reload } =
+    useResource<{ groups: StoryGroup[] }>('/api/stories')
+  const groups = loading ? null : (data?.groups ?? [])
   const [filter, setFilter] = useState<Filter>('all')
-
-  useEffect(() => {
-    fetch('/api/stories', { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : { groups: [] })
-      .then(d => setGroups(d.groups ?? []))
-      .catch(() => setGroups([]))
-  }, [])
 
   const filtered = useCallback(() => {
     if (!groups) return []
@@ -109,6 +106,8 @@ export default function StoriesPage() {
 
       {groups === null ? (
         <SkeletonList />
+      ) : error && groups.length === 0 ? (
+        <LoadError message={error} onRetry={reload} />
       ) : visible.length === 0 ? (
         <EmptyState filter={filter} groups={groups} />
       ) : (

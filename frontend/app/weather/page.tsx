@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
+import LoadError from '@/components/LoadError'
+import { useResource } from '@/lib/useResource'
 import AtmosphericHero from '@/components/AtmosphericHero'
 import HourlyTempCurve from '@/components/HourlyTempCurve'
 import AirQualityCard from '@/components/AirQualityCard'
@@ -100,27 +102,7 @@ function fmtDay(iso: string, idx: number): string {
 }
 
 export default function WeatherPage() {
-  const [data, setData] = useState<WeatherData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchWeather = useCallback(async () => {
-    try {
-      const res = await fetch('/api/weather')
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const d = await res.json()
-      setData(d)
-      setError(null)
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchWeather() }, [fetchWeather])
+  const { data, loading, refreshing, error, reload } = useResource<WeatherData>('/api/weather')
 
   // Pull next 24 hours starting at the current hour
   const next24 = useMemo(() => {
@@ -152,10 +134,12 @@ export default function WeatherPage() {
   }
   if (error || !data) {
     return (
-      <div className="px-4 sm:px-6 lg:px-10 xl:px-14 py-20 text-center">
-        <p className="text-lg font-medium">Couldn&rsquo;t load weather</p>
-        <p className="text-sm text-muted-foreground mt-1">{error}</p>
-        <Button size="sm" variant="outline" className="mt-4" onClick={() => { setRefreshing(true); fetchWeather() }}>Retry</Button>
+      <div className="px-4 sm:px-6 lg:px-10 xl:px-14 py-10">
+        <LoadError
+          message={error ?? 'No weather data came back.'}
+          onRetry={reload}
+          retrying={refreshing || loading}
+        />
       </div>
     )
   }
@@ -277,7 +261,7 @@ export default function WeatherPage() {
       />
 
       <div className="flex items-center justify-end -mt-2">
-        <Button size="sm" variant="outline" onClick={() => { setRefreshing(true); fetchWeather() }} disabled={refreshing}>
+        <Button size="sm" variant="outline" onClick={reload} disabled={refreshing || loading}>
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </Button>
       </div>

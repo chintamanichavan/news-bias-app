@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ChevronRight } from 'lucide-react'
@@ -13,32 +13,22 @@ import {
 import WeatherChip from '@/components/WeatherChip'
 import ExploreFooter from '@/components/ExploreFooter'
 import TodayCarousel from '@/components/TodayCarousel'
+import LoadError from '@/components/LoadError'
+import { invalidate, useResource } from '@/lib/useResource'
+
+const TOP_URL = '/api/top?limit=16'
 
 export default function HomePage() {
-  const [stories, setStories] = useState<TopStory[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data, loading, error, reload } = useResource<{ stories: TopStory[] }>(TOP_URL)
+  const stories = data?.stories ?? []
   const [refreshing, setRefreshing] = useState(false)
-
-  const fetchTop = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/top?limit=16')
-      if (res.ok) {
-        const data = await res.json()
-        setStories(data.stories ?? [])
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchTop() }, [fetchTop])
 
   async function handleRefresh() {
     setRefreshing(true)
     try {
       await fetch('/api/feeds/refresh', { method: 'POST' })
-      await fetchTop()
+      invalidate(TOP_URL)
+      reload()
     } finally {
       setRefreshing(false)
     }
@@ -79,6 +69,8 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+      ) : error && stories.length === 0 ? (
+        <LoadError message={error} onRetry={reload} retrying={loading} />
       ) : stories.length === 0 ? (
         <div className="news-card text-center py-20">
           <p className="text-lg font-semibold">Nothing to surface yet</p>

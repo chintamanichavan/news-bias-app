@@ -15,19 +15,22 @@ interface BiasGaugeProps {
 const BIAS_GRADIENT =
   'linear-gradient(to right, #1a56db 0%, #76a9fa 25%, #9ca3af 50%, #f87171 75%, #dc2626 100%)'
 
+// Thresholds are on the -2..+2 scale that both `bias_score` and the
+// `allsides_score` fallback use. They were written for a -5..+5 scale, which
+// meant every outlet score short of `right` rendered as "Center".
 function biasLabel(score: number) {
-  if (score <= -3.5) return 'Far Left'
-  if (score <= -1) return 'Left'
-  if (score <= 1) return 'Center'
-  if (score <= 3.5) return 'Right'
+  if (score <= -1.4) return 'Far Left'
+  if (score <= -0.4) return 'Left'
+  if (score <= 0.4) return 'Center'
+  if (score <= 1.4) return 'Right'
   return 'Far Right'
 }
 
 function biasColor(score: number) {
-  if (score <= -3.5) return '#1a56db'
-  if (score <= -1) return '#76a9fa'
-  if (score <= 1) return '#9ca3af'
-  if (score <= 3.5) return '#f87171'
+  if (score <= -1.4) return '#1a56db'
+  if (score <= -0.4) return '#76a9fa'
+  if (score <= 0.4) return '#9ca3af'
+  if (score <= 1.4) return '#f87171'
   return '#dc2626'
 }
 
@@ -46,8 +49,8 @@ export default function BiasGauge({
     <div className={cn('w-full', className)}>
       <SpectrumGauge
         value={score}
-        min={-5}
-        max={5}
+        min={-2}
+        max={2}
         gradient={BIAS_GRADIENT}
         needleColor={biasColor}
         confidence={confidence}

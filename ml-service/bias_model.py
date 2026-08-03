@@ -10,8 +10,18 @@ from sklearn.metrics import mean_absolute_error
 from features import FeatureExtractor
 
 MODELS_DIR = Path(__file__).parent / "data" / "models"
-CLASS_SCORES = [-5.0, -2.5, 0.0, 2.5, 5.0]
-SCORE_BINS = [-4.0, -2.0, 2.0, 4.0]  # boundaries between 5 classes
+# The five AllSides categories, on the same -2..+2 scale that
+# `data/sources.json` labels outlets with. These two lists must stay in step
+# with `allsides_score`: `SCORE_BINS` splits a label into a class, and
+# `CLASS_SCORES` maps that class back to a score.
+#
+# They previously assumed a -5..+5 scale, so every source from `left` through
+# `lean_right` fell into the single middle bin. The model was then trained on
+# two classes (center, right), `model.classes_` held [2, 3], and the expectation
+# in `predict` could only ever land in [0, 2.5] — no article could come out
+# left-leaning no matter what it said.
+CLASS_SCORES = [-2.0, -1.0, 0.0, 1.0, 2.0]
+SCORE_BINS = [-1.5, -0.5, 0.5, 1.5]  # boundaries between 5 classes
 
 
 def _score_to_class(score: float) -> int:

@@ -465,14 +465,16 @@ def get_story_groups(conn):
 # (three per arm + a neutral middle) so a diverging bar chart can colour each arm
 # with a validated three-step ramp.
 
+# Edges are the old -5..+5 set scaled by 1/2.5 onto the -2..+2 scale the model
+# and `allsides_score` actually use. Proportions are unchanged.
 BIAS_BUCKETS = [
-    ("far_left",   "Far left",   -5.0, -3.5),
-    ("left",       "Left",       -3.5, -1.5),
-    ("lean_left",  "Lean left",  -1.5, -0.5),
-    ("center",     "Center",     -0.5,  0.5),
-    ("lean_right", "Lean right",  0.5,  1.5),
-    ("right",      "Right",       1.5,  3.5),
-    ("far_right",  "Far right",   3.5,  5.0),
+    ("far_left",   "Far left",   -2.0, -1.4),
+    ("left",       "Left",       -1.4, -0.6),
+    ("lean_left",  "Lean left",  -0.6, -0.2),
+    ("center",     "Center",     -0.2,  0.2),
+    ("lean_right", "Lean right",  0.2,  0.6),
+    ("right",      "Right",       0.6,  1.4),
+    ("far_right",  "Far right",   1.4,  2.0),
 ]
 
 TONE_BUCKETS = [
@@ -704,13 +706,13 @@ def get_analytics(conn, window_hours: int = 24, trend_days: int = 14):
     bias_values = [r["bias_score"] for r in bias_rows]
     confidences = [r["confidence"] for r in bias_rows if r["confidence"] is not None]
     bias = {
-        **_describe(bias_values, BIAS_BUCKETS, (-5.0, 5.0)),
+        **_describe(bias_values, BIAS_BUCKETS, (-2.0, 2.0)),
         "mean": _mean(bias_values),
         "mean_confidence": _mean(confidences),
         "confidence_quantiles": _quantiles(confidences),
-        "left": sum(1 for v in bias_values if v <= -0.5),
-        "center": sum(1 for v in bias_values if -0.5 < v < 0.5),
-        "right": sum(1 for v in bias_values if v >= 0.5),
+        "left": sum(1 for v in bias_values if v <= -0.2),
+        "center": sum(1 for v in bias_values if -0.2 < v < 0.2),
+        "right": sum(1 for v in bias_values if v >= 0.2),
     }
 
     # ── Tone, intensity, emotions ───────────────────────────────────────────

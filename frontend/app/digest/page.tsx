@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
+import LoadError from '@/components/LoadError'
+import { useResource } from '@/lib/useResource'
 
 interface Source {
   id: string
@@ -43,42 +45,33 @@ function formatTime(iso: string | null): string {
 }
 
 export default function DigestPage() {
-  const [articles, setArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data, loading, error, reload } =
+    useResource<{ articles: Article[] }>('/api/articles?per_page=50')
   const [activeIdx, setActiveIdx] = useState(0)
   const [imageFailed, setImageFailed] = useState<Record<string, boolean>>({})
   const containerRef = useRef<HTMLDivElement | null>(null)
   const cardRefs = useRef<(HTMLElement | null)[]>([])
 
-  useEffect(() => {
-    setLoading(true)
-    fetch('/api/articles?per_page=50')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d?.articles) {
-          // A card needs real content beyond the headline — drop articles where
-          // the summary is just the title rehashed, or where everything we have
-          // is too short to be worth reading. Stops FT-style paywalled stubs
-          // from appearing as identical-text cards.
-          const norm = (s: string) =>
-            s.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim()
-          const usable = (d.articles as Article[]).filter(a => {
-            const title = norm(a.title || '')
-            const summary = norm(a.summary || '')
-            const body = norm(a.body || '')
-            const candidate = summary.length >= title.length ? summary : body
-            if (!candidate) return false
-            if (candidate.split(' ').length < 15) return false
-            // Reject if the candidate is essentially the title with nothing added
-            if (candidate === title) return false
-            if (candidate.startsWith(title) && candidate.length < title.length + 30) return false
-            return true
-          })
-          setArticles(usable)
-        }
-      })
-      .finally(() => setLoading(false))
-  }, [])
+  // A card needs real content beyond the headline — drop articles where the
+  // summary is just the title rehashed, or where everything we have is too
+  // short to be worth reading. Stops FT-style paywalled stubs from appearing
+  // as identical-text cards.
+  const articles = useMemo(() => {
+    const norm = (s: string) =>
+      s.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim()
+    return (data?.articles ?? []).filter(a => {
+      const title = norm(a.title || '')
+      const summary = norm(a.summary || '')
+      const body = norm(a.body || '')
+      const candidate = summary.length >= title.length ? summary : body
+      if (!candidate) return false
+      if (candidate.split(' ').length < 15) return false
+      // Reject if the candidate is essentially the title with nothing added
+      if (candidate === title) return false
+      if (candidate.startsWith(title) && candidate.length < title.length + 30) return false
+      return true
+    })
+  }, [data])
 
   // Keyboard navigation (desktop)
   const advance = useCallback((delta: number) => {
@@ -118,9 +111,27 @@ export default function DigestPage() {
   }, [articles])
 
   if (loading) {
+    // Mirrors a real card — hero panel, source row, headline, body — so the
+    // transition into content is a fill-in rather than a swap.
     return (
-      <div className="h-[calc(100dvh-3.5rem)] flex items-center justify-center text-muted-foreground">
-        Loading digest…
+      <div className="h-[calc(100dvh-3.5rem)] flex flex-col">
+        <div className="skeleton w-full h-2/5 md:h-1/2 shrink-0 rounded-none" />
+        <div className="flex-1 min-h-0 flex flex-col px-6 md:px-8 py-6 md:py-8 max-w-2xl w-full mx-auto">
+          <div className="skeleton h-3 w-32 rounded mb-5" />
+          <div className="skeleton h-8 md:h-10 w-full rounded mb-2.5" />
+          <div className="skeleton h-8 md:h-10 w-4/5 rounded mb-6" />
+          <div className="skeleton h-4 w-full rounded mb-2.5" />
+          <div className="skeleton h-4 w-full rounded mb-2.5" />
+          <div className="skeleton h-4 w-2/3 rounded" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error && articles.length === 0) {
+    return (
+      <div className="h-[calc(100dvh-3.5rem)] flex items-center justify-center px-6">
+        <LoadError message={error} onRetry={reload} />
       </div>
     )
   }
