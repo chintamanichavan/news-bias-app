@@ -50,7 +50,6 @@ export interface Analytics {
     articles_window: number
     articles_prev_window: number
     articles_7d: number
-    scored_bias: number
     scored_tone: number
     with_body: number
     with_summary: number
@@ -66,14 +65,6 @@ export interface Analytics {
     words: number
     oldest: string | null
     newest: string | null
-  }
-  bias: Distribution & {
-    mean: number | null
-    mean_confidence: number | null
-    confidence_quantiles: Quantiles | null
-    left: number
-    center: number
-    right: number
   }
   tone: Distribution & {
     mean: number | null
@@ -106,13 +97,13 @@ export interface Analytics {
     category: string
     articles: number
     outlets: number
-    mean_bias: number | null
     mean_tone: number | null
   }[]
   lean_split: {
     outlets: { left: number; center: number; right: number }
     articles: { left: number; center: number; right: number }
   }
+  composition: Composition
   divergence: Divergence
   models: unknown
   signals: {
@@ -139,10 +130,8 @@ export interface Outlet {
   essential: boolean
   articles: number
   articles_window: number
-  mean_bias: number | null
   mean_tone: number | null
   mean_intensity: number | null
-  mean_confidence: number | null
   mean_body_chars: number | null
   full_text: number
   latest: string | null
@@ -164,6 +153,28 @@ export function duration(hours: number | null): string {
   if (hours == null) return '—'
   if (hours < 48) return `${Math.round(hours)}h`
   return `${(hours / 24).toFixed(hours < 240 ? 1 : 0)}d`
+}
+
+export interface CompositionBucket {
+  key: string
+  label: string
+  /** Articles from outlets carrying this AllSides rating. */
+  articles: number
+  outlets: number
+  /** The rating itself, on the -2..+2 scale sources.json uses. */
+  score: number
+}
+
+/**
+ * Corpus makeup by publisher lean. Replaces the retired per-article bias
+ * distribution — see CompositionPanel for why.
+ */
+export interface Composition {
+  buckets: CompositionBucket[]
+  articles: number
+  outlets: number
+  /** Articles whose outlet carries no AllSides rating. */
+  unrated: number
 }
 
 export interface Spread {

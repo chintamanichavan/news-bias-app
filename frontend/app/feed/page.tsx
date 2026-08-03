@@ -25,8 +25,6 @@ interface Article {
   image_url: string | null
   published: string | null
   source: Source
-  bias_score: number | null
-  confidence: number | null
   sentiment_score: number | null
   intensity_score: number | null
 }
@@ -34,14 +32,12 @@ interface Article {
 interface Filters {
   category: string | null
   sourceId: string | null
-  minScore: number
-  maxScore: number
   lookbackHours: number | null   // null = use server default (24h when essential, unlimited when all)
   includeAll: boolean            // true = include tabloid/partisan/opinion sources
 }
 
 const DEFAULT_FILTERS: Filters = {
-  category: null, sourceId: null, minScore: -2, maxScore: 2,
+  category: null, sourceId: null,
   lookbackHours: 24, includeAll: false,
 }
 const PER_PAGE = 24
@@ -75,8 +71,6 @@ export default function HomePage() {
     const params = new URLSearchParams({ page: String(p), per_page: String(PER_PAGE) })
     if (f.sourceId) params.set('source_id', f.sourceId)
     if (f.category) params.set('category', f.category)
-    if (f.minScore > -2) params.set('min_score', String(f.minScore))
-    if (f.maxScore < 2) params.set('max_score', String(f.maxScore))
     // Picking a specific source means "show me everything from them" — skip the
     // lookback window in that case so slow-publishing sources (e.g. Liberty
     // Street, 0 posts in the last 24h) don't look empty when clicked.

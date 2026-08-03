@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
-import BiasGauge from '@/components/BiasGauge'
+import OutletLean from '@/components/OutletLean'
 import ExploreFooter from '@/components/ExploreFooter'
 import LoadError from '@/components/LoadError'
 import { useResource } from '@/lib/useResource'
@@ -20,8 +20,6 @@ interface Article {
   url: string
   published: string | null
   source: Source
-  bias_score: number | null
-  confidence: number | null
 }
 
 interface Blindspot {
@@ -51,12 +49,10 @@ const SOURCE_TONE: Record<string, string> = {
   far_right:  'text-[var(--ink-red)]',
 }
 
+// Ordering a cluster left-to-right is the whole point of this view, and the
+// only lean signal that exists is the publisher's own rating.
 function enrichArticle(a: Article) {
-  return {
-    ...a,
-    score: a.bias_score ?? a.source.allsides_score,
-    confidence: a.confidence ?? 0.3,
-  }
+  return { ...a, score: a.source.allsides_score }
 }
 
 export default function StoriesPage() {
@@ -89,6 +85,7 @@ export default function StoriesPage() {
         </h1>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-prose">
           See how different outlets cover the same event, and which stories one side is missing.
+          Positions are each publisher&rsquo;s AllSides rating.
         </p>
       </header>
 
@@ -156,7 +153,7 @@ export default function StoriesPage() {
                         </p>
                       </div>
                       <div className="w-28 sm:w-36 shrink-0">
-                        <BiasGauge score={a.score} confidence={a.confidence} size="sm" />
+                        <OutletLean score={a.score} label={a.source.allsides_label} size="sm" />
                       </div>
                     </Link>
                   ))}

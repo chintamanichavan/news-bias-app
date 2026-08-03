@@ -13,8 +13,6 @@ interface Source {
 interface Filters {
   category: string | null
   sourceId: string | null
-  minScore: number
-  maxScore: number
   lookbackHours: number | null
   includeAll: boolean
 }

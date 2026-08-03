@@ -22,8 +22,6 @@ export interface TopStory {
   image_url: string | null
   published: string | null
   source: Source
-  bias_score: number | null
-  confidence: number | null
   sentiment_score: number | null
   intensity_score: number | null
   coverage: Coverage

@@ -16,10 +16,16 @@ import divergence
 import feed_manager
 import retrain
 import signal_manager
-from bias_model import BiasModel
+# The per-article bias model is retired. Its label was the publishing outlet's
+# AllSides rating, and `source_prior` fed that same rating in as a feature — so
+# the "prediction" was a lookup: source_prior alone scored 1.000 accuracy, and
+# every Fox article landed within +/-0.05 of Fox's published rating. Text alone
+# scored 0.588 on held-out outlets against a 0.833 majority baseline, and two
+# pretrained article-level transformers both turned out to detect which
+# politicians an article names rather than how it frames them. Outlet lean is
+# now presented as what it always was: an attribute of the publisher.
 from sentiment_model import SentimentModel
 
-bias_model = BiasModel()
 sentiment_model = SentimentModel()
 
 
@@ -44,11 +50,10 @@ async def _background_startup():
             except Exception as e:
                 print(f"[startup] {name} failed: {e!r}")
 
-        await _step("fetch_all_feeds", feed_manager.fetch_all_feeds(bias_model, sentiment_model))
-        await _step("bias_bootstrap", retrain.run_bootstrap(bias_model))
+        await _step("fetch_all_feeds", feed_manager.fetch_all_feeds(sentiment_model))
         await _step("sentiment_bootstrap", retrain.run_sentiment_bootstrap(sentiment_model))
-        await _step("score_unscored_feed", feed_manager._score_unscored_feed(bias_model, sentiment_model))
-        asyncio.create_task(feed_manager.periodic_refresh(bias_model, sentiment_model))
+        await _step("score_unscored_feed", feed_manager._score_unscored_feed(sentiment_model))
+        asyncio.create_task(feed_manager.periodic_refresh(sentiment_model))
 
     await asyncio.gather(_signals_init(), _feeds_and_models())
 
@@ -98,7 +103,6 @@ def _cleanup_orphaned_articles():
 async def lifespan(app: FastAPI):
     db.init_db()
     _cleanup_orphaned_articles()
-    bias_model.load_latest()
     sentiment_model.load_latest()
     asyncio.create_task(_background_startup())
     yield
@@ -197,7 +201,6 @@ def health():
     conn.close()
     return {
         "status": "ok",
-        "model_version": bias_model.version,
         "sentiment_model_version": sentiment_model.version,
         "signals": signals_meta,
     }
@@ -234,8 +237,6 @@ def list_articles(
     per_page: int = Query(20, ge=1, le=100),
     source_id: Optional[str] = None,
     category: Optional[str] = None,
-    min_score: Optional[float] = Query(None, ge=-5, le=5),
-    max_score: Optional[float] = Query(None, ge=-5, le=5),
     lookback_hours: Optional[int] = Query(None, ge=1, le=24 * 30),
     include_all: bool = False,
 ):
@@ -264,7 +265,6 @@ def list_articles(
     total, articles = db.get_articles(
         conn, page, per_page,
         source_id=source_id,
-        min_score=min_score, max_score=max_score,
         source_ids=source_ids,
         lookback_hours=lookback_hours,
         per_source_cap=per_source_cap,
@@ -385,7 +385,7 @@ def list_sources():
 
 @app.post("/feeds/refresh")
 async def refresh_feeds():
-    count = await feed_manager.fetch_all_feeds(bias_model, sentiment_model)
+    count = await feed_manager.fetch_all_feeds(sentiment_model)
     return {"articles_fetched": count}
 
 
@@ -400,20 +400,27 @@ async def submit_feedback(body: FeedbackIn):
     db.insert_feedback(conn, body.article_id, body.predicted_score,
                        body.user_score, body.feedback_type, body.dimension)
 
+    # Bias feedback is still collected, and deliberately so: a human rating a
+    # specific article is the article-level label the retired model never had.
+    # Nothing trains on it yet — a handful of ratings would only reproduce the
+    # old problem with a smaller sample — so it accumulates until there is
+    # enough to be worth a model.
     if body.dimension == "bias":
         since = db.count_feedback_since_last_retrain(conn)
-        threshold = retrain.RETRAIN_THRESHOLD
-    else:
-        since = db.count_sentiment_feedback_since_last_retrain(conn)
-        threshold = retrain.SENTIMENT_RETRAIN_THRESHOLD
+        conn.close()
+        return {
+            "accepted": True,
+            "dimension": "bias",
+            "feedback_count_since_retrain": since,
+            "retrain_triggered": False,
+            "note": "Stored as an article-level label. No bias model is trained from it yet.",
+        }
 
+    since = db.count_sentiment_feedback_since_last_retrain(conn)
     conn.close()
 
-    retrain_triggered = since >= threshold
-    if body.dimension == "bias":
-        await retrain.check_and_retrain(bias_model)
-    else:
-        await retrain.check_and_retrain_sentiment(sentiment_model)
+    retrain_triggered = since >= retrain.SENTIMENT_RETRAIN_THRESHOLD
+    await retrain.check_and_retrain_sentiment(sentiment_model)
 
     return {
         "accepted": True,
@@ -707,8 +714,8 @@ def get_analytics(
         row = by_source.get(source_id) or {
             "source_id": source_id,
             "articles": 0, "articles_window": 0, "full_text": 0,
-            "mean_bias": None, "mean_tone": None, "mean_intensity": None,
-            "mean_confidence": None, "mean_body_chars": 0, "latest": None,
+            "mean_tone": None, "mean_intensity": None,
+            "mean_body_chars": 0, "latest": None,
             **fetch_rows.get(source_id, {"last_fetched": None, "error_count": 0,
                                          "feed_newest": None}),
             "silent_hours": None, "median_gap_hours": None, "stale": False,
@@ -739,13 +746,10 @@ def get_analytics(
     for o in outlets:
         c = cats.setdefault(o["category"], {
             "category": o["category"], "articles": 0, "outlets": 0,
-            "_bias_w": 0.0, "_bias_n": 0, "_tone_w": 0.0, "_tone_n": 0,
+            "_tone_w": 0.0, "_tone_n": 0,
         })
         c["articles"] += o["articles"]
         c["outlets"] += 1
-        if o["mean_bias"] is not None:
-            c["_bias_w"] += o["mean_bias"] * o["articles"]
-            c["_bias_n"] += o["articles"]
         if o["mean_tone"] is not None:
             c["_tone_w"] += o["mean_tone"] * o["articles"]
             c["_tone_n"] += o["articles"]
@@ -755,7 +759,6 @@ def get_analytics(
             "category": c["category"],
             "articles": c["articles"],
             "outlets": c["outlets"],
-            "mean_bias": round(c["_bias_w"] / c["_bias_n"], 4) if c["_bias_n"] else None,
             "mean_tone": round(c["_tone_w"] / c["_tone_n"], 4) if c["_tone_n"] else None,
         })
     categories.sort(key=lambda c: -c["articles"])
@@ -768,6 +771,32 @@ def get_analytics(
         lean_split[o["lean"]] += 1
         lean_articles[o["lean"]] += o["articles"]
     data["lean_split"] = {"outlets": lean_split, "articles": lean_articles}
+
+    # ── Composition by publisher lean ───────────────────────────────────────
+    # This replaces the old per-article bias histogram. It is deliberately not
+    # a model output: every article inherits its publisher's AllSides rating,
+    # so this describes what the corpus is made of, not what any one article
+    # says. That was all the previous "bias distribution" ever measured — it
+    # just didn't say so.
+    order = ["left", "lean_left", "center", "lean_right", "right"]
+    labels = {"left": "Left", "lean_left": "Lean left", "center": "Center",
+              "lean_right": "Lean right", "right": "Lean right"}
+    labels["right"] = "Right"
+    buckets = {k: {"key": k, "label": labels[k], "articles": 0, "outlets": 0,
+                   "score": 0.0} for k in order}
+    for o in outlets:
+        key = o.get("allsides_label")
+        if key not in buckets:
+            continue
+        buckets[key]["articles"] += o["articles"]
+        buckets[key]["outlets"] += 1
+        buckets[key]["score"] = o.get("allsides_score", 0.0)
+    data["composition"] = {
+        "buckets": [buckets[k] for k in order],
+        "articles": sum(b["articles"] for b in buckets.values()),
+        "outlets": sum(b["outlets"] for b in buckets.values()),
+        "unrated": data["totals"]["articles"] - sum(b["articles"] for b in buckets.values()),
+    }
 
     # ── Coverage: spread + blindspot per cluster, trimmed to the top N ──────
     groups = data["coverage"].pop("groups")
@@ -827,16 +856,6 @@ def get_analytics(
     data["generated_at"] = int(time.time())
     _analytics_cache[key] = (time.time(), data)
     return data
-
-
-@app.post("/debug/train")
-async def debug_train():
-    conn = db.get_conn()
-    articles = db.get_all_articles_with_text(conn)
-    feedback = db.get_all_feedback(conn, dimension="bias")
-    conn.close()
-    await asyncio.to_thread(retrain._train_and_save, bias_model, articles, feedback)
-    return {"version": bias_model.version}
 
 
 @app.post("/debug/train_sentiment")
