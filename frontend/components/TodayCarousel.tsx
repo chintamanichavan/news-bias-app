@@ -1,5 +1,9 @@
+'use client'
+
 import Link from 'next/link'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { TopStory } from '@/components/TopStoryCard'
+import { useHorizontalRail } from '@/lib/useHorizontalRail'
 
 const CATEGORY_TONE: Record<string, string> = {
   finance:     'text-[var(--ink-emerald)]',
@@ -29,19 +33,44 @@ interface Props {
 }
 
 export default function TodayCarousel({ stories }: Props) {
+  const rail = useHorizontalRail<HTMLDivElement>()
   if (!stories.length) return null
+
+  const scrollable = rail.canLeft || rail.canRight
   return (
     <section className="mb-8">
-      <div className="flex items-baseline justify-between mb-3">
+      <div className="flex items-center justify-between gap-3 mb-3">
         <p className="news-section-label">Top Stories — at a glance</p>
-        <span className="text-[11px] text-muted-foreground tabular-nums">
-          Swipe →
-        </span>
+        {/* Buttons rather than a "Swipe →" hint: with a mouse there is nothing
+            to swipe, and the hidden scrollbar left no other way to move. */}
+        {scrollable && (
+          <div className="flex items-center gap-1">
+            <RailButton
+              label="Scroll left"
+              disabled={!rail.canLeft}
+              onClick={() => rail.scrollByPage(-1)}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </RailButton>
+            <RailButton
+              label="Scroll right"
+              disabled={!rail.canRight}
+              onClick={() => rail.scrollByPage(1)}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </RailButton>
+          </div>
+        )}
       </div>
       {/* Horizontal scroll-snap rail. negative margins let cards bleed to the
           edge of the page so the rail feels native-ish on Mac and mobile. */}
       <div className="relative -mx-4 sm:-mx-6 lg:-mx-10 xl:-mx-14">
-        <div className="overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        <div
+          ref={rail.ref}
+          className={`overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [scrollbar-width:none] ${
+            rail.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+          }`}
+        >
           <div className="flex gap-3 px-4 sm:px-6 lg:px-10 xl:px-14 pb-2">
             {stories.map((story, i) => (
               <CarouselCard key={story.id} story={story} index={i + 1} />
@@ -50,6 +79,24 @@ export default function TodayCarousel({ stories }: Props) {
         </div>
       </div>
     </section>
+  )
+}
+
+function RailButton({
+  label, disabled, onClick, children,
+}: {
+  label: string; disabled: boolean; onClick: () => void; children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="grid place-items-center w-7 h-7 rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+    >
+      {children}
+    </button>
   )
 }
 
