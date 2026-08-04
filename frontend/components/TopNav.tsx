@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useHorizontalRail } from '@/lib/useHorizontalRail'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -33,20 +34,23 @@ export default function TopNav() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // The tab strip scrolls horizontally on narrow screens with its scrollbar
-  // hidden, so without these two affordances the trailing tabs (Weather,
-  // Insights, Stats on a phone) are simply invisible with nothing to suggest
-  // they exist.
+  // The tab strip overflows below ~1024px with its scrollbar hidden, so the
+  // trailing tabs (Weather, Insights, Stats) are off-screen with nothing to
+  // suggest they exist — and, on a desktop mouse, no way to reach them. The
+  // shared rail hook supplies wheel, drag and the edge state behind the fades;
+  // centring the active tab is TopNav's own.
+  const rail = useHorizontalRail<HTMLElement>()
   const stripRef = useRef<HTMLElement | null>(null)
   const centered = useRef(false)
-  const [edges, setEdges] = useState({ left: false, right: false })
+  const edges = { left: rail.canLeft, right: rail.canRight }
 
-  const syncEdges = useCallback(() => {
-    const el = stripRef.current
-    if (!el) return
-    const max = el.scrollWidth - el.clientWidth
-    setEdges({ left: el.scrollLeft > 4, right: el.scrollLeft < max - 4 })
-  }, [])
+  // Stable identity: an inline arrow would be a new ref callback every render,
+  // so React would detach and re-attach the node, re-running the hook's effect
+  // and rebinding every listener on each pass.
+  const setStrip = useCallback((el: HTMLElement | null) => {
+    stripRef.current = el
+    rail.ref(el)
+  }, [rail.ref])   // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Scroll the current tab to the middle of the strip. */
   const centerActive = useCallback((behavior: ScrollBehavior) => {
@@ -64,14 +68,11 @@ export default function TopNav() {
   useEffect(() => {
     const el = stripRef.current
     if (!el) return
-    syncEdges()
-    el.addEventListener('scroll', syncEdges, { passive: true })
     // The strip's real width only exists after the flex row settles and fonts
-    // load. Measuring once on mount reads the pre-layout width, which leaves
-    // the fades off and makes centring a no-op — so re-run on every reflow,
-    // and re-centre until the strip has actually reached its final width.
+    // load. Measuring once on mount reads the pre-layout width, which makes
+    // centring a no-op — so re-run on every reflow, and re-centre until the
+    // strip has actually reached its final width.
     const ro = new ResizeObserver(() => {
-      syncEdges()
       // Wait for the strip to actually become scrollable before centring —
       // firing on the first reflow burns the attempt while scrollWidth still
       // equals clientWidth, which is why a heavy page like /weather used to
@@ -83,11 +84,8 @@ export default function TopNav() {
     })
     ro.observe(el)
     for (const child of Array.from(el.children)) ro.observe(child)
-    return () => {
-      el.removeEventListener('scroll', syncEdges)
-      ro.disconnect()
-    }
-  }, [syncEdges, centerActive])
+    return () => ro.disconnect()
+  }, [centerActive])
 
   // Landing directly on /weather should not leave its own tab off-screen.
   useEffect(() => {
@@ -98,10 +96,9 @@ export default function TopNav() {
         centered.current = true
         centerActive('smooth')
       }
-      syncEdges()
     })
     return () => cancelAnimationFrame(id)
-  }, [pathname, centerActive, syncEdges])
+  }, [pathname, centerActive])
   return (
     <header className={`sticky top-0 z-50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65 transition-shadow ${scrolled ? 'shadow-[0_1px_0_0_hsl(var(--border))]' : ''}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3 min-w-0">
@@ -127,7 +124,7 @@ export default function TopNav() {
             }`}
           />
           <nav
-            ref={stripRef}
+            ref={setStrip}
             className="flex items-center gap-0.5 text-[13px] flex-nowrap overflow-x-auto min-w-0 scroll-smooth [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]"
           >
           {NAV_ITEMS.map(item => {
