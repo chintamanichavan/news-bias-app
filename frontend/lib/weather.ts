@@ -1,3 +1,5 @@
+import { lunarPhase } from './astro'
+
 // WMO weather code → human label + emoji.
 // Source: https://open-meteo.com/en/docs (WMO 4677)
 export interface Condition {
@@ -120,7 +122,8 @@ export function atmosphereFor(code: number | null | undefined, isDay: boolean): 
 }
 
 // ── Moon phase ──────────────────────────────────────────────────────────────
-// Conway's algorithm — accurate to ~1 day.
+// Delegates to lib/astro's ephemeris-based calculation (accurate to well under
+// an hour, vs ~1 day for the Conway approximation this used to use).
 
 export interface MoonPhase {
   phase: number      // 0..1
@@ -130,28 +133,8 @@ export interface MoonPhase {
 }
 
 export function moonPhase(date = new Date()): MoonPhase {
-  const y = date.getUTCFullYear()
-  const m = date.getUTCMonth() + 1
-  const d = date.getUTCDate()
-  let r = y % 100
-  r %= 19
-  if (r > 9) r -= 19
-  r = ((r * 11) % 30) + m + d
-  if (m < 3) r += 2
-  r -= ((y < 2000) ? 4 : 8.3)
-  r = Math.floor(r + 0.5) % 30
-  const phase = (r < 0 ? r + 30 : r) / 29.53
-  const illumination = Math.round(50 * (1 - Math.cos(2 * Math.PI * phase)))
-
-  // Pick name + emoji
-  if (phase < 0.03 || phase > 0.97) return { phase, illumination, name: 'New Moon',         emoji: '🌑' }
-  if (phase < 0.22)                  return { phase, illumination, name: 'Waxing Crescent',  emoji: '🌒' }
-  if (phase < 0.28)                  return { phase, illumination, name: 'First Quarter',    emoji: '🌓' }
-  if (phase < 0.47)                  return { phase, illumination, name: 'Waxing Gibbous',   emoji: '🌔' }
-  if (phase < 0.53)                  return { phase, illumination, name: 'Full Moon',        emoji: '🌕' }
-  if (phase < 0.72)                  return { phase, illumination, name: 'Waning Gibbous',   emoji: '🌖' }
-  if (phase < 0.78)                  return { phase, illumination, name: 'Last Quarter',     emoji: '🌗' }
-  return                                    { phase, illumination, name: 'Waning Crescent',  emoji: '🌘' }
+  const { phase, illumination, name, emoji } = lunarPhase(date)
+  return { phase, illumination, name, emoji }
 }
 
 // ── AQI ─────────────────────────────────────────────────────────────────────
