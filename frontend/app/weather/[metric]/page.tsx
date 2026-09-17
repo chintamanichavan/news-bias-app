@@ -12,9 +12,13 @@ import CloudCard from '@/components/CloudCard'
 import VisibilityCard from '@/components/VisibilityCard'
 import UVCard from '@/components/UVCard'
 import SunMoonCard from '@/components/SunMoonCard'
+import SunlightCard from '@/components/SunlightCard'
+import MoonPanel from '@/components/MoonPanel'
 
 interface WeatherData {
   place: string
+  latitude?: number
+  longitude?: number
   current: {
     time: string
     temperature_2m: number
@@ -140,10 +144,12 @@ const METRICS: Record<string, { label: string; blurb: string; about: string[] }>
   },
   'sun-moon': {
     label: 'Sun & Moon',
-    blurb: "Today's sun arc, day length, the moon phase, and a 7-day rise/set table.",
+    blurb: "Sun arc and day length, golden and blue hour with a time-travel slider, moonrise and moonset, upcoming full and new moons, and a browsable lunar calendar.",
     about: [
       "Day length is calculated from sunrise to sunset (excludes twilight). Around solstices the day-over-day delta is near zero; around equinoxes it changes by ~2.5 minutes/day.",
-      "Moon phase uses Conway's algorithm — accurate to within a day.",
+      "Golden hour spans sun altitudes of −4° to +6°; blue hour −6° to −4° (civil twilight). Civil, nautical, and astronomical twilight end at −6°, −12°, and −18° respectively.",
+      "All sun and moon positions are computed on-device from standard ephemeris formulas — sun times good to ~1 minute, moon times to ~2 minutes, phase to under an hour. No extra API calls.",
+      "Full-moon names (Wolf, Harvest, Hunter's…) follow the traditional North American calendar; the moon sign is tropical.",
     ],
   },
 }
@@ -268,7 +274,23 @@ export default function WeatherDetailPage({ params }: { params: { metric: string
         </div>
       </Card>
 
-      {/* 2. Multi-day outlook (when daily data is available for the metric) */}
+      {/* 2. Sun-moon extras — Lumy-style light planner + Moonlitt-style moon tracker */}
+      {metric === 'sun-moon' && (
+        <>
+          <Card>
+            <div className="p-6 sm:p-8">
+              <SunlightCard lat={data.latitude ?? 41.8781} lon={data.longitude ?? -87.6298} now={cur.time} />
+            </div>
+          </Card>
+          <Card>
+            <div className="p-6 sm:p-8">
+              <MoonPanel lat={data.latitude ?? 41.8781} lon={data.longitude ?? -87.6298} now={cur.time} />
+            </div>
+          </Card>
+        </>
+      )}
+
+      {/* 3. Multi-day outlook (when daily data is available for the metric) */}
       {metric === 'wind' && (
         <MultiDayStrip
           title="7-day peak gusts"
@@ -303,7 +325,7 @@ export default function WeatherDetailPage({ params }: { params: { metric: string
         />
       )}
 
-      {/* 3. About — explainer with thresholds / reading guide */}
+      {/* 4. About — explainer with thresholds / reading guide */}
       <Card>
         <div className="p-6 sm:p-8">
           <p className="news-section-label mb-3">About</p>
