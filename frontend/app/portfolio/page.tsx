@@ -6,6 +6,7 @@
 // and the ADR decision log — joined with the signal engine's short-horizon
 // read where one exists. Research workspace, not holdings.
 
+import CompoundingJourney from '@/components/CompoundingJourney'
 import LoadError from '@/components/LoadError'
 import { useResource } from '@/lib/useResource'
 
@@ -99,7 +100,10 @@ export default function PortfolioPage() {
             </div>
           )}
 
-          {/* Watchlist — the centerpiece */}
+          {/* The alpha path to compounded wealth */}
+          <CompoundingJourney />
+
+          {/* Watchlist — the discretionary alpha sleeve */}
           <section className="mt-10">
             <div className="flex items-baseline justify-between mb-4">
               <p className="news-section-label">Quality-business watchlist</p>
