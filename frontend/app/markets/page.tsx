@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import QuoteRow, { Quote } from '@/components/QuoteRow'
 import LoadError from '@/components/LoadError'
+import SignalEnginePanel from '@/components/SignalEnginePanel'
 import { useResource } from '@/lib/useResource'
 
 interface MarketsData {
@@ -88,6 +89,8 @@ export default function MarketsPage() {
         </div>
       ) : data ? (
         <div className="space-y-9">
+          {/* The engine's read sits above the tape */}
+          <SignalEnginePanel />
           {SECTIONS.map(s => {
             const items = data[s.key]
             return (

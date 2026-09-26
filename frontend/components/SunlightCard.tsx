@@ -1,12 +1,21 @@
 'use client'
 
 // Lumy-style daylight planner: a 24h band of twilight/golden/blue-hour light
-// phases, a time-travel slider with live sun altitude + compass azimuth, and
-// season info. All astronomy is computed on-device (lib/astro).
+// phases, a time-travel slider with live sun altitude + compass azimuth,
+// season info, and modes (Daily / Photography / Meditation) that reshape the
+// event table around a routine. All astronomy is computed on-device (lib/astro).
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { sunEvents, sunPosition, seasonInfo } from '@/lib/astro'
 import { compass } from '@/lib/weather'
+
+type Mode = 'daily' | 'photo' | 'calm'
+const MODE_KEY = 'cl-sun-mode'
+const MODES: { id: Mode; label: string }[] = [
+  { id: 'daily', label: 'Daily' },
+  { id: 'photo', label: 'Photography' },
+  { id: 'calm', label: 'Meditation' },
+]
 
 interface Props {
   lat: number
@@ -40,6 +49,18 @@ export default function SunlightCard({ lat, lon, now }: Props) {
   const nowDate = useMemo(() => new Date(now), [now])
   const ev = useMemo(() => sunEvents(nowDate, lat, lon), [nowDate, lat, lon])
   const season = useMemo(() => seasonInfo(nowDate, lat), [nowDate, lat])
+
+  const [mode, setMode] = useState<Mode>('daily')
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(MODE_KEY) as Mode | null
+      if (saved && MODES.some(m => m.id === saved)) setMode(saved)
+    } catch {}
+  }, [])
+  function pickMode(m: Mode) {
+    setMode(m)
+    try { localStorage.setItem(MODE_KEY, m) } catch {}
+  }
 
   // Time-travel slider, in minutes since midnight. Defaults to now.
   const [travelMin, setTravelMin] = useState<number | null>(null)
@@ -75,22 +96,60 @@ export default function SunlightCard({ lat, lon, now }: Props) {
 
   const cursorFrac = cursorMin / 1440
 
-  const rows: { label: string; time: Date | null; note?: string }[] = [
-    { label: 'Blue hour', time: ev.civilDawn, note: `until ${fmtClock(ev.blueAmEnd)}` },
-    { label: 'Sunrise', time: ev.sunrise },
-    { label: 'Golden hour ends', time: ev.goldenAmEnd },
-    { label: 'Solar noon', time: ev.solarNoon, note: `${ev.maxAltitude.toFixed(0)}° max` },
-    { label: 'Golden hour', time: ev.goldenPmStart, note: `until ${fmtClock(ev.sunset)}` },
-    { label: 'Sunset', time: ev.sunset },
-    { label: 'Blue hour', time: ev.bluePmStart, note: `until ${fmtClock(ev.bluePmEnd)}` },
-    { label: 'Dark', time: ev.astroDusk },
-  ]
+  type Row = { label: string; time: Date | null; note?: string }
+  const ROWS: Record<Mode, Row[]> = {
+    daily: [
+      { label: 'Blue hour', time: ev.civilDawn, note: `until ${fmtClock(ev.blueAmEnd)}` },
+      { label: 'Sunrise', time: ev.sunrise },
+      { label: 'Golden hour ends', time: ev.goldenAmEnd },
+      { label: 'Solar noon', time: ev.solarNoon, note: `${ev.maxAltitude.toFixed(0)}° max` },
+      { label: 'Golden hour', time: ev.goldenPmStart, note: `until ${fmtClock(ev.sunset)}` },
+      { label: 'Sunset', time: ev.sunset },
+      { label: 'Blue hour', time: ev.bluePmStart, note: `until ${fmtClock(ev.bluePmEnd)}` },
+      { label: 'Dark', time: ev.astroDusk },
+    ],
+    photo: [
+      { label: 'AM blue hour', time: ev.civilDawn, note: `until ${fmtClock(ev.blueAmEnd)}` },
+      { label: 'AM golden hour', time: ev.blueAmEnd, note: `until ${fmtClock(ev.goldenAmEnd)}` },
+      { label: 'PM golden hour', time: ev.goldenPmStart, note: `until ${fmtClock(ev.sunset)}` },
+      { label: 'PM blue hour', time: ev.bluePmStart, note: `until ${fmtClock(ev.bluePmEnd)}` },
+      { label: 'Harsh light', time: ev.goldenAmEnd, note: `until ${fmtClock(ev.goldenPmStart)}` },
+      { label: 'Astro dark', time: ev.astroDusk, note: `until ${fmtClock(ev.astroDawn)}` },
+      { label: 'Sun max', time: ev.solarNoon, note: `${ev.maxAltitude.toFixed(0)}° alt` },
+    ],
+    calm: [
+      { label: 'First light', time: ev.civilDawn },
+      { label: 'Sunrise', time: ev.sunrise },
+      { label: 'Midday', time: ev.solarNoon },
+      { label: 'Sunset', time: ev.sunset },
+      { label: 'Last light', time: ev.civilDusk },
+      { label: 'Night', time: ev.astroDusk },
+    ],
+  }
+  const rows = ROWS[mode]
+
+  // Photography mode: name the light quality at the cursor's sun altitude.
+  const lightQuality = pos.altitude > 6 ? 'Harsh light'
+    : pos.altitude > -4 ? 'Golden light'
+    : pos.altitude > -6 ? 'Blue light'
+    : 'Dark'
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-        Light Today
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          Light Today
+        </h2>
+        <div className="flex gap-1">
+          {MODES.map(m => (
+            <button key={m.id} onClick={() => pickMode(m.id)}
+              className={`text-[11px] px-2 py-0.5 rounded-full transition-colors
+                ${mode === m.id ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 font-medium' : 'text-muted-foreground hover:bg-muted'}`}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* 24h light band */}
       <div className="relative h-8 rounded-md overflow-hidden flex" role="img" aria-label="Light phases across the day">
@@ -128,6 +187,7 @@ export default function SunlightCard({ lat, lon, now }: Props) {
             )}
           </div>
           <div className="text-[12px] text-muted-foreground tabular-nums">
+            {mode === 'photo' && <span className="mr-2 font-medium text-foreground">{lightQuality}</span>}
             {pos.altitude >= 0
               ? <>☀️ {pos.altitude.toFixed(0)}° high · {compass(pos.azimuth)} {pos.azimuth.toFixed(0)}°</>
               : <>{Math.abs(pos.altitude).toFixed(0)}° below horizon · {compass(pos.azimuth)}</>}

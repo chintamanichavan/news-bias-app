@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import LoadError from '@/components/LoadError'
+import ListenControls from '@/components/ListenControls'
 import { useResource } from '@/lib/useResource'
 
 interface Source {
@@ -231,6 +232,19 @@ export default function DigestPage() {
       <div className="fixed bottom-4 right-4 text-[11px] font-medium text-muted-foreground bg-card/90 backdrop-blur px-3 py-1.5 rounded-full shadow-sm tabular-nums">
         {activeIdx + 1} · {articles.length}
       </div>
+
+      {/* Listen to your feed — on-device TTS, auto-advances the cards */}
+      <ListenControls
+        items={articles.map(a => ({
+          title: a.title,
+          text: (a.summary && a.summary.trim().length > 10) ? a.summary : (a.body ?? '').slice(0, 400),
+        }))}
+        activeIdx={activeIdx}
+        onAdvance={i => {
+          const el = cardRefs.current[i]
+          if (el) el.scrollIntoView({ behavior: 'smooth' })
+        }}
+      />
     </div>
   )
 }

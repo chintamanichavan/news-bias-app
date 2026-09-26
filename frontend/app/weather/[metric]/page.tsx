@@ -14,6 +14,12 @@ import UVCard from '@/components/UVCard'
 import SunMoonCard from '@/components/SunMoonCard'
 import SunlightCard from '@/components/SunlightCard'
 import MoonPanel from '@/components/MoonPanel'
+import SolarCompassCard from '@/components/SolarCompassCard'
+import MoonPathCard from '@/components/MoonPathCard'
+import EclipsesCard from '@/components/EclipsesCard'
+import TraditionsCard from '@/components/TraditionsCard'
+import RemindersCard from '@/components/RemindersCard'
+import { sunEvents } from '@/lib/astro'
 
 interface WeatherData {
   place: string
@@ -161,6 +167,8 @@ export default function WeatherDetailPage({ params }: { params: { metric: string
 
   const [data, setData] = useState<WeatherData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Lumy's "future predictions": days from today the sun-moon page is viewing.
+  const [dayOffset, setDayOffset] = useState(0)
 
   const fetchData = useCallback(async () => {
     try {
@@ -208,6 +216,19 @@ export default function WeatherDetailPage({ params }: { params: { metric: string
     return { values: arr.slice(start, end), times: data!.hourly.time.slice(start, end) }
   }
 
+  // Sun-moon view-date state (shared by the primary card and the extras).
+  const lat = data.latitude ?? 41.8781
+  const lon = data.longitude ?? -87.6298
+  const toLocalISO = (d: Date) => {
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+  }
+  const base = new Date(cur.time)
+  const viewDate = dayOffset === 0
+    ? base
+    : new Date(base.getFullYear(), base.getMonth(), base.getDate() + dayOffset, 12)
+  const viewISO = toLocalISO(viewDate)
+
   let inner: React.ReactNode = null
 
   if (metric === 'aqi') {
@@ -253,15 +274,60 @@ export default function WeatherDetailPage({ params }: { params: { metric: string
     const hourly = v ? { uv: v.values, times: v.times } : null
     inner = <UVCard expanded current={data.air_quality?.current?.uv_index ?? today0.uv} hourly={hourly} />
   } else if (metric === 'sun-moon') {
+    // Rise/set for the viewed day: API when it's in the 7-day window, computed
+    // on-device beyond it — that's what makes any-date browsing work.
+    const dayISO = viewISO.slice(0, 10)
+    const apiIdx = data.daily.time.indexOf(dayISO)
+    const evView = sunEvents(viewDate, lat, lon)
+    const evNext = sunEvents(new Date(viewDate.getTime() + 86_400_000), lat, lon)
+    const sunrise = apiIdx >= 0 ? data.daily.sunrise[apiIdx] : evView.sunrise ? toLocalISO(evView.sunrise) : today0.sunrise
+    const sunset = apiIdx >= 0 ? data.daily.sunset[apiIdx] : evView.sunset ? toLocalISO(evView.sunset) : today0.sunset
+    const sunriseNext = apiIdx >= 0 && data.daily.sunrise[apiIdx + 1] ? data.daily.sunrise[apiIdx + 1] : evNext.sunrise ? toLocalISO(evNext.sunrise) : null
+    const sunsetNext = apiIdx >= 0 && data.daily.sunset[apiIdx + 1] ? data.daily.sunset[apiIdx + 1] : evNext.sunset ? toLocalISO(evNext.sunset) : null
+
     inner = (
-      <SunMoonCard
-        expanded
-        sunriseToday={today0.sunrise}
-        sunsetToday={today0.sunset}
-        sunriseTomorrow={data.daily.sunrise[1] ?? null}
-        sunsetTomorrow={data.daily.sunset[1] ?? null}
-        now={cur.time}
-      />
+      <>
+        {/* Date browser — Lumy's future predictions */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-1">
+            <button onClick={() => setDayOffset(o => o - 1)} aria-label="Previous day"
+              className="px-2.5 py-1 rounded-md hover:bg-muted text-muted-foreground">‹</button>
+            <span className="text-sm font-semibold tabular-nums w-40 text-center">
+              {dayOffset === 0 ? 'Today' : viewDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+            <button onClick={() => setDayOffset(o => o + 1)} aria-label="Next day"
+              className="px-2.5 py-1 rounded-md hover:bg-muted text-muted-foreground">›</button>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="date"
+              value={dayISO}
+              onChange={e => {
+                if (!e.target.value) return
+                const picked = new Date(e.target.value + 'T12:00')
+                const t0 = new Date(base.getFullYear(), base.getMonth(), base.getDate())
+                setDayOffset(Math.round((picked.getTime() - t0.getTime()) / 86_400_000))
+              }}
+              className="text-[12px] bg-transparent border border-border rounded-md px-2 py-1 text-muted-foreground"
+              aria-label="Jump to date"
+            />
+            {dayOffset !== 0 && (
+              <button onClick={() => setDayOffset(0)}
+                className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2">
+                today
+              </button>
+            )}
+          </div>
+        </div>
+        <SunMoonCard
+          expanded
+          sunriseToday={sunrise}
+          sunsetToday={sunset}
+          sunriseTomorrow={sunriseNext}
+          sunsetTomorrow={sunsetNext}
+          now={viewISO}
+        />
+      </>
     )
   }
 
@@ -279,12 +345,43 @@ export default function WeatherDetailPage({ params }: { params: { metric: string
         <>
           <Card>
             <div className="p-6 sm:p-8">
-              <SunlightCard lat={data.latitude ?? 41.8781} lon={data.longitude ?? -87.6298} now={cur.time} />
+              <SunlightCard lat={lat} lon={lon} now={viewISO} />
             </div>
           </Card>
           <Card>
             <div className="p-6 sm:p-8">
-              <MoonPanel lat={data.latitude ?? 41.8781} lon={data.longitude ?? -87.6298} now={cur.time} />
+              <SolarCompassCard lat={lat} lon={lon} now={viewISO} />
+            </div>
+          </Card>
+          <Card>
+            <div className="p-6 sm:p-8">
+              <MoonPanel lat={lat} lon={lon} now={viewISO} />
+            </div>
+          </Card>
+          <Card>
+            <div className="p-6 sm:p-8">
+              <MoonPathCard
+                lat={lat} lon={lon} now={viewISO}
+                hourly={(() => {
+                  const c = slice48(data.hourly.cloud_cover)
+                  return c ? { times: c.times, cover: c.values } : null
+                })()}
+              />
+            </div>
+          </Card>
+          <Card>
+            <div className="p-6 sm:p-8">
+              <EclipsesCard now={viewISO} />
+            </div>
+          </Card>
+          <Card>
+            <div className="p-6 sm:p-8">
+              <TraditionsCard now={viewISO} />
+            </div>
+          </Card>
+          <Card>
+            <div className="p-6 sm:p-8">
+              <RemindersCard lat={lat} lon={lon} now={cur.time} />
             </div>
           </Card>
         </>

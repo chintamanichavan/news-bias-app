@@ -341,3 +341,153 @@ export function seasonInfo(date = new Date(), lat = 41.88): SeasonInfo {
     meteorological,
   }
 }
+
+// ── Moon position / distance ────────────────────────────────────────────────
+
+export interface MoonPosition {
+  altitude: number  // degrees
+  azimuth: number   // degrees, 0 = N
+  distance: number  // km
+}
+
+export function moonPosition(date: Date, lat: number, lon: number): MoonPosition {
+  const lw = rad * -lon
+  const phi = rad * lat
+  const d = toDays(date)
+  const c = moonCoords(d)
+  const H = siderealTime(d, lw) - c.ra
+  const h = altitudeOf(H, phi, c.dec)
+  return {
+    altitude: (h - Math.asin(6371 / c.dist) * Math.cos(h)) / rad,
+    azimuth: (azimuthOf(H, phi, c.dec) / rad + 180 + 360) % 360,
+    distance: c.dist,
+  }
+}
+
+export interface DistanceExtremes {
+  perigee: { date: Date; distance: number }
+  apogee: { date: Date; distance: number }
+}
+
+/** Next perigee and apogee after `date`, by scanning one anomalistic month. */
+export function moonDistanceExtremes(date = new Date()): DistanceExtremes {
+  let minD = Infinity, maxD = -Infinity, minT = date, maxT = date
+  for (let h = 0; h <= 24 * 29; h += 3) {
+    const t = new Date(date.getTime() + h * 3_600_000)
+    const dist = moonCoords(toDays(t)).dist
+    if (dist < minD) { minD = dist; minT = t }
+    if (dist > maxD) { maxD = dist; maxT = t }
+  }
+  return {
+    perigee: { date: minT, distance: Math.round(minD) },
+    apogee: { date: maxT, distance: Math.round(maxD) },
+  }
+}
+
+/** A full moon within ~360,000 km counts as a supermoon. */
+export function isSupermoon(fullMoonDate: Date): boolean {
+  return moonCoords(toDays(fullMoonDate)).dist < 360_000
+}
+
+/** Next blue moon (second full moon in one calendar month), scanning ~3 years. */
+export function nextBlueMoon(date = new Date()): Date | null {
+  let cursor = new Date(date)
+  let prevFull: Date | null = null
+  for (let i = 0; i < 40; i++) {
+    const { nextFull } = upcomingPhases(cursor)
+    if (prevFull &&
+        prevFull.getMonth() === nextFull.getMonth() &&
+        prevFull.getFullYear() === nextFull.getFullYear()) return nextFull
+    prevFull = nextFull
+    cursor = new Date(nextFull.getTime() + DAY_MS)
+  }
+  return null
+}
+
+// ── Constellation (IAU boundaries along the ecliptic, approximate) ──────────
+// The moon strays up to ~5° from the ecliptic, so near boundaries this can be
+// off by one constellation — same approximation Moonlitt-style apps use.
+
+const CONSTELLATIONS: [number, string][] = [
+  [29, 'Pisces'], [53, 'Aries'], [90, 'Taurus'], [118, 'Gemini'],
+  [138, 'Cancer'], [174, 'Leo'], [218, 'Virgo'], [242, 'Libra'],
+  [248, 'Scorpius'], [266, 'Ophiuchus'], [299, 'Sagittarius'],
+  [327, 'Capricornus'], [352, 'Aquarius'], [389, 'Pisces'],
+]
+
+export function moonConstellation(date = new Date()): string {
+  const lng = ((moonCoords(toDays(date)).lng / rad) % 360 + 360) % 360
+  for (const [limit, name] of CONSTELLATIONS) if (lng < limit) return name
+  return 'Pisces'
+}
+
+// ── Eclipses (static catalog, 2026–2029) ────────────────────────────────────
+// Local circumstance maps need full Besselian elements; this catalog covers
+// what a reader plans around: when, what kind, and where it is visible.
+
+export interface Eclipse {
+  date: string       // ISO date (UTC day of greatest eclipse)
+  kind: 'lunar' | 'solar'
+  type: string       // total / partial / annular / penumbral
+  visibility: string
+}
+
+export const ECLIPSES: Eclipse[] = [
+  { date: '2026-02-17', kind: 'solar', type: 'Annular', visibility: 'Antarctica; partial in southern S. America, Africa' },
+  { date: '2026-03-03', kind: 'lunar', type: 'Total', visibility: 'Americas, E. Asia, Australia, Pacific — a blood moon' },
+  { date: '2026-08-12', kind: 'solar', type: 'Total', visibility: 'Arctic, Greenland, Iceland, Spain; partial in Europe, N. America' },
+  { date: '2026-08-28', kind: 'lunar', type: 'Partial', visibility: 'Americas, Europe, Africa' },
+  { date: '2027-02-06', kind: 'solar', type: 'Annular', visibility: 'Chile, Argentina, S. Atlantic; partial in S. America, Africa' },
+  { date: '2027-02-20', kind: 'lunar', type: 'Penumbral', visibility: 'Americas, Europe, Africa' },
+  { date: '2027-07-18', kind: 'lunar', type: 'Penumbral', visibility: 'E. Asia, Australia, Pacific' },
+  { date: '2027-08-02', kind: 'solar', type: 'Total', visibility: 'N. Africa, Middle East — longest totality this century' },
+  { date: '2027-08-17', kind: 'lunar', type: 'Penumbral', visibility: 'Pacific, Americas' },
+  { date: '2028-01-12', kind: 'lunar', type: 'Partial', visibility: 'Americas, Europe, Africa' },
+  { date: '2028-01-26', kind: 'solar', type: 'Annular', visibility: 'S. America, Atlantic, Iberia; partial in Africa, Europe' },
+  { date: '2028-07-06', kind: 'lunar', type: 'Partial', visibility: 'Africa, Asia, Australia' },
+  { date: '2028-07-22', kind: 'solar', type: 'Total', visibility: 'Australia (incl. Sydney), New Zealand' },
+  { date: '2028-12-31', kind: 'lunar', type: 'Total', visibility: 'Europe, Africa, Asia, Australia — a blood moon' },
+  { date: '2029-06-26', kind: 'lunar', type: 'Total', visibility: 'Americas, Europe, Africa — a blood moon' },
+  { date: '2029-12-20', kind: 'lunar', type: 'Total', visibility: 'Americas, Europe, Africa, Asia — a blood moon' },
+]
+
+export function upcomingEclipses(date = new Date(), limit = 6): Eclipse[] {
+  const today = date.toISOString().slice(0, 10)
+  return ECLIPSES.filter(e => e.date >= today).slice(0, limit)
+}
+
+// ── Chinese lunar festivals ─────────────────────────────────────────────────
+// Found by scanning Gregorian days with Intl's chinese calendar, so no
+// hand-maintained tables. Returns [] where ICU lacks the calendar.
+
+export interface Festival {
+  name: string
+  date: Date
+}
+
+const CHINESE_FESTIVALS: [number, number, string][] = [
+  [1, 15, 'Lantern Festival'],
+  [5, 5, 'Dragon Boat Festival'],
+  [7, 7, 'Qixi Festival'],
+  [8, 15, 'Mid-Autumn Festival'],
+  [9, 9, 'Double Ninth Festival'],
+]
+
+export function chineseFestivals(date = new Date(), limit = 4): Festival[] {
+  let fmt: Intl.DateTimeFormat
+  try {
+    fmt = new Intl.DateTimeFormat('en-u-ca-chinese', { month: 'numeric', day: 'numeric' })
+  } catch {
+    return []
+  }
+  const out: Festival[] = []
+  for (let i = 0; i < 420 && out.length < limit; i++) {
+    const t = new Date(date.getFullYear(), date.getMonth(), date.getDate() + i, 12)
+    const parts = fmt.formatToParts(t)
+    const month = Number(parts.find(p => p.type === 'month')?.value)  // NaN for leap months like "6bis"
+    const day = Number(parts.find(p => p.type === 'day')?.value)
+    const hit = CHINESE_FESTIVALS.find(([m, dd]) => m === month && dd === day)
+    if (hit) out.push({ name: hit[2], date: t })
+  }
+  return out
+}

@@ -5,6 +5,7 @@ import OutletLean from '@/components/OutletLean'
 import SentimentPanel from '@/components/SentimentPanel'
 import FeedbackPanel from '@/components/FeedbackPanel'
 import RelatedReading from '@/components/RelatedReading'
+import ParticlePanel from '@/components/ParticlePanel'
 
 interface Article {
   id: string
@@ -183,6 +184,9 @@ export default async function ArticlePage({ params }: { params: { id: string } }
           </div>
         </div>
       )}
+
+      {/* Key points / 5Ws / ask — the skimmer's entry before the full read */}
+      <ParticlePanel articleId={article.id} />
 
       {/* Article body — serif editorial reader with drop cap on the first
           paragraph. We split on blank lines so the drop cap targets a real

@@ -7,14 +7,13 @@ import { usePathname } from 'next/navigation'
 import ThemeToggle from '@/components/ThemeToggle'
 
 const NAV_ITEMS: { href: string; label: string }[] = [
-  { href: '/',        label: 'Top' },
+  { href: '/',        label: 'Signals' },
+  { href: '/foryou',  label: 'For You' },
   { href: '/digest',  label: 'Digest' },
   { href: '/feed',    label: 'Feed' },
-  { href: '/stories', label: 'Same Story' },
   { href: '/markets', label: 'Markets' },
   { href: '/weather', label: 'Weather' },
-  { href: '/insights', label: 'Insights' },
-  { href: '/stats',   label: 'Stats' },
+  { href: '/crossword', label: 'Crossword' },
 ]
 
 function isActive(pathname: string, href: string): boolean {
@@ -107,7 +106,7 @@ export default function TopNav() {
           className="flex items-baseline gap-1 font-bold text-[19px] tracking-tight shrink-0"
         >
           <span>ClearLens</span>
-          <span className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--accent-news))] font-semibold relative -top-px">News</span>
+          <span className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--accent-news))] font-semibold relative -top-px">Signals</span>
         </Link>
         <div className="relative flex items-center min-w-0 flex-1 justify-end">
           {/* Edge fades: the only cue that more tabs exist off-screen. */}

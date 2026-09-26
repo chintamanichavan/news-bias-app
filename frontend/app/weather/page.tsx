@@ -16,6 +16,7 @@ import VisibilityCard from '@/components/VisibilityCard'
 import UVCard from '@/components/UVCard'
 import SunMoonCard from '@/components/SunMoonCard'
 import NowCastBanner from '@/components/NowCastBanner'
+import HazardStrip from '@/components/HazardStrip'
 import { describeWeather } from '@/lib/weather'
 
 interface WeatherData {
@@ -268,6 +269,9 @@ export default function WeatherPage() {
 
       {/* Dark-Sky-style nowcast — one-sentence hyperlocal narrative */}
       <NowCastBanner currentCode={cur.weather_code} hourly={nowcastHourly} />
+
+      {/* NWS alerts + USGS quakes from the hazard signal feed */}
+      <HazardStrip />
 
       {/* Hourly temperature — full width, tap to expand */}
       <Link href="/weather/forecast" className="news-card news-card-hover block p-4">
