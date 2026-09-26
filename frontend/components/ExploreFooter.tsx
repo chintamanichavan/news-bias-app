@@ -12,6 +12,13 @@ interface Entry {
 // the layout always offers somewhere to scroll into next.
 const ALL_ENTRIES: Entry[] = [
   {
+    href: '/lab',
+    label: 'Lab',
+    blurb: 'Deep statistics for any security on the globe',
+    tone: 'text-[var(--ink-violet)]',
+    tint: 'bg-gradient-to-br from-[var(--wash-violet-1)] via-[var(--wash-fuchsia-2)] to-background',
+  },
+  {
     href: '/markets',
     label: 'Markets',
     blurb: 'Indices, equities, commodities, futures',

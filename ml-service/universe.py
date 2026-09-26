@@ -23,7 +23,129 @@ import db
 USER_AGENT = "Artha Research research@artha.app"
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 
-# Non-equity layer: indices, FX, futures, crypto (Yahoo-style symbols).
+SEED_VERSION = 2  # bump to force a reseed on next boot
+
+# ── Programmatic instrument spaces (universe v2) ────────────────────────────
+# FX and futures are enumerable by construction — build them, don't list
+# them. Global equities get a curated blue-chip layer per native exchange; a
+# paid global listing would replace that block wholesale via the same loader.
+
+_G10 = ["USD", "EUR", "JPY", "GBP", "CHF", "CAD", "AUD", "NZD"]
+_EM_CCY = ["CNY", "INR", "BRL", "MXN", "KRW", "TWD", "SGD", "HKD", "SEK",
+           "NOK", "DKK", "PLN", "TRY", "ZAR", "THB", "IDR", "MYR", "PHP",
+           "ILS", "CZK", "HUF", "CLP", "COP", "PEN", "VND"]
+
+
+def _fx_pairs() -> list[tuple[str, str, str, str]]:
+    out = []
+    for i, a in enumerate(_G10):
+        for b in _G10[i + 1:]:
+            out.append((f"{a}{b}=X", f"{a}/{b}", "fx", "G10"))
+    for c in _EM_CCY:
+        out.append((f"USD{c}=X", f"USD/{c}", "fx", "EM"))
+    out.append(("DX-Y.NYB", "US Dollar Index", "fx", "G10"))
+    return out
+
+
+_FUTURES_V2 = [
+    ("CL=F", "WTI Crude Oil"), ("BZ=F", "Brent Crude"), ("NG=F", "Natural Gas"),
+    ("RB=F", "RBOB Gasoline"), ("HO=F", "Heating Oil"),
+    ("GC=F", "Gold"), ("SI=F", "Silver"), ("HG=F", "Copper"),
+    ("PL=F", "Platinum"), ("PA=F", "Palladium"),
+    ("ZC=F", "Corn"), ("ZW=F", "Chicago Wheat"), ("KE=F", "KC Wheat"),
+    ("ZS=F", "Soybeans"), ("ZM=F", "Soybean Meal"), ("ZL=F", "Soybean Oil"),
+    ("ZO=F", "Oats"), ("ZR=F", "Rough Rice"),
+    ("KC=F", "Coffee"), ("SB=F", "Sugar"), ("CC=F", "Cocoa"),
+    ("CT=F", "Cotton"), ("OJ=F", "Orange Juice"), ("LBR=F", "Lumber"),
+    ("LE=F", "Live Cattle"), ("GF=F", "Feeder Cattle"), ("HE=F", "Lean Hogs"),
+    ("ES=F", "E-mini S&P 500"), ("NQ=F", "E-mini Nasdaq 100"),
+    ("YM=F", "E-mini Dow"), ("RTY=F", "E-mini Russell 2000"),
+    ("ZT=F", "2-Year T-Note"), ("ZF=F", "5-Year T-Note"),
+    ("ZN=F", "10-Year T-Note"), ("ZB=F", "30-Year T-Bond"),
+    ("6E=F", "Euro FX Futures"), ("6J=F", "Yen Futures"), ("6B=F", "Pound Futures"),
+    ("6A=F", "Aussie Futures"), ("6C=F", "CAD Futures"), ("6M=F", "Peso Futures"),
+    ("BTC=F", "Bitcoin Futures"), ("ETH=F", "Ether Futures"),
+]
+
+_CRYPTO_V2 = ["BTC", "ETH", "SOL", "XRP", "BNB", "ADA", "DOGE", "AVAX", "DOT",
+              "LINK", "LTC", "UNI", "ATOM", "XLM", "NEAR", "APT", "ARB", "OP",
+              "FIL", "ICP", "HBAR", "VET", "ALGO", "AAVE", "MKR", "INJ", "SUI",
+              "SEI", "TIA", "IMX", "GRT", "SAND", "MANA", "AXS", "FTM", "RUNE"]
+
+_INDICES_V2 = [
+    ("^GSPC", "S&P 500", "US"), ("^IXIC", "Nasdaq Composite", "US"),
+    ("^DJI", "Dow Jones Industrial", "US"), ("^RUT", "Russell 2000", "US"),
+    ("^VIX", "CBOE Volatility Index", "US"), ("^NDX", "Nasdaq 100", "US"),
+    ("^SOX", "PHLX Semiconductor", "US"),
+    ("^FTSE", "FTSE 100", "UK"), ("^GDAXI", "DAX", "DE"), ("^FCHI", "CAC 40", "FR"),
+    ("^STOXX50E", "Euro Stoxx 50", "EU"), ("^STOXX", "Stoxx Europe 600", "EU"),
+    ("^AEX", "AEX", "NL"), ("^IBEX", "IBEX 35", "ES"), ("FTSEMIB.MI", "FTSE MIB", "IT"),
+    ("^SSMI", "SMI", "CH"), ("^OMX", "OMX Stockholm 30", "SE"),
+    ("^N225", "Nikkei 225", "JP"), ("^HSI", "Hang Seng", "HK"),
+    ("000001.SS", "Shanghai Composite", "CN"), ("399001.SZ", "Shenzhen Component", "CN"),
+    ("^KS11", "KOSPI", "KR"), ("^TWII", "TAIEX", "TW"),
+    ("^BSESN", "BSE Sensex", "IN"), ("^NSEI", "Nifty 50", "IN"), ("^NSEBANK", "Nifty Bank", "IN"),
+    ("^STI", "Straits Times", "SG"), ("^JKSE", "IDX Composite", "ID"),
+    ("^AXJO", "ASX 200", "AU"), ("^NZ50", "NZX 50", "NZ"),
+    ("^GSPTSE", "TSX Composite", "CA"), ("^BVSP", "Bovespa", "BR"),
+    ("^MXX", "IPC Mexico", "MX"), ("^MERV", "Merval", "AR"),
+    ("XU100.IS", "BIST 100", "TR"),
+]
+
+_GLOBAL_EQUITIES = [
+    ("SHEL.L", "Shell", "UK"), ("AZN.L", "AstraZeneca", "UK"), ("HSBA.L", "HSBC Holdings", "UK"),
+    ("ULVR.L", "Unilever", "UK"), ("BP.L", "BP", "UK"), ("GSK.L", "GSK", "UK"),
+    ("RIO.L", "Rio Tinto", "UK"), ("LSEG.L", "London Stock Exchange Group", "UK"),
+    ("REL.L", "RELX", "UK"), ("DGE.L", "Diageo", "UK"),
+    ("MC.PA", "LVMH", "FR"), ("OR.PA", "L'Oreal", "FR"), ("TTE.PA", "TotalEnergies", "FR"),
+    ("SAN.PA", "Sanofi", "FR"), ("AIR.PA", "Airbus", "FR"), ("SU.PA", "Schneider Electric", "FR"),
+    ("RMS.PA", "Hermes", "FR"), ("ASML.AS", "ASML Holding", "NL"), ("ADYEN.AS", "Adyen", "NL"),
+    ("INGA.AS", "ING Groep", "NL"),
+    ("SAP.DE", "SAP", "DE"), ("SIE.DE", "Siemens", "DE"), ("ALV.DE", "Allianz", "DE"),
+    ("DTE.DE", "Deutsche Telekom", "DE"), ("MBG.DE", "Mercedes-Benz Group", "DE"),
+    ("BMW.DE", "BMW", "DE"), ("BAS.DE", "BASF", "DE"), ("RHM.DE", "Rheinmetall", "DE"),
+    ("NESN.SW", "Nestle", "CH"), ("NOVN.SW", "Novartis", "CH"), ("ROG.SW", "Roche", "CH"),
+    ("UBSG.SW", "UBS Group", "CH"),
+    ("NOVO-B.CO", "Novo Nordisk", "DK"), ("ERIC-B.ST", "Ericsson", "SE"),
+    ("VOLV-B.ST", "Volvo", "SE"), ("EQNR.OL", "Equinor", "NO"), ("NOKIA.HE", "Nokia", "FI"),
+    ("7203.T", "Toyota Motor", "JP"), ("6758.T", "Sony Group", "JP"),
+    ("9984.T", "SoftBank Group", "JP"), ("8306.T", "Mitsubishi UFJ", "JP"),
+    ("6861.T", "Keyence", "JP"), ("8035.T", "Tokyo Electron", "JP"),
+    ("7974.T", "Nintendo", "JP"), ("6501.T", "Hitachi", "JP"),
+    ("0700.HK", "Tencent Holdings", "HK"), ("9988.HK", "Alibaba Group", "HK"),
+    ("3690.HK", "Meituan", "HK"), ("1299.HK", "AIA Group", "HK"),
+    ("1398.HK", "ICBC", "HK"), ("1211.HK", "BYD", "HK"),
+    ("600519.SS", "Kweichow Moutai", "CN"), ("300750.SZ", "CATL", "CN"),
+    ("RELIANCE.NS", "Reliance Industries", "IN"), ("TCS.NS", "Tata Consultancy Services", "IN"),
+    ("HDFCBANK.NS", "HDFC Bank", "IN"), ("INFY.NS", "Infosys", "IN"),
+    ("ICICIBANK.NS", "ICICI Bank", "IN"), ("BHARTIARTL.NS", "Bharti Airtel", "IN"),
+    ("SBIN.NS", "State Bank of India", "IN"), ("LT.NS", "Larsen & Toubro", "IN"),
+    ("TATAMOTORS.NS", "Tata Motors", "IN"),
+    ("005930.KS", "Samsung Electronics", "KR"), ("000660.KS", "SK Hynix", "KR"),
+    ("2330.TW", "TSMC", "TW"), ("2317.TW", "Hon Hai Precision", "TW"),
+    ("BHP.AX", "BHP Group", "AU"), ("CBA.AX", "Commonwealth Bank", "AU"), ("CSL.AX", "CSL", "AU"),
+    ("RY.TO", "Royal Bank of Canada", "CA"), ("TD.TO", "Toronto-Dominion Bank", "CA"),
+    ("SHOP.TO", "Shopify", "CA"), ("ENB.TO", "Enbridge", "CA"),
+    ("VALE3.SA", "Vale", "BR"), ("PETR4.SA", "Petrobras", "BR"), ("ITUB4.SA", "Itau Unibanco", "BR"),
+    ("WALMEX.MX", "Walmart de Mexico", "MX"), ("NPN.JO", "Naspers", "ZA"),
+    ("2222.SR", "Saudi Aramco", "SA"),
+]
+
+
+def _global_layer() -> list[tuple[str, str, str, str]]:
+    rows: list[tuple[str, str, str, str]] = []
+    rows += [(s, n, "index", r) for s, n, r in _INDICES_V2]
+    rows += _fx_pairs()
+    rows += [(s, n, "future", "GLOBAL") for s, n in _FUTURES_V2]
+    rows += [(f"{c}-USD", c, "crypto", "GLOBAL") for c in _CRYPTO_V2]
+    rows += [(s, n, "equity", r) for s, n, r in _GLOBAL_EQUITIES]
+    rows += [("TLT", "iShares 20+ Year Treasury ETF", "etf", "US"),
+             ("SPY", "SPDR S&P 500 ETF", "etf", "US"),
+             ("QQQ", "Invesco QQQ ETF", "etf", "US")]
+    return rows
+
+
+# Superseded by _global_layer() — kept only until the next cleanup pass.
 GLOBAL_LAYER: list[tuple[str, str, str, str]] = [
     # symbol, name, asset_class, region
     ("^GSPC", "S&P 500", "index", "US"), ("^IXIC", "Nasdaq Composite", "index", "US"),
@@ -108,11 +230,15 @@ def seed(force: bool = False) -> int:
     conn.execute("""CREATE TABLE IF NOT EXISTS securities (
         symbol TEXT PRIMARY KEY, name TEXT, asset_class TEXT, region TEXT)""")
     have = conn.execute("SELECT COUNT(*) FROM securities").fetchone()[0]
-    if have > 100 and not force:
+    seeded_version = conn.execute("PRAGMA user_version").fetchone()[0]
+    if have > 100 and seeded_version >= SEED_VERSION and not force:
         conn.close()
         return have
 
-    rows: list[tuple[str, str, str, str]] = list(GLOBAL_LAYER)
+    # Full rebuild: rowid order encodes priority (global layer, then SEC by
+    # cap), and INSERT OR REPLACE over old rows would scramble it.
+    conn.execute("DELETE FROM securities")
+    rows: list[tuple[str, str, str, str]] = _global_layer()
     try:
         r = httpx.get(SEC_TICKERS_URL, headers={"User-Agent": USER_AGENT}, timeout=20)
         r.raise_for_status()
@@ -125,6 +251,7 @@ def seed(force: bool = False) -> int:
         "INSERT OR REPLACE INTO securities (symbol, name, asset_class, region) VALUES (?,?,?,?)",
         rows,
     )
+    conn.execute(f"PRAGMA user_version = {int(SEED_VERSION)}")
     conn.commit()
     n = conn.execute("SELECT COUNT(*) FROM securities").fetchone()[0]
     conn.close()

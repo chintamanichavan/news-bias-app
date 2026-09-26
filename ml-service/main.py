@@ -17,6 +17,7 @@ import feed_manager
 import hazards
 import alpha
 import backtest
+import lab
 import monitor
 import paper_trader
 import particle
@@ -943,6 +944,25 @@ async def backtest_run(days: int = Query(150, ge=60, le=365)):
     if cached and time.time() - cached[0] < 3600:
         return cached[1]
     out = await backtest.run(days)
+    _data_cache[key] = (time.time(), out)
+    return out
+
+
+@app.get("/lab/search")
+def lab_search(q: str = Query(..., min_length=1, max_length=40)):
+    """Registry search for the Lab; any Yahoo-valid symbol also works raw."""
+    return {"results": lab.search(q)}
+
+
+@app.get("/lab/{symbol}")
+async def lab_dossier(symbol: str, days: int = Query(500, ge=60, le=1300)):
+    """The full quantitative dossier for one security — any instrument class."""
+    sym = symbol.upper()[:20]
+    key = f"lab:{sym}:{days}"
+    cached = _data_cache.get(key)
+    if cached and time.time() - cached[0] < 900:
+        return cached[1]
+    out = await lab.dossier(sym, days)
     _data_cache[key] = (time.time(), out)
     return out
 
