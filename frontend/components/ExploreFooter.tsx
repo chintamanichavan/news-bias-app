@@ -47,6 +47,13 @@ const ALL_ENTRIES: Entry[] = [
     tint: 'bg-gradient-to-br from-[var(--wash-emerald-1)] via-[var(--wash-emerald-2)] to-background',
   },
   {
+    href: '/portfolio',
+    label: 'Portfolio',
+    blurb: 'Long-horizon watchlist, buy zones, allocation, ADRs',
+    tone: 'text-[var(--ink-emerald)]',
+    tint: 'bg-gradient-to-br from-[var(--wash-emerald-1)] via-[var(--wash-emerald-2)] to-background',
+  },
+  {
     href: '/weather',
     label: 'Weather',
     blurb: 'Hourly forecast, air quality, sun arc',

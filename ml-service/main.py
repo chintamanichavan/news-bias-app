@@ -20,6 +20,7 @@ import backtest
 import monitor
 import paper_trader
 import particle
+import portfolio
 import research
 import retrain
 import risk
@@ -943,6 +944,27 @@ async def backtest_run(days: int = Query(150, ge=60, le=365)):
         return cached[1]
     out = await backtest.run(days)
     _data_cache[key] = (time.time(), out)
+    return out
+
+
+@app.get("/portfolio")
+async def portfolio_report():
+    """The merged portfolio-research workspace: watchlist joined with live
+    quotes and engine composites, target allocation, decision log."""
+    cached = _data_cache.get("portfolio")
+    if cached and time.time() - cached[0] < 300:
+        return cached[1]
+    tickers = [w["ticker"] for w in portfolio.watchlist()]
+    quotes: dict[str, float] = {}
+    if tickers:
+        try:
+            async with httpx.AsyncClient(timeout=15, headers=YAHOO_HEADERS) as client:
+                qs = await _fetch_quotes(client, tickers)
+            quotes = {q["symbol"]: float(q["price"]) for q in qs if q.get("price") is not None}
+        except Exception:
+            pass
+    out = portfolio.report(quotes)
+    _data_cache["portfolio"] = (time.time(), out)
     return out
 
 

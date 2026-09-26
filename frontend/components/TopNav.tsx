@@ -12,6 +12,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/digest',  label: 'Digest' },
   { href: '/feed',    label: 'Feed' },
   { href: '/markets', label: 'Markets' },
+  { href: '/portfolio', label: 'Portfolio' },
   { href: '/weather', label: 'Weather' },
   { href: '/crossword', label: 'Crossword' },
 ]
