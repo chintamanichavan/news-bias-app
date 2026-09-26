@@ -14,8 +14,20 @@ from pydantic import BaseModel, Field
 import db
 import divergence
 import feed_manager
+import hazards
+import alpha
+import backtest
+import monitor
+import paper_trader
+import particle
+import research
 import retrain
+import risk
+import signal_engine
 import signal_manager
+import simulation
+import social_manager
+import universe
 # The per-article bias model is retired. Its label was the publishing outlet's
 # AllSides rating, and `source_prior` fed that same rating in as a feature — so
 # the "prediction" was a lookup: source_prior alone scored 1.000 accuracy, and
@@ -55,7 +67,81 @@ async def _background_startup():
         await _step("score_unscored_feed", feed_manager._score_unscored_feed(sentiment_model))
         asyncio.create_task(feed_manager.periodic_refresh(sentiment_model))
 
-    await asyncio.gather(_signals_init(), _feeds_and_models())
+    async def _signal_pipeline():
+        # Securities universe first — symbol extraction depends on it — then
+        # social + hazards ingest, then the composite engine on a fixed cycle.
+        try:
+            await asyncio.to_thread(universe.seed)
+            universe.load()
+        except Exception as e:
+            print(f"[startup] universe seed failed: {e!r}")
+        try:
+            await social_manager.poll_social(sentiment_model)
+        except Exception as e:
+            print(f"[startup] initial social poll failed: {e!r}")
+        try:
+            await hazards.poll_hazards()
+        except Exception as e:
+            print(f"[startup] initial hazards poll failed: {e!r}")
+        asyncio.create_task(social_manager.periodic_refresh(sentiment_model))
+        asyncio.create_task(hazards.periodic_refresh())
+        asyncio.create_task(_composite_loop())
+
+    await asyncio.gather(_signals_init(), _feeds_and_models(), _signal_pipeline())
+
+
+async def _composite_loop():
+    """Engine heartbeat: pull the VIX, run a composite cycle, snapshot, then
+    hand the results to the paper trader (marking + risk every cycle)."""
+    while True:
+        try:
+            vix = None
+            async with httpx.AsyncClient(timeout=10, headers=YAHOO_HEADERS) as client:
+                quotes = await _fetch_quotes(client, ["^VIX"])
+                if quotes and quotes[0].get("price") is not None:
+                    vix = float(quotes[0]["price"])
+            results = await asyncio.to_thread(signal_engine.compute_composites, vix)
+            print(f"[engine] composite cycle: {len(results)} entities (vix={vix})")
+            try:
+                prices = await _paper_quotes(results)
+                vols = await _vols_for(list(prices.keys())[:20])
+                await asyncio.to_thread(paper_trader.on_cycle, results, prices, vols)
+            except Exception as e:
+                print(f"[engine] paper cycle failed: {e!r}")
+        except Exception as e:
+            print(f"[engine] composite cycle failed: {e!r}")
+        await asyncio.sleep(900)
+
+
+async def _paper_quotes(results: list[dict]) -> dict[str, float]:
+    """Delayed quotes for held names + this cycle's signal candidates."""
+    symbols = set(paper_trader.held_symbols())
+    symbols |= {r["entity"] for r in results if r["entity"] not in ("markets", "weather")}
+    if not symbols:
+        return {}
+    async with httpx.AsyncClient(timeout=15, headers=YAHOO_HEADERS) as client:
+        quotes = await _fetch_quotes(client, sorted(symbols)[:60])
+    return {q["symbol"]: float(q["price"]) for q in quotes if q.get("price") is not None}
+
+
+async def _vols_for(symbols: list[str]) -> dict[str, float]:
+    """Annualized realized vol per symbol from ~3 months of daily closes,
+    cached for a day — the optimizer's sizing input."""
+    out: dict[str, float] = {}
+    for sym in symbols:
+        key = f"vol:{sym}"
+        hit = _data_cache.get(key)
+        if hit and time.time() - hit[0] < 86_400:
+            out[sym] = hit[1]
+            continue
+        try:
+            closes = [c for _, c in await simulation._daily_closes(sym, 80)]
+            v = risk.realized_vol(closes)
+        except Exception:
+            v = risk.DEFAULT_VOL
+        _data_cache[key] = (time.time(), v)
+        out[sym] = v
+    return out
 
 
 def _cleanup_orphaned_articles():
@@ -151,7 +237,18 @@ def _enrich(article: dict) -> dict:
             article["emotion_breakdown"] = None
     else:
         article["emotion_breakdown"] = None
+    # Followable interests + tradable-securities mentions
+    article["topics"] = particle.tag_topics(article.get("title") or "", article.get("body"))
+    article["symbols"] = universe.extract_symbols(article.get("title") or "")
     return article
+
+
+def _in_scope(article: dict) -> bool:
+    """ClearLens is strictly a markets + weather app: an article stays only if
+    a finance source published it or the tagger finds a markets/weather topic."""
+    if article.get("source", {}).get("category") == "finance":
+        return True
+    return bool(article.get("topics"))
 
 
 _TITLE_NORM_RE = re.compile(r"[^a-z0-9\s]")
@@ -262,8 +359,12 @@ def list_articles(
             lookback_hours = 24
         per_source_cap = 5
 
-    total, articles = db.get_articles(
-        conn, page, per_page,
+    # The markets+weather scope filter runs in Python, so pagination must
+    # happen after it — fetch a wide window, filter, then slice, or page
+    # sizes shrink unpredictably.
+    window = min(1000, page * per_page * 4 + 100)
+    _, articles = db.get_articles(
+        conn, 1, window,
         source_id=source_id,
         source_ids=source_ids,
         lookback_hours=lookback_hours,
@@ -272,10 +373,11 @@ def list_articles(
 
     conn.close()
     enriched = [_enrich(a) for a in articles]
-    deduped = _dedupe(enriched)
+    scoped = [a for a in _dedupe(enriched) if _in_scope(a)]
+    start = (page - 1) * per_page
     return {
-        "articles": deduped,
-        "total": total,
+        "articles": scoped[start:start + per_page],
+        "total": len(scoped),
         "page": page,
         "per_page": per_page,
     }
@@ -511,11 +613,15 @@ def top_stories(limit: int = Query(12, ge=1, le=30)):
     signals = _unresolved(db.get_signals(conn, sort="movers", limit=120))
     conn.close()
 
-    stories = [s for s in stories if not feed_manager._is_low_signal_title(s.get("title") or "")][:limit]
+    stories = [s for s in stories if not feed_manager._is_low_signal_title(s.get("title") or "")]
 
     out = []
     for s in stories:
         s = _enrich(s)
+        if not _in_scope(s):
+            continue
+        if len(out) >= limit:
+            break
         # Build coverage info
         member_ids = s.pop("_group_members", []) or []
         member_sources: list[str] = []
@@ -604,6 +710,9 @@ def list_stories(
     out = []
     for g in groups:
         articles = [_enrich(a) for a in g["articles"]]
+        # Scope rule: a story group stays if any member is in scope
+        if not any(_in_scope(a) for a in articles):
+            continue
         bs = _compute_blindspot(articles)
         if blindspot in ("left", "right"):
             if bs["direction"] != blindspot or bs["total"] < min_outlets:
@@ -613,6 +722,250 @@ def list_stories(
     if blindspot in ("left", "right"):
         out.sort(key=lambda x: x["blindspot"]["skew"], reverse=True)
     return {"groups": out}
+
+
+# ── Particle-style personalization + signal pipeline API ────────────────────
+
+class AskIn(BaseModel):
+    question: str = Field(..., min_length=3, max_length=300)
+
+
+@app.get("/topics")
+def list_topics():
+    """Followable interests — strictly markets + weather."""
+    return {"topics": list(particle.TOPICS.keys())}
+
+
+@app.get("/foryou")
+def for_you(
+    topics: str = Query("", description="comma-separated followed topics"),
+    muted: str = Query("", description="comma-separated muted source ids"),
+    limit: int = Query(30, ge=1, le=60),
+):
+    """Personalized feed: followed-topic match + recency, capped per source so
+    one outlet can't flood the page. Preferences live client-side — the server
+    stays stateless and user-less."""
+    followed = {t.strip() for t in topics.split(",") if t.strip()}
+    muted_ids = {s.strip() for s in muted.split(",") if s.strip()}
+
+    conn = db.get_conn()
+    _, articles = db.get_articles(conn, 1, 400, source_id=None,
+                                  lookback_hours=48, per_source_cap=None)
+    conn.close()
+    enriched = [_enrich(a) for a in articles]
+    pool = [a for a in _dedupe(enriched)
+            if _in_scope(a) and a["source_id"] not in muted_ids]
+
+    now_ts = time.time()
+
+    def rank(a: dict) -> float:
+        match = len(followed & set(a.get("topics") or [])) if followed else 0
+        try:
+            age_h = max(0.0, (now_ts - datetime.fromisoformat(
+                (a.get("published") or "").replace("Z", "+00:00")
+            ).timestamp()) / 3600)
+        except (ValueError, TypeError):
+            age_h = 48.0
+        recency = max(0.0, 1 - age_h / 48)
+        intensity = a.get("intensity_score") or 0.0
+        return match * 3 + recency * 1.5 + intensity * 0.5
+
+    pool.sort(key=rank, reverse=True)
+    out, per_source = [], {}
+    for a in pool:
+        if per_source.get(a["source_id"], 0) >= 3:
+            continue
+        per_source[a["source_id"]] = per_source.get(a["source_id"], 0) + 1
+        out.append(a)
+        if len(out) >= limit:
+            break
+    return {"articles": out, "followed": sorted(followed)}
+
+
+@app.get("/articles/{article_id}/particle")
+def article_particle(article_id: str):
+    """Bullet key points + heuristic 5Ws for the reader page."""
+    cached = _data_cache.get(f"particle:{article_id}")
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    conn = db.get_conn()
+    article = db.get_article(conn, article_id)
+    conn.close()
+    if not article:
+        raise HTTPException(404, "Article not found")
+    body = article.get("body") or ""
+    out = {
+        "key_points": particle.key_points(article.get("title") or "", body),
+        "five_ws": particle.five_ws(article.get("title") or "", body),
+        "topics": particle.tag_topics(article.get("title") or "", body),
+        "symbols": universe.extract_symbols(article.get("title") or ""),
+    }
+    _data_cache[f"particle:{article_id}"] = (time.time(), out)
+    return out
+
+
+@app.post("/articles/{article_id}/ask")
+def article_ask(article_id: str, payload: AskIn):
+    """Extractive Q&A over the story group: TF-IDF retrieval, quoted verbatim
+    with the outlet named — no generation, no LLM."""
+    conn = db.get_conn()
+    article = db.get_article(conn, article_id)
+    if not article:
+        conn.close()
+        raise HTTPException(404, "Article not found")
+
+    docs: list[tuple[str, str]] = []
+    src = feed_manager.SOURCE_MAP.get(article["source_id"], {})
+    docs.append((src.get("name", article["source_id"]), article.get("body") or ""))
+
+    group_row = conn.execute(
+        "SELECT article_ids FROM story_groups WHERE article_ids LIKE ?",
+        (f'%"{article_id}"%',),
+    ).fetchone()
+    if group_row:
+        try:
+            member_ids = [m for m in json.loads(group_row["article_ids"]) if m != article_id]
+        except (TypeError, json.JSONDecodeError):
+            member_ids = []
+        for mid in member_ids[:8]:
+            m = db.get_article(conn, mid)
+            if m and m.get("body"):
+                msrc = feed_manager.SOURCE_MAP.get(m["source_id"], {})
+                docs.append((msrc.get("name", m["source_id"]), m["body"]))
+    conn.close()
+
+    answers = particle.answer_question(payload.question, docs)
+    return {"question": payload.question, "answers": answers,
+            "sources_searched": len(docs)}
+
+
+@app.get("/crossword")
+def crossword(date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
+    """Daily mini-crossword built from that day's in-scope headlines. Any past
+    date with articles works — that's the archive."""
+    day = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    cached = _data_cache.get(f"crossword:{day}")
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+
+    conn = db.get_conn()
+    rows = conn.execute(
+        """SELECT title, source_id FROM articles
+           WHERE date(published) = date(?) ORDER BY published DESC LIMIT 120""",
+        (day,),
+    ).fetchall()
+    conn.close()
+
+    headlines = []
+    for r in rows:
+        a = _enrich({"source_id": r["source_id"], "title": r["title"]})
+        if _in_scope(a):
+            headlines.append((r["title"], a["source"]["name"]))
+
+    puzzle = particle.build_crossword(headlines, seed=day)
+    out = {"date": day, "headline_pool": len(headlines), **puzzle}
+    _data_cache[f"crossword:{day}"] = (time.time(), out)
+    return out
+
+
+@app.get("/signals/social")
+def signals_social():
+    conn = db.get_conn()
+    out = social_manager.social_summary(conn)
+    conn.close()
+    return out
+
+
+@app.get("/signals/hazards")
+def signals_hazards():
+    conn = db.get_conn()
+    out = hazards.hazards_summary(conn)
+    conn.close()
+    return out
+
+
+@app.get("/signals/composite")
+def signals_composite(entity: Optional[str] = None, history_hours: int = Query(72, ge=1, le=720)):
+    """The engine's read: composite sentiment per entity (the two verticals +
+    every security carrying signal this cycle), with per-entity history."""
+    if entity:
+        return {"entity": entity, "history": signal_engine.history(entity, history_hours)}
+    return {"as_of": signal_engine.LAST_RUN, "entities": signal_engine.LAST_RESULTS}
+
+
+@app.get("/paper")
+async def paper_report():
+    """The paper book: PnL, positions, equity curve, trades, risk limits."""
+    conn = db.get_conn()
+    held = [r[0] for r in conn.execute("SELECT symbol FROM paper_positions").fetchall()]
+    conn.close()
+    prices: dict[str, float] = {}
+    if held:
+        try:
+            async with httpx.AsyncClient(timeout=10, headers=YAHOO_HEADERS) as client:
+                quotes = await _fetch_quotes(client, held)
+            prices = {q["symbol"]: float(q["price"]) for q in quotes if q.get("price") is not None}
+        except Exception:
+            pass
+    return paper_trader.report(prices)
+
+
+@app.get("/simulate")
+async def simulate(symbol: str = Query("SPY", max_length=12), days: int = Query(120, ge=20, le=365)):
+    """Backtest the daily news-sentiment signal on one symbol vs buy-and-hold."""
+    key = f"simulate:{symbol}:{days}"
+    cached = _data_cache.get(key)
+    if cached and time.time() - cached[0] < 1800:
+        return cached[1]
+    out = await simulation.run(symbol, days)
+    _data_cache[key] = (time.time(), out)
+    return out
+
+
+@app.get("/alpha")
+async def alpha_study(days: int = Query(120, ge=30, le=365)):
+    """Rank-IC study: does the news signal predict forward returns?"""
+    key = f"alpha:{days}"
+    cached = _data_cache.get(key)
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    out = await alpha.run(days)
+    _data_cache[key] = (time.time(), out)
+    return out
+
+
+@app.get("/backtest")
+async def backtest_run(days: int = Query(150, ge=60, le=365)):
+    """Walk-forward multi-asset backtest with costs, vs equal-weight hold."""
+    key = f"backtest:{days}"
+    cached = _data_cache.get(key)
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    out = await backtest.run(days)
+    _data_cache[key] = (time.time(), out)
+    return out
+
+
+@app.get("/health/pipeline")
+def health_pipeline():
+    """Freshness per component, corpus counts, signal outliers."""
+    return monitor.pipeline_health()
+
+
+@app.get("/experiments")
+def list_experiments(limit: int = Query(20, ge=1, le=100)):
+    return {"experiments": monitor.experiments(limit)}
+
+
+@app.get("/research/bakeoff")
+def research_bakeoff():
+    """Deep-learning bench: MLP vs logistic vs rules on Stocktwits labels."""
+    cached = _data_cache.get("bakeoff")
+    if cached and time.time() - cached[0] < 1800:
+        return cached[1]
+    out = research.model_bakeoff()
+    _data_cache["bakeoff"] = (time.time(), out)
+    return out
 
 
 @app.get("/stats")

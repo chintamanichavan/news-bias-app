@@ -93,6 +93,90 @@ def init_db():
             image_url TEXT,
             last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
         );
+
+        -- Social posts (Reddit / Stocktwits / Bluesky), scored by the
+        -- sentiment model at ingest. `label` keeps a platform-native tag
+        -- (Stocktwits Bullish/Bearish) for model retraining.
+        CREATE TABLE IF NOT EXISTS social_posts (
+            id TEXT PRIMARY KEY,
+            platform TEXT NOT NULL,
+            channel TEXT,
+            vertical TEXT,
+            title TEXT,
+            url TEXT,
+            created DATETIME,
+            fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            score INTEGER DEFAULT 0,
+            num_comments INTEGER DEFAULT 0,
+            symbols TEXT,
+            sentiment REAL,
+            intensity REAL,
+            label TEXT
+        );
+
+        -- NWS alerts + USGS quakes: the weather-risk signal.
+        CREATE TABLE IF NOT EXISTS hazard_events (
+            id TEXT PRIMARY KEY,
+            kind TEXT NOT NULL,
+            severity TEXT,
+            title TEXT,
+            area TEXT,
+            starts DATETIME,
+            ends DATETIME,
+            fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            meta TEXT
+        );
+
+        -- Composite signal time series, one row per entity per refresh.
+        CREATE TABLE IF NOT EXISTS signal_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            taken_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            entity TEXT NOT NULL,
+            composite REAL,
+            components TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_snapshots_entity ON signal_snapshots(entity, taken_at);
+
+        -- Paper book: the signals put on (paper) positions so the engine is
+        -- judged in PnL terms, not vibes.
+        CREATE TABLE IF NOT EXISTS paper_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            cash REAL NOT NULL,
+            last_rebalance DATETIME
+        );
+        CREATE TABLE IF NOT EXISTS paper_positions (
+            symbol TEXT PRIMARY KEY,
+            qty REAL NOT NULL,
+            entry_price REAL NOT NULL,
+            entry_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            entry_composite REAL
+        );
+        CREATE TABLE IF NOT EXISTS paper_trades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            symbol TEXT NOT NULL,
+            side TEXT NOT NULL,
+            qty REAL NOT NULL,
+            price REAL NOT NULL,
+            pnl REAL,
+            reason TEXT
+        );
+        CREATE TABLE IF NOT EXISTS paper_equity (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            taken_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            equity REAL NOT NULL,
+            cash REAL NOT NULL
+        );
+
+        -- Every alpha study and backtest run, with its parameters and
+        -- results — the experiment log that makes research reproducible.
+        CREATE TABLE IF NOT EXISTS experiments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            kind TEXT NOT NULL,
+            params TEXT,
+            metrics TEXT
+        );
     """)
 
     # ── Idempotent migrations for pre-sentiment databases ─────────────────
