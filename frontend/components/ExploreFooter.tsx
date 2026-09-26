@@ -12,34 +12,6 @@ interface Entry {
 // the layout always offers somewhere to scroll into next.
 const ALL_ENTRIES: Entry[] = [
   {
-    href: '/digest',
-    label: 'Digest',
-    blurb: '60-second extracts, one card per story',
-    tone: 'text-foreground',
-    tint: 'bg-gradient-to-br from-[var(--wash-stone-1)] via-[var(--wash-stone-2)] to-background',
-  },
-  {
-    href: '/feed',
-    label: 'Feed',
-    blurb: 'Every article, filterable by source or category',
-    tone: 'text-foreground',
-    tint: 'bg-gradient-to-br from-[var(--wash-stone-1)] via-[var(--wash-stone-2)] to-background',
-  },
-  {
-    href: '/foryou',
-    label: 'For You',
-    blurb: 'Follow markets + weather interests, ranked for you',
-    tone: 'text-foreground',
-    tint: 'bg-gradient-to-br from-[var(--wash-stone-1)] via-[var(--wash-stone-2)] to-background',
-  },
-  {
-    href: '/crossword',
-    label: 'Crossword',
-    blurb: 'The daily mini, built from today’s headlines',
-    tone: 'text-[var(--ink-violet)]',
-    tint: 'bg-gradient-to-br from-[var(--wash-violet-1)] via-[var(--wash-fuchsia-2)] to-background',
-  },
-  {
     href: '/markets',
     label: 'Markets',
     blurb: 'Indices, equities, commodities, futures',

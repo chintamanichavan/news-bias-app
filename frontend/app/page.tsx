@@ -7,9 +7,7 @@
 // that used to be the whole page is now the supporting cast.
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ChevronRight } from 'lucide-react'
 import { type TopStory, HeroStoryCard, CompactStoryRow } from '@/components/TopStoryCard'
 import WeatherChip from '@/components/WeatherChip'
 import ExploreFooter from '@/components/ExploreFooter'
@@ -73,13 +71,6 @@ export default function HomePage() {
       <section className="mt-12">
         <div className="flex items-baseline justify-between mb-4">
           <p className="news-section-label">Coverage behind the signal</p>
-          <Link
-            href="/feed"
-            className="inline-flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            See all
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Link>
         </div>
 
         {loading && stories.length === 0 ? (

@@ -8,13 +8,9 @@ import ThemeToggle from '@/components/ThemeToggle'
 
 const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/',        label: 'Signals' },
-  { href: '/foryou',  label: 'For You' },
-  { href: '/digest',  label: 'Digest' },
-  { href: '/feed',    label: 'Feed' },
   { href: '/markets', label: 'Markets' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/weather', label: 'Weather' },
-  { href: '/crossword', label: 'Crossword' },
 ]
 
 function isActive(pathname: string, href: string): boolean {

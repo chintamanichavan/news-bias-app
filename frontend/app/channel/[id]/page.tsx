@@ -70,10 +70,10 @@ export default async function ChannelPage({ params }: { params: { id: string } }
   return (
     <div className="px-4 sm:px-6 lg:px-10 xl:px-14 py-6">
       <Link
-        href="/feed"
+        href="/"
         className="inline-flex items-center text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors mb-5"
       >
-        ← Feed
+        ← Signals
       </Link>
 
       {/* Channel masthead — big tinted banner with the publication wordmark
