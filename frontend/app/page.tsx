@@ -1,6 +1,6 @@
 'use client'
 
-// Home = the sentiment engine, front and center. ClearLens is a signals-
+// Home = the sentiment engine, front and center. Artha is a signals-
 // research platform: multi-channel sentiment composites (news, social,
 // prediction markets, vol regime, weather risk) built as inputs for
 // systematic trading and long-term investing strategies. The coverage list

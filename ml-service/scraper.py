@@ -18,7 +18,7 @@ import httpx
 import trafilatura
 
 USER_AGENT = (
-    "ClearLens/1.0 personal-news-reader (+https://github.com/news-bias-app)"
+    "Artha/1.0 personal-news-reader (+https://github.com/news-bias-app)"
 )
 # 8s was cutting off slow-but-working publishers mid-response.
 TIMEOUT_SECONDS = 15.0

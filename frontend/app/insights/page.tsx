@@ -19,7 +19,7 @@ import { compact, duration, getAnalytics, pct, signed } from '@/lib/analytics'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Insights · ClearLens',
+  title: 'Insights · Artha',
   description: 'What the whole corpus looks like — composition, tone, cadence, coverage and markets.',
 }
 
@@ -74,7 +74,7 @@ export default async function InsightsPage() {
         <p className="news-section-label">Corpus analytics</p>
         <h1 className="mt-1 text-3xl sm:text-4xl font-bold tracking-tight leading-none">Insights</h1>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-prose">
-          Everything ClearLens has read, measured in aggregate — how much arrives and when, how the
+          Everything Artha has read, measured in aggregate — how much arrives and when, how the
           sentiment model actually scores it, which outlets carry the load, and where
           coverage concentrates.
           {spanDays && ` Spanning ${spanDays} days of ingestion.`}

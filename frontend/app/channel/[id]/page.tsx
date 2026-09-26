@@ -104,7 +104,7 @@ export default async function ChannelPage({ params }: { params: { id: string } }
           {payload.source.allsides_score !== 0 && (
             <> (score {payload.source.allsides_score > 0 ? '+' : ''}{payload.source.allsides_score})</>
           )}
-          . ClearLens scores each article&apos;s individual language to detect when a piece leans further than its outlet&apos;s baseline.
+          . Artha scores each article&apos;s individual language to detect when a piece leans further than its outlet&apos;s baseline.
         </p>
       </section>
 

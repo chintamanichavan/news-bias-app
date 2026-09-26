@@ -14,7 +14,7 @@ import httpx
 import db
 
 POLY_BASE = "https://gamma-api.polymarket.com/markets"
-USER_AGENT = "ClearLens/1.0 (+https://github.com/news-bias-app)"
+USER_AGENT = "Artha/1.0 (+https://github.com/news-bias-app)"
 REFRESH_INTERVAL = 1800  # 30 minutes
 FETCH_LIMIT = 200        # pull a wide net then filter
 

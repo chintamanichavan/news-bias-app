@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'ClearLens — Unbiased News',
-    short_name: 'ClearLens',
+    name: 'Artha — Unbiased News',
+    short_name: 'Artha',
     description: 'Read the news with political bias clearly shown.',
     start_url: '/',
     display: 'standalone',

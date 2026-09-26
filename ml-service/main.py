@@ -195,7 +195,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="ClearLens ML Service", lifespan=lifespan)
+app = FastAPI(title="Artha ML Service", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -245,7 +245,7 @@ def _enrich(article: dict) -> dict:
 
 
 def _in_scope(article: dict) -> bool:
-    """ClearLens is strictly a markets + weather app: an article stays only if
+    """Artha is strictly a markets + weather app: an article stays only if
     a finance source published it or the tagger finds a markets/weather topic."""
     if article.get("source", {}).get("category") == "finance":
         return True

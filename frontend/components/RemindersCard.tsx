@@ -2,7 +2,7 @@
 
 // Lumy-style reminders: pick sun/moon events, get a browser notification.
 // Web constraint stated in the UI: without a push server, notifications fire
-// while ClearLens is open in a tab. Preferences persist in localStorage.
+// while Artha is open in a tab. Preferences persist in localStorage.
 
 import { useEffect, useMemo, useState } from 'react'
 import { sunEvents, upcomingPhases, upcomingEclipses } from '@/lib/astro'
@@ -77,7 +77,7 @@ export default function RemindersCard({ lat, lon, now }: Props) {
       const delay = t.getTime() - nowMs
       if (delay > 0 && delay < 24 * 3_600_000) {
         timers.push(setTimeout(() => {
-          try { new Notification('ClearLens · Sun & Moon', { body: LABELS[key].replace(/ \(daily\)$/, '') + ' now' }) } catch {}
+          try { new Notification('Artha · Sun & Moon', { body: LABELS[key].replace(/ \(daily\)$/, '') + ' now' }) } catch {}
         }, delay))
       }
     })
@@ -125,7 +125,7 @@ export default function RemindersCard({ lat, lon, now }: Props) {
         {permission === 'unsupported' && 'This browser does not support notifications.'}
         {permission === 'denied' && 'Notifications are blocked for this site — enable them in browser settings.'}
         {(permission === 'granted' || permission === 'default') &&
-          'Browser notifications fire while ClearLens is open in a tab (no push server).'}
+          'Browser notifications fire while Artha is open in a tab (no push server).'}
       </p>
     </div>
   )

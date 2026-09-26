@@ -26,7 +26,7 @@ import db
 import finlex
 import universe
 
-USER_AGENT = "ClearLens/1.0 (signal research; contact via repo)"
+USER_AGENT = "Artha/1.0 (signal research; contact via repo)"
 # Reddit's API rules want a "platform:app:version (by /u/name)" UA; anything
 # generic gets a 403 from their edge.
 REDDIT_UA = "linux:clearlens.signals:v1.0 (by /u/clearlens_research)"

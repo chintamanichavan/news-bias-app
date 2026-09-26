@@ -106,8 +106,8 @@ export default function TopNav() {
           href="/"
           className="flex items-baseline gap-1 font-bold text-[19px] tracking-tight shrink-0"
         >
-          <span>ClearLens</span>
-          <span className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--accent-news))] font-semibold relative -top-px">Signals</span>
+          <span>Artha</span>
+          <span className="text-[11px] tracking-[0.14em] text-[hsl(var(--accent-news))] font-semibold relative -top-px">अर्थ</span>
         </Link>
         <div className="relative flex items-center min-w-0 flex-1 justify-end">
           {/* Edge fades: the only cue that more tabs exist off-screen. */}

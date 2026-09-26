@@ -32,7 +32,7 @@ const newsreader = Newsreader({
 })
 
 export const metadata: Metadata = {
-  title: 'ClearLens — Unbiased News',
+  title: 'Artha — Unbiased News',
   description: 'Read the news with political bias clearly shown.',
 }
 

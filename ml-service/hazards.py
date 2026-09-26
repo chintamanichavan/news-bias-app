@@ -14,7 +14,7 @@ import httpx
 
 import db
 
-USER_AGENT = "ClearLens/1.0 (signal research; contact via repo)"
+USER_AGENT = "Artha/1.0 (signal research; contact via repo)"
 REFRESH_INTERVAL = 900
 
 NWS_URL = "https://api.weather.gov/alerts/active"

@@ -1,7 +1,7 @@
 'use client'
 
 // The portfolio-research workspace, merged into the platform and rendered in
-// ClearLens's own design language. Long-horizon quality businesses with their
+// Artha's own design language. Long-horizon quality businesses with their
 // buy-below levels against live prices, the factor-tilt target allocation,
 // and the ADR decision log — joined with the signal engine's short-horizon
 // read where one exists. Research workspace, not holdings.

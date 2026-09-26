@@ -20,7 +20,7 @@ import httpx
 import db
 
 # SEC fair-access policy wants an identifying UA with a contact address.
-USER_AGENT = "ClearLens Research research@clearlens.app"
+USER_AGENT = "Artha Research research@artha.app"
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 
 # Non-equity layer: indices, FX, futures, crypto (Yahoo-style symbols).
