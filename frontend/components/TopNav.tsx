@@ -8,6 +8,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 
 const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/',        label: 'Signals' },
+  { href: '/strategy', label: 'Strategy' },
   { href: '/lab',     label: 'Lab' },
   { href: '/markets', label: 'Markets' },
   { href: '/portfolio', label: 'Portfolio' },
