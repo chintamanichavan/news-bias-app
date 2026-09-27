@@ -6,6 +6,7 @@
 
 import { useState } from 'react'
 import ExpandableCard from '@/components/ExpandableCard'
+import { ChartLegend, HBarList, Section, TimeSeriesChart } from '@/components/quantviz'
 import { useResource } from '@/lib/useResource'
 
 interface Position {
@@ -136,10 +137,16 @@ function PaperCompact({ p }: { p: Paper }) {
 
 function PaperExpanded({ p }: { p: Paper }) {
   const curve = p.equity_curve
-  const W = 760, H = 200
-  const s = curve.length >= 2 ? scale(curve.map(c => c.equity), W, H) : null
+  // Drawdown-from-peak series: the risk view of the same history
+  let peak = -Infinity
+  const dd = curve.map(c => {
+    peak = Math.max(peak, c.equity)
+    return { t: c.taken_at, v: (c.equity / peak - 1) * 100 }
+  })
+  const exposure = curve.map(c => ({ t: c.taken_at, v: (1 - c.cash / c.equity) * 100 }))
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Stat label="Equity" value={`$${p.equity.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
           sub={`cash $${p.cash.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
@@ -147,66 +154,86 @@ function PaperExpanded({ p }: { p: Paper }) {
         <Stat label="Return" value={`${p.total_return_pct > 0 ? '+' : ''}${p.total_return_pct.toFixed(2)}%`} tone={pnlTone(p.total_return_pct)} sub={`max DD ${p.max_drawdown_pct}%`} />
         <Stat label="1-day VaR 95%" value={`$${p.var_1d_95_usd.toLocaleString()}`} sub={`${p.var_1d_95_pct}% of equity`} />
         <Stat label="Hit rate" value={p.hit_rate != null ? `${Math.round(p.hit_rate * 100)}%` : '—'} sub="closed trades" />
-        <Stat label="Exposure" value={`${p.exposure_pct}%`}
-          sub={Object.entries(p.class_exposures).map(([c, w]) => `${c} ${(w * 100).toFixed(0)}%`).join(' · ') || 'in cash'} />
+        <Stat label="Exposure" value={`${p.exposure_pct}%`} sub={`gate ${p.alpha_gate.cleared ? 'open' : 'closed'}`} />
       </div>
 
-      <div>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Equity curve · every 15-min mark</p>
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
-          {s && <>
-            <text x={2} y={12} fontSize={9} className="fill-muted-foreground tabular-nums">${Math.round(s.hi).toLocaleString()}</text>
-            <text x={2} y={H - 8} fontSize={9} className="fill-muted-foreground tabular-nums">${Math.round(s.lo).toLocaleString()}</text>
-            <Line points={curve.map((c, i) => ({ x: s.x(i, curve.length), y: s.y(c.equity) }))}
-              cls={p.total_return_pct >= 0 ? 'stroke-emerald-500' : 'stroke-red-500'} />
-            <Line points={curve.map((c, i) => ({ x: s.x(i, curve.length), y: s.y(c.cash) }))}
-              cls="stroke-muted-foreground/60" dash="4 3" />
-          </>}
-        </svg>
-        <p className="text-[10px] text-muted-foreground">solid: equity · dashed: cash</p>
-      </div>
+      <Section title="Equity · every 15-minute mark">
+        {curve.length >= 2 ? (
+          <TimeSeriesChart
+            series={[{ label: 'equity', points: curve.map(c => ({ t: c.taken_at, v: c.equity })),
+                       cls: p.total_return_pct >= 0 ? 'stroke-emerald-500' : 'stroke-red-500',
+                       fill: p.total_return_pct >= 0 ? 'fill-emerald-500/10' : 'fill-red-500/10' }]}
+            H={190} yFmt={v => `$${(v / 1000).toFixed(1)}k`} />
+        ) : <p className="text-[12px] text-muted-foreground">Fresh book — the curve begins with the next engine cycle.</p>}
+      </Section>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Open positions</p>
-          {p.positions.length === 0 && <p className="text-sm text-muted-foreground">In cash.</p>}
-          <div className="space-y-1.5">
-            {p.positions.map(pos => (
-              <a key={pos.symbol} href={`/lab?symbol=${pos.symbol}`}
-                className="flex items-baseline gap-2 text-[12.5px] tabular-nums hover:bg-muted/40 rounded px-1 -mx-1">
-                <span className="w-20 font-semibold">{pos.symbol}</span>
-                <span className="flex-1 text-muted-foreground">{pos.qty} @ ${pos.entry_price.toFixed(2)}
-                  {pos.entry_composite != null && <> · sig {pos.entry_composite > 0 ? '+' : ''}{pos.entry_composite}</>}</span>
-                <span className={`font-semibold ${pnlTone(pos.unrealized_pnl)}`}>
-                  {pos.unrealized_pnl >= 0 ? '+' : ''}{pos.unrealized_pnl.toFixed(0)} ({pos.unrealized_pct >= 0 ? '+' : ''}{pos.unrealized_pct}%)
-                </span>
-              </a>
-            ))}
-          </div>
+      {curve.length >= 2 && (
+        <div className="grid sm:grid-cols-2 gap-6">
+          <Section title="Drawdown from peak">
+            <TimeSeriesChart series={[{ label: 'drawdown', points: dd, cls: 'stroke-red-500', fill: 'fill-red-500/10' }]}
+              H={110} unit="%" zeroLine />
+          </Section>
+          <Section title="Capital deployed">
+            <TimeSeriesChart series={[{ label: 'exposure', points: exposure, cls: 'stroke-indigo-500', fill: 'fill-indigo-500/10' }]}
+              H={110} unit="%" zeroLine />
+          </Section>
         </div>
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Recent trades</p>
-          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+      )}
+
+      <div className="grid md:grid-cols-2 gap-8">
+        <Section title={`Open positions · ${p.positions.length}`}>
+          {p.positions.length === 0
+            ? <p className="text-[13px] text-muted-foreground">In cash — {p.alpha_gate.reason}.</p>
+            : <HBarList
+                max={p.equity}
+                items={p.positions.map(pos => ({
+                  label: pos.symbol,
+                  sub: `${pos.qty} @ $${pos.entry_price.toFixed(2)}${pos.entry_composite != null ? ` · sig ${pos.entry_composite > 0 ? '+' : ''}${pos.entry_composite}` : ''}`,
+                  value: Math.round(pos.market_value),
+                  href: `/lab?symbol=${pos.symbol}`,
+                }))} unit="" />}
+          {p.positions.length > 0 && Object.keys(p.class_exposures).length > 0 && (
+            <div className="mt-4">
+              <div className="flex h-2 rounded-full overflow-hidden bg-muted">
+                {Object.entries(p.class_exposures).map(([c, w], i) => (
+                  <div key={c} title={`${c} ${(w * 100).toFixed(0)}%`}
+                    className={['bg-emerald-600/80', 'bg-indigo-500/70', 'bg-amber-500/70', 'bg-rose-500/60'][i % 4]}
+                    style={{ width: `${w * 100}%` }} />
+                ))}
+              </div>
+              <p className="mt-1 text-[10.5px] text-muted-foreground tabular-nums">
+                {Object.entries(p.class_exposures).map(([c, w]) => `${c} ${(w * 100).toFixed(0)}%`).join(' · ')} · rest cash
+              </p>
+            </div>
+          )}
+        </Section>
+
+        <Section title="Trade log">
+          <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
             {p.recent_trades.map((t, i) => (
-              <div key={i} className="flex items-baseline gap-2 text-[12px] tabular-nums">
-                <span className="text-muted-foreground w-24 shrink-0">{t.at?.slice(5, 16)}</span>
-                <span className={`w-9 font-semibold ${t.side === 'buy' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{t.side}</span>
-                <span className="w-16 font-semibold">{t.symbol}</span>
-                <span className="flex-1 text-muted-foreground truncate">{t.reason}</span>
-                {t.pnl != null && <span className={`font-semibold ${pnlTone(t.pnl)}`}>{t.pnl > 0 ? '+' : ''}{t.pnl}</span>}
+              <div key={i} className="flex items-center gap-2 text-[12px] tabular-nums py-0.5">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.side === 'buy' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                <span className="text-muted-foreground w-20 shrink-0">{t.at?.slice(5, 16).replace('T', ' ')}</span>
+                <a href={`/lab?symbol=${t.symbol}`} className="w-16 font-semibold hover:underline shrink-0">{t.symbol}</a>
+                <span className="flex-1 text-muted-foreground truncate">{t.side} · {t.reason}</span>
+                {t.pnl != null && <span className={`font-semibold shrink-0 ${pnlTone(t.pnl)}`}>{t.pnl > 0 ? '+' : ''}{t.pnl}</span>}
               </div>
             ))}
-            {p.recent_trades.length === 0 && <p className="text-sm text-muted-foreground">No trades yet.</p>}
+            {p.recent_trades.length === 0 && <p className="text-[13px] text-muted-foreground">No trades under the current policy yet.</p>}
           </div>
-        </div>
+        </Section>
       </div>
 
-      <p className="pt-3 border-t border-border/60 text-[11px] text-muted-foreground leading-relaxed">
-        Policy: entries only when the alpha gate is open ({p.alpha_gate.reason}); price band ${p.risk_limits.price_band?.[0] ?? 1}–${p.risk_limits.price_band?.[1] ?? 10};
-        sizing by signal/vol under a {Math.round(p.risk_limits.target_vol * 100)}% vol target and {Math.round(p.risk_limits.max_weight * 100)}%/name cap;
-        {' '}{Math.round(p.risk_limits.stop_loss * 100)}% stop; kill-switch at {Math.round(p.risk_limits.kill_switch_drawdown * 100)}% drawdown;
-        fills charged {p.risk_limits.slippage_bps} bps slippage + ${p.risk_limits.commission}/order. $100k paper capital, delayed quotes.
-      </p>
+      <Section title="Policy in force">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-[12px] tabular-nums">
+          <span><span className="text-muted-foreground">Alpha gate</span> · {p.alpha_gate.cleared ? 'open' : `closed (t=${p.alpha_gate.t ?? '—'} vs ${p.alpha_gate.hurdle ?? '—'})`}</span>
+          <span><span className="text-muted-foreground">Price band</span> · ${p.risk_limits.price_band?.[0] ?? 1}–${p.risk_limits.price_band?.[1] ?? 10}</span>
+          <span><span className="text-muted-foreground">Vol target</span> · {Math.round(p.risk_limits.target_vol * 100)}% · {Math.round(p.risk_limits.max_weight * 100)}%/name</span>
+          <span><span className="text-muted-foreground">Stop</span> · {Math.round(p.risk_limits.stop_loss * 100)}% · kill-switch {Math.round(p.risk_limits.kill_switch_drawdown * 100)}% DD</span>
+          <span><span className="text-muted-foreground">Frictions</span> · {p.risk_limits.slippage_bps} bps + ${p.risk_limits.commission}/order</span>
+          <span><span className="text-muted-foreground">Capital</span> · $100k paper, delayed quotes</span>
+        </div>
+      </Section>
     </div>
   )
 }
@@ -256,13 +283,24 @@ export default function StrategyLab() {
             </select>}
           expanded={!sim || sim.error ? <p className="text-sm text-muted-foreground">{sim?.error ?? 'Loading…'}</p> : (
             <div className="space-y-5">
-              <SimCurves sim={sim} W={760} H={220} />
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Stat label="Strategy return" value={`${sim.strategy.total_return_pct}%`} tone={pnlTone(sim.strategy.total_return_pct)} sub={`${sim.buy_and_hold.total_return_pct}% hold`} />
                 <Stat label="Sharpe" value={`${sim.strategy.sharpe ?? '—'}`} sub={`${sim.buy_and_hold.sharpe ?? '—'} hold`} />
                 <Stat label="Max drawdown" value={`${sim.strategy.max_drawdown_pct}%`} sub={`${sim.buy_and_hold.max_drawdown_pct}% hold`} />
                 <Stat label="In market" value={`${sim.exposure_pct}%`} sub={`${sim.days_simulated} days · W=${sim.signal_window_days}d`} />
               </div>
+              <Section title={`Growth of 1 · ${sim.symbol}`}>
+                <TimeSeriesChart
+                  series={[
+                    { label: 'signal-timed', points: sim.curve.map(c => ({ t: c.date, v: c.strategy })), cls: 'stroke-emerald-500', fill: 'fill-emerald-500/10' },
+                    { label: 'buy & hold', points: sim.curve.map(c => ({ t: c.date, v: c.hold })), cls: 'stroke-muted-foreground/70', dash: '4 3' },
+                  ]}
+                  H={220} yFmt={v => v.toFixed(2)} />
+                <ChartLegend items={[
+                  { label: 'signal-timed', cls: 'stroke-emerald-500' },
+                  { label: 'buy & hold', cls: 'stroke-muted-foreground', dash: true },
+                ]} />
+              </Section>
               <p className="text-[12px] text-muted-foreground leading-relaxed">{sim.note} Signal history: {sim.signal_days_available} scored days.</p>
             </div>)}>
           {!sim ? <p className="mt-2 text-sm text-muted-foreground">Loading…</p>

@@ -6,6 +6,7 @@
 // security links to its Lab dossier.
 
 import ExpandableCard from '@/components/ExpandableCard'
+import { TimeSeriesChart } from '@/components/quantviz'
 import { useResource } from '@/lib/useResource'
 
 interface Entity {
@@ -75,6 +76,22 @@ function Spark({ entity, W = 220, H = 36, labeled = false }: { entity: string; W
   )
 }
 
+function BigHistory({ entity }: { entity: string }) {
+  const { data } = useResource<{ history: HistoryPoint[] }>(`/api/signals/composite?entity=${entity}&history_hours=168`)
+  const pts = data?.history ?? []
+  if (pts.length < 2) return <p className="text-[11px] text-muted-foreground mt-2">history accumulating…</p>
+  return (
+    <div className="mt-2">
+      <TimeSeriesChart
+        series={[{ label: 'composite',
+                   points: pts.map(p => ({ t: p.taken_at, v: p.composite })),
+                   cls: pts[pts.length - 1].composite >= 0 ? 'stroke-emerald-500' : 'stroke-red-500',
+                   fill: pts[pts.length - 1].composite >= 0 ? 'fill-emerald-500/10' : 'fill-red-500/10' }]}
+        H={150} zeroLine yFmt={v => v.toFixed(2)} />
+    </div>
+  )
+}
+
 function VerticalBlock({ v, big = false }: { v: Entity; big?: boolean }) {
   return (
     <div>
@@ -96,7 +113,7 @@ function VerticalBlock({ v, big = false }: { v: Entity; big?: boolean }) {
       <p className="mt-1 text-[10px] text-muted-foreground/80 tabular-nums">
         {v.inputs.news_articles} articles · {v.inputs.social_posts} social posts this window
       </p>
-      <Spark entity={v.entity} W={big ? 720 : 220} H={big ? 140 : 36} labeled={big} />
+      {big ? <BigHistory entity={v.entity} /> : <Spark entity={v.entity} />}
     </div>
   )
 }
