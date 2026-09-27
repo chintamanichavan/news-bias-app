@@ -10,7 +10,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { type TopStory, HeroStoryCard, CompactStoryRow } from '@/components/TopStoryCard'
 import WeatherChip from '@/components/WeatherChip'
-import ExploreFooter from '@/components/ExploreFooter'
 import SignalEnginePanel from '@/components/SignalEnginePanel'
 import StrategyLab from '@/components/StrategyLab'
 import LoadError from '@/components/LoadError'
@@ -100,7 +99,6 @@ export default function HomePage() {
         )}
       </section>
 
-      <ExploreFooter excludeHrefs={['/']} />
     </div>
   )
 }

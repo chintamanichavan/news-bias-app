@@ -1,4 +1,3 @@
-import ExploreFooter from '@/components/ExploreFooter'
 import CadenceChart from '@/components/insights/CadenceChart'
 import CoveragePanel from '@/components/insights/CoveragePanel'
 import CompositionPanel from '@/components/insights/CompositionPanel'
@@ -345,7 +344,6 @@ export default async function InsightsPage() {
         <SignalsPanel signals={signals} />
       </section>
 
-      <ExploreFooter excludeHrefs={['/insights']} />
     </div>
   )
 }

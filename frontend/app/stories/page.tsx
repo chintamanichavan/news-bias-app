@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import OutletLean from '@/components/OutletLean'
-import ExploreFooter from '@/components/ExploreFooter'
 import LoadError from '@/components/LoadError'
 import { useResource } from '@/lib/useResource'
 
@@ -164,7 +163,6 @@ export default function StoriesPage() {
         </div>
       )}
 
-      <ExploreFooter excludeHrefs={['/stories']} />
     </div>
   )
 }
