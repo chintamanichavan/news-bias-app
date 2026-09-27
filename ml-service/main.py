@@ -890,7 +890,7 @@ def signals_hazards():
 
 
 @app.get("/signals/composite")
-def signals_composite(entity: Optional[str] = None, history_hours: int = Query(72, ge=1, le=720)):
+def signals_composite(entity: Optional[str] = None, history_hours: int = Query(72, ge=1, le=9600)):
     """The engine's read: composite sentiment per entity (the two verticals +
     every security carrying signal this cycle), with per-entity history."""
     if entity:
@@ -989,6 +989,14 @@ async def portfolio_report():
     out = portfolio.report(quotes)
     _data_cache["portfolio"] = (time.time(), out)
     return out
+
+
+@app.post("/signals/backfill")
+async def signals_backfill(days: int = Query(180, ge=30, le=365)):
+    """Rebuild derived signal history from the article corpus + PIT prices.
+    Backfilled rows are marked and replaced wholesale; live rows untouched."""
+    import signal_backfill
+    return await signal_backfill.backfill(days)
 
 
 @app.get("/pit/status")

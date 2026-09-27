@@ -77,17 +77,33 @@ function Spark({ entity, W = 220, H = 36, labeled = false }: { entity: string; W
 }
 
 function BigHistory({ entity }: { entity: string }) {
-  const { data } = useResource<{ history: HistoryPoint[] }>(`/api/signals/composite?entity=${entity}&history_hours=168`)
-  const pts = data?.history ?? []
-  if (pts.length < 2) return <p className="text-[11px] text-muted-foreground mt-2">history accumulating…</p>
+  const { data } = useResource<{ history: HistoryPoint[] }>(`/api/signals/composite?entity=${entity}&history_hours=4320`)
+  const raw = data?.history ?? []
+  if (raw.length < 2) return <p className="text-[11px] text-muted-foreground mt-2">history accumulating…</p>
+  // One point per day: live capture marks every 15 minutes while derived
+  // history is daily — unaggregated, two live days would fill half the axis.
+  const byDay = new Map<string, { sum: number; n: number }>()
+  for (const p of raw) {
+    const d = p.taken_at.slice(0, 10)
+    const cur = byDay.get(d) ?? { sum: 0, n: 0 }
+    cur.sum += p.composite; cur.n += 1
+    byDay.set(d, cur)
+  }
+  const pts = Array.from(byDay.entries()).sort((a, b) => a[0] < b[0] ? -1 : 1)
+    .map(([d, { sum, n }]) => ({ t: d, v: sum / n }))
   return (
     <div className="mt-2">
       <TimeSeriesChart
         series={[{ label: 'composite',
-                   points: pts.map(p => ({ t: p.taken_at, v: p.composite })),
-                   cls: pts[pts.length - 1].composite >= 0 ? 'stroke-emerald-500' : 'stroke-red-500',
-                   fill: pts[pts.length - 1].composite >= 0 ? 'fill-emerald-500/10' : 'fill-red-500/10' }]}
+                   points: pts,
+                   cls: pts[pts.length - 1].v >= 0 ? 'stroke-emerald-500' : 'stroke-red-500',
+                   fill: pts[pts.length - 1].v >= 0 ? 'fill-emerald-500/10' : 'fill-red-500/10' }]}
         H={150} zeroLine yFmt={v => v.toFixed(2)} />
+      <p className="mt-1 text-[10px] text-muted-foreground/80 leading-relaxed">
+        Daily means. Pre-launch history is derived from the corpus (news + VIX regime only);
+        live capture adds the social, prediction-market and hazard channels — a visible seam
+        where methodology changes is honest, not a bug.
+      </p>
     </div>
   )
 }
@@ -165,7 +181,7 @@ export default function SignalEnginePanel() {
 
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         {/* Vertical composites */}
-        <ExpandableCard title="Composites · markets & weather" expandedTitle="Composites — 7-day history and channels"
+        <ExpandableCard title="Composites · markets & weather" expandedTitle="Composites — signal history and channels"
           expanded={
             <div className="space-y-8">
               {verticals.map(v => <VerticalBlock key={v.entity} v={v} big />)}

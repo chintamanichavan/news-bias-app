@@ -132,15 +132,8 @@ async def run(days: int = 120) -> dict:
 
     ic1 = summarize(ics[1])
 
-    # ── The same study on live composite snapshots, if they span enough ────
-    conn = db.get_conn()
-    span_row = conn.execute(
-        "SELECT julianday(MAX(taken_at)) - julianday(MIN(taken_at)) FROM signal_snapshots"
-    ).fetchone()
-    conn.close()
-    snapshot_days = round(span_row[0] or 0, 1)
-    snapshot_note = (f"Composite snapshots span {snapshot_days} days — the same IC study runs on "
-                     f"them automatically once they cover 21+ days.")
+    # ── The same study on composite snapshot history (live + backfilled) ───
+    snapshot_ic, snapshot_note = await _snapshot_study(closes, dates)
 
     out = {
         "days_studied": days,
@@ -150,6 +143,7 @@ async def run(days: int = 120) -> dict:
         "tercile_spread_daily": round(sum(spreads) / len(spreads), 5) if spreads else None,
         "tercile_spread_annualized_pct": round(sum(spreads) / len(spreads) * 252 * 100, 1) if spreads else None,
         "avg_daily_turnover": round(sum(turnovers) / len(turnovers), 2) if turnovers else None,
+        "snapshot_ic": snapshot_ic,
         "snapshot_study": snapshot_note,
     }
     hurdle = validation.significance_hurdle(validation.trials_count("alpha") + 1)
@@ -160,6 +154,57 @@ async def run(days: int = 120) -> dict:
                             "spread_ann_pct": out["tercile_spread_annualized_pct"],
                             "t_hurdle": hurdle})
     return out
+
+
+async def _snapshot_study(closes: dict, dates: list) -> tuple[dict | None, str]:
+    """Daily rank IC of the composite snapshot signal vs next-day returns —
+    the study of the engine's own output, once history spans 21+ days."""
+    conn = db.get_conn()
+    span = conn.execute(
+        "SELECT julianday(MAX(taken_at)) - julianday(MIN(taken_at)) FROM signal_snapshots"
+    ).fetchone()[0] or 0
+    if span < 21:
+        conn.close()
+        return None, (f"Composite snapshots span {round(span, 1)} days — the same IC study "
+                      "runs on them automatically once they cover 21+ days.")
+
+    rows = conn.execute(
+        """SELECT date(taken_at) AS d, entity, AVG(composite) AS c FROM signal_snapshots
+           WHERE entity NOT IN ('markets', 'weather')
+           GROUP BY date(taken_at), entity""",
+    ).fetchall()
+    conn.close()
+
+    panel: dict[str, dict[str, float]] = {}
+    for r in rows:
+        panel.setdefault(r["entity"], {})[r["d"]] = r["c"]
+    symbols = [s for s in panel if s in closes and len(panel[s]) >= MIN_SIGNAL_DAYS]
+    if len(symbols) < 4:
+        return None, (f"Snapshot history spans {round(span, 1)} days but too few symbols "
+                      "overlap the PIT price store yet.")
+
+    ics = []
+    for i, d in enumerate(dates[:-1]):
+        cross = []
+        for s in symbols:
+            if d in panel[s] and dates[i] in closes[s] and dates[i + 1] in closes[s]:
+                p0, p1 = closes[s][dates[i]], closes[s][dates[i + 1]]
+                if p0:
+                    cross.append((panel[s][d], p1 / p0 - 1))
+        if len(cross) >= 4:
+            ic, _ = spearmanr([a for a, _ in cross], [b for _, b in cross])
+            if ic == ic:
+                ics.append(float(ic))
+    if len(ics) < 5:
+        return None, f"Snapshot history spans {round(span, 1)} days; overlapping cross-sections still too thin."
+    mean = sum(ics) / len(ics)
+    sd = (sum((v - mean) ** 2 for v in ics) / (len(ics) - 1)) ** 0.5
+    out = {"mean": round(mean, 4),
+           "t_stat": round(mean / sd * len(ics) ** 0.5, 2) if sd else None,
+           "days": len(ics), "symbols": len(symbols),
+           "span_days": round(span, 1)}
+    return out, (f"Composite-history study live: {len(symbols)} symbols over "
+                 f"{round(span, 1)} days of snapshots (backfilled + live).")
 
 
 def _verdict(ic1: dict, hurdle: float = 2.0) -> str:

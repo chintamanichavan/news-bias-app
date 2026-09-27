@@ -156,7 +156,8 @@ def compute_composites(vix: float | None = None) -> list[dict]:
             "INSERT INTO signal_snapshots (entity, composite, components) VALUES (?,?,?)",
             (r["entity"], r["composite"], json.dumps(r["components"])),
         )
-    conn.execute("DELETE FROM signal_snapshots WHERE datetime(taken_at) < datetime('now', '-30 days')")
+    # Signal history is a research asset — keep 400 days (backfill included).
+    conn.execute("DELETE FROM signal_snapshots WHERE datetime(taken_at) < datetime('now', '-400 days')")
     conn.commit()
     conn.close()
 
