@@ -32,8 +32,9 @@ const newsreader = Newsreader({
 })
 
 export const metadata: Metadata = {
-  title: 'Artha — Unbiased News',
-  description: 'Read the news with political bias clearly shown.',
+  title: 'Artha — Systematic Markets Research',
+  description:
+    'Quant research platform: validated signals, gated paper trading, and long-horizon business analysis across global markets.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
