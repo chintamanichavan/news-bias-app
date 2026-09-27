@@ -100,6 +100,10 @@ export function useResource<T>(
   const [error, setError] = useState<string | null>(null)
   // Bumped by reload() and by the visibility handler to force a fetch.
   const [nonce, setNonce] = useState(0)
+  // Which URL `data` belongs to. When the caller switches URLs (a symbol
+  // picker, a query change), the old payload must never be presented as the
+  // new resource — that reads as "every symbol shows the same chart".
+  const dataKey = useRef(cached ? key : '')
 
   const alive = useRef(true)
   useEffect(() => {
@@ -112,12 +116,15 @@ export function useResource<T>(
     const hit = cache.get(url)
     if (hit && !force && Date.now() - hit.at < freshMs) {
       setData(hit.data as T)
+      dataKey.current = url
       setLoading(false)
       return
     }
 
     if (hit) setRefreshing(true)
     else setLoading(true)
+    // An error from the URL we navigated away from is not this URL's error.
+    if (dataKey.current !== url) setError(null)
 
     let promise = inflight.get(url)
     if (!promise) {
@@ -131,6 +138,7 @@ export function useResource<T>(
       cache.set(url, { data: json, at: Date.now() })
       if (!alive.current) return
       setData(json as T)
+      dataKey.current = url
       setError(null)
     } catch (e) {
       if (!alive.current) return
@@ -166,7 +174,17 @@ export function useResource<T>(
 
   const reload = useCallback(() => setNonce(n => n + 1), [])
 
-  return { data, loading, refreshing, error, reload }
+  // Never present one URL's payload as another's. While a URL switch is in
+  // flight, serve the new URL's cache when one exists, else report loading.
+  const stale = dataKey.current !== key
+  const shown = stale ? ((cached?.data as T) ?? null) : data
+  return {
+    data: shown,
+    loading: !!url && enabled && (loading || (stale && !shown)),
+    refreshing,
+    error: stale ? null : error,
+    reload,
+  }
 }
 
 /** Drop a cached payload so the next mount refetches — used after a manual refresh. */

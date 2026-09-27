@@ -64,18 +64,18 @@ export default function StrategyPage() {
 
         {/* ── Simulation ── */}
         <Bench id="simulation" title="Simulation — the news signal vs buy & hold">
-          {!sim ? <p className="text-sm text-muted-foreground">Loading…</p>
+          <div className="flex flex-wrap items-center gap-2 mb-5">
+            {['SPY', 'QQQ', 'TLT', 'GLD', 'USO', 'BTC-USD'].map(s => (
+              <button key={s} onClick={() => setSimSymbol(s)}
+                className={`text-[12px] px-3 py-1 rounded-full tabular-nums transition-colors ${
+                  simSymbol === s ? 'bg-foreground text-background font-semibold' : 'bg-muted/60 text-muted-foreground hover:text-foreground'}`}>
+                {s}
+              </button>
+            ))}
+          </div>
+          {!sim ? <div className="skeleton h-80 rounded-2xl" />
             : sim.error ? <p className="text-sm text-muted-foreground">{sim.error}</p> : (
             <div className="space-y-5">
-              <div className="flex flex-wrap items-center gap-2">
-                {['SPY', 'QQQ', 'TLT', 'GLD', 'USO', 'BTC-USD'].map(s => (
-                  <button key={s} onClick={() => setSimSymbol(s)}
-                    className={`text-[12px] px-3 py-1 rounded-full tabular-nums transition-colors ${
-                      simSymbol === s ? 'bg-foreground text-background font-semibold' : 'bg-muted/60 text-muted-foreground hover:text-foreground'}`}>
-                    {s}
-                  </button>
-                ))}
-              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Stat label="Strategy return" value={`${sim.strategy.total_return_pct}%`} tone={pnlTone(sim.strategy.total_return_pct)} sub={`${sim.buy_and_hold.total_return_pct}% hold`} />
                 <Stat label="Sharpe" value={`${sim.strategy.sharpe ?? '—'}`} sub={`${sim.buy_and_hold.sharpe ?? '—'} hold`} />
