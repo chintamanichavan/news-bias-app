@@ -207,12 +207,35 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
         if len(shares) >= 3 and shares[0][1]:
             dilution = (shares[-1][1] / shares[0][1] - 1) * 100
 
-        p = px[px["symbol"] == sym].sort_values("date")
+        p = px[px["symbol"] == sym].sort_values("date").reset_index(drop=True)
         if p.empty:
             continue
         last = float(p["close"].iloc[-1])
         hi52 = float(p["close"].tail(252).max())
         discount = (last / hi52 - 1) * 100
+
+        # Systematic buy zone: the business's own decade-median P/E on its
+        # latest annual EPS, with a 15% margin of safety. No hand-made
+        # thesis exists for these names, so the anchor is the company's own
+        # long-run valuation history — never someone else's multiple.
+        eps_series = series(["EarningsPerShareDiluted"])
+        fair = buy_below = to_zone = None
+        in_zone = False
+        if len(eps_series) >= 5 and eps_series[-1][1] and eps_series[-1][1] > 0:
+            pe_hist = []
+            pdates = p["date"]
+            for fy, eps in eps_series:
+                if eps and eps > 0:
+                    at = p[pdates.dt.year == fy]
+                    if len(at):
+                        pe_hist.append(float(at["close"].iloc[-1]) / eps)
+            if len(pe_hist) >= 5:
+                pe_hist.sort()
+                median_pe = pe_hist[len(pe_hist) // 2]
+                fair = median_pe * eps_series[-1][1]
+                buy_below = 0.85 * fair
+                to_zone = (last / buy_below - 1) * 100
+                in_zone = last <= buy_below
 
         if (roe is not None and roe > 15 and fcf is not None and fcf > 0
                 and rev_cagr is not None and rev_cagr > 5
@@ -223,26 +246,64 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
                 "roe_pct": round(roe, 1), "rev_cagr_pct": round(rev_cagr, 1),
                 "fcf": round(fcf, 0),
                 "dilution_pct": round(dilution, 1) if dilution is not None else None,
+                "fair_value": round(fair, 2) if fair else None,
+                "buy_below": round(buy_below, 2) if buy_below else None,
+                "to_zone_pct": round(to_zone, 1) if to_zone is not None else None,
+                "in_zone": in_zone,
             })
 
-    out.sort(key=lambda r: r["vs_52w_high_pct"])  # deepest markdown first
+    # in-zone first, then closest to zone, then deepest markdown
+    out.sort(key=lambda r: (not r["in_zone"],
+                            r["to_zone_pct"] if r["to_zone_pct"] is not None else 1e9,
+                            r["vs_52w_high_pct"]))
     _screen_cache.update(at=_t.time(), rows=out)
     return [r for r in out if r["ticker"] not in exclude][:limit]
 
 
 def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
-    """In-zone watchlist names, topped up with the nearest-to-zone names
-    until at least `min_size` sit in the queue, plus screened newcomers."""
-    with_zone = [n for n in names if n.get("to_buy_zone_pct") is not None]
-    in_zone = [n for n in with_zone if n.get("in_buy_zone")]
-    near = [n for n in with_zone if not n.get("in_buy_zone")]
-    queue = in_zone + near[: max(0, min_size - len(in_zone))]
-    exclude = {n["ticker"] for n in names}
+    """A merged buy-zone queue of holdable businesses: watchlist names in
+    their thesis zones AND quality names in the systematic value zone (own
+    decade-median P/E, 15% margin of safety) — topped up with the nearest
+    to either zone until at least `min_size` sit in the row. Distances are
+    always shown; a fifth name is never manufactured by loosening the bar."""
+    watchlist_tickers = {n["ticker"] for n in names}
+    quality = screen_candidates(exclude=set(), limit=40)
+
+    entries: dict[str, dict] = {}
+    for n in names:
+        if n.get("to_buy_zone_pct") is None:
+            continue
+        entries[n["ticker"]] = {
+            "ticker": n["ticker"], "name": n["name"], "kind": "thesis",
+            "in_zone": bool(n.get("in_buy_zone")),
+            "to_zone_pct": n["to_buy_zone_pct"],
+            "price": n.get("price"), "buy_below": n.get("buy_below"),
+            "note": n.get("one_liner"), "on_watchlist": True,
+        }
+    for q in quality:
+        if q.get("to_zone_pct") is None:
+            continue
+        prev = entries.get(q["ticker"])
+        cand = {
+            "ticker": q["ticker"], "name": q["ticker"], "kind": "value",
+            "in_zone": bool(q["in_zone"]), "to_zone_pct": q["to_zone_pct"],
+            "price": q["price"], "buy_below": q["buy_below"],
+            "note": (f"ROE {q['roe_pct']}% · rev {q['rev_cagr_pct']}%/yr · "
+                     f"zone = own decade-median P/E − 15%"),
+            "on_watchlist": q["ticker"] in watchlist_tickers,
+        }
+        # a name can be out of its strict thesis zone yet inside the value
+        # zone — surface whichever view puts it closer to actionable
+        if prev is None or (cand["in_zone"] and not prev["in_zone"]):
+            entries[q["ticker"]] = cand
+
+    ranked = sorted(entries.values(),
+                    key=lambda e: (not e["in_zone"],
+                                   e["to_zone_pct"] if e["to_zone_pct"] is not None else 1e9))
+    in_zone = [e for e in ranked if e["in_zone"]]
+    queue = ranked[: max(min_size, len(in_zone))]
     return {
-        "queue": [{"ticker": n["ticker"], "name": n["name"],
-                   "to_buy_zone_pct": n["to_buy_zone_pct"],
-                   "in_buy_zone": bool(n.get("in_buy_zone")),
-                   "price": n.get("price"), "buy_below": n.get("buy_below"),
-                   "one_liner": n.get("one_liner")} for n in queue],
-        "screened": screen_candidates(exclude),
+        "queue": queue,
+        "in_zone_count": len(in_zone),
+        "screened": [q for q in quality if q["ticker"] not in watchlist_tickers][:8],
     }

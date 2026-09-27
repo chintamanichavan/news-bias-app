@@ -31,12 +31,16 @@ interface Name {
 interface Allocation { asset_class: string; region?: string; factor?: string; weight: number }
 
 interface QueueItem {
-  ticker: string; name: string; to_buy_zone_pct: number; in_buy_zone: boolean
-  price: number | null; buy_below: number | null; one_liner: string | null
+  ticker: string; name: string; kind: 'thesis' | 'value'
+  in_zone: boolean; to_zone_pct: number
+  price: number | null; buy_below: number | null
+  note: string | null; on_watchlist: boolean
 }
 interface Screened {
   ticker: string; price: number; vs_52w_high_pct: number
   roe_pct: number; rev_cagr_pct: number; fcf: number; dilution_pct: number | null
+  fair_value: number | null; buy_below: number | null
+  to_zone_pct: number | null; in_zone: boolean
 }
 
 interface PortfolioData {
@@ -46,7 +50,7 @@ interface PortfolioData {
   targets: { base_currency: string; allocations: Allocation[] }
   watchlist: Name[]
   in_buy_zone: string[]
-  analysis_queue: { queue: QueueItem[]; screened: Screened[] }
+  analysis_queue: { queue: QueueItem[]; in_zone_count: number; screened: Screened[] }
   decisions: { file: string; title: string; status: string | null }[]
 }
 
@@ -104,28 +108,33 @@ export default function PortfolioPage() {
           {data.analysis_queue && (
             <section className="mt-8">
               <div className="flex items-baseline justify-between mb-3">
-                <p className="news-section-label">Analysis queue</p>
+                <p className="news-section-label">
+                  Buy-zone queue · {data.analysis_queue.in_zone_count} in zone now
+                </p>
                 <span className="text-[11px] text-muted-foreground">
-                  in-zone + nearest to zone · each opens its Lab dossier
+                  thesis zones + systematic value zones · each opens its Lab dossier
                 </span>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {data.analysis_queue.queue.map(q => (
                   <a key={q.ticker} href={`/lab?symbol=${encodeURIComponent(q.ticker)}`}
                     className={`news-card p-4 block hover:-translate-y-0.5 transition-transform border ${
-                      q.in_buy_zone ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border'}`}>
+                      q.in_zone ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border'}`}>
                     <div className="flex items-baseline justify-between">
                       <span className="font-bold tabular-nums">{q.ticker}</span>
                       <span className={`text-[11px] font-semibold tabular-nums ${
-                        q.in_buy_zone ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
-                        {q.in_buy_zone ? 'IN ZONE' : `+${q.to_buy_zone_pct}%`}
+                        q.in_zone ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                        {q.in_zone ? 'IN ZONE' : `+${q.to_zone_pct}%`}
                       </span>
                     </div>
                     <div className="mt-1 text-[11px] text-muted-foreground tabular-nums">
-                      ${q.price?.toLocaleString()} vs ${q.buy_below?.toLocaleString()} buy-below
+                      ${q.price?.toLocaleString()} vs ${q.buy_below?.toLocaleString()}
+                      <span className="ml-1 text-[9.5px] uppercase tracking-wider">
+                        {q.kind === 'thesis' ? 'thesis zone' : 'value zone'}
+                      </span>
                     </div>
-                    {q.one_liner && (
-                      <p className="mt-1.5 text-[11px] text-muted-foreground leading-snug line-clamp-2">{q.one_liner}</p>
+                    {q.note && (
+                      <p className="mt-1.5 text-[11px] text-muted-foreground leading-snug line-clamp-2">{q.note}</p>
                     )}
                   </a>
                 ))}
@@ -150,6 +159,8 @@ export default function PortfolioPage() {
                         <th className="px-4 py-2 font-semibold">Ticker</th>
                         <th className="px-3 py-2 font-semibold text-right">Price</th>
                         <th className="px-3 py-2 font-semibold text-right">vs 52w high</th>
+                        <th className="px-3 py-2 font-semibold text-right">Value zone</th>
+                        <th className="px-3 py-2 font-semibold text-right">To zone</th>
                         <th className="px-3 py-2 font-semibold text-right">ROE</th>
                         <th className="px-3 py-2 font-semibold text-right">Rev CAGR</th>
                         <th className="px-3 py-2 font-semibold text-right">FCF</th>
@@ -164,6 +175,10 @@ export default function PortfolioPage() {
                           <td className="px-4 py-2.5 font-semibold tabular-nums">{s.ticker}</td>
                           <td className="px-3 py-2.5 text-right tabular-nums">${s.price.toLocaleString()}</td>
                           <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-red-600 dark:text-red-400">{s.vs_52w_high_pct}%</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{s.buy_below != null ? `$${s.buy_below.toLocaleString()}` : '—'}</td>
+                          <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${s.in_zone ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+                            {s.in_zone ? 'IN ZONE' : s.to_zone_pct != null ? `+${s.to_zone_pct}%` : '—'}
+                          </td>
                           <td className="px-3 py-2.5 text-right tabular-nums">{s.roe_pct}%</td>
                           <td className="px-3 py-2.5 text-right tabular-nums">{s.rev_cagr_pct}%</td>
                           <td className="px-3 py-2.5 text-right tabular-nums">{Math.abs(s.fcf) >= 1e9 ? `$${(s.fcf / 1e9).toFixed(1)}B` : `$${(s.fcf / 1e6).toFixed(0)}M`}</td>
@@ -174,7 +189,8 @@ export default function PortfolioPage() {
                   </table>
                   <p className="px-4 py-2 text-[10.5px] text-muted-foreground">
                     Screen: ROE &gt; 15%, positive FCF, revenue CAGR &gt; 5%, share count not inflating — from as-filed
-                    fundamentals in the PIT store, ranked by markdown from the 52-week high.
+                    fundamentals. Value zone: the company&rsquo;s own decade-median P/E on latest annual EPS, minus a 15%
+                    margin of safety — its own history as the anchor, never someone else&rsquo;s multiple.
                   </p>
                 </div>
               )}
