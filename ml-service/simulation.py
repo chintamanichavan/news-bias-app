@@ -101,6 +101,19 @@ async def run(symbol: str = "SPY", days: int = 120) -> dict:
     dates = [d for d, _ in closes]
     px = [p for _, p in closes]
 
+    # The corpus, not the price feed, bounds the experiment: RSS only yields
+    # current items, so scored news begins when ingestion began. Starting the
+    # clock earlier would charge the strategy months of forced cash against a
+    # benchmark that gets to compound the whole time — a rigged comparison
+    # drawn as a long flat line.
+    if senti:
+        first_signal = min(senti)
+        start = next((i for i, d in enumerate(dates) if d >= first_signal), 0)
+        if start:
+            dates, px = dates[start:], px[start:]
+    if len(px) < 10:
+        return {"error": "signal history too short to simulate yet"}
+
     # Signal on day t decides exposure over t -> t+1. Trailing mean over the
     # last SIGNAL_WINDOW calendar days that had scored articles.
     strat_rets: list[float] = []
@@ -125,6 +138,7 @@ async def run(symbol: str = "SPY", days: int = 120) -> dict:
     return {
         "symbol": symbol,
         "days_simulated": len(strat_rets),
+        "window": [dates[1], dates[-1]] if len(dates) > 1 else None,
         "signal_days_available": len(senti),
         "exposure_pct": round(exposure_days / len(strat_rets) * 100, 1),
         "signal_window_days": SIGNAL_WINDOW,
@@ -132,6 +146,7 @@ async def run(symbol: str = "SPY", days: int = 120) -> dict:
         "buy_and_hold": _stats(hold_rets),
         "curve": curve,
         "note": ("Single-asset timing on the daily market-news sentiment series; "
-                 "day t's signal trades day t+1's return (no lookahead). "
-                 "Signal history is only as old as the article corpus."),
+                 "day t's signal trades day t+1's return (no lookahead). The window "
+                 "opens on the corpus's first scored day — news cannot be backfilled "
+                 "for free, so strategy and benchmark start the same day."),
     }
