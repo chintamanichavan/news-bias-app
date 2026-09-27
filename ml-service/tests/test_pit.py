@@ -70,9 +70,11 @@ def test_asof_replay_survives_corrections(tmp_pit):
 def test_fundamentals_asof_uses_filing_date(tmp_pit):
     facts = pd.DataFrame([
         {"cik": "1", "symbol": "AAA", "tag": "Revenues", "unit": "USD",
-         "period_end": "2025-12-31", "value": 100.0, "filed_at": "2026-02-15"},
+         "period_start": "2025-01-01", "period_end": "2025-12-31",
+         "value": 100.0, "filed_at": "2026-02-15"},
         {"cik": "1", "symbol": "AAA", "tag": "Revenues", "unit": "USD",
-         "period_end": "2025-12-31", "value": 105.0, "filed_at": "2026-05-01"},  # restatement
+         "period_start": "2025-01-01", "period_end": "2025-12-31",
+         "value": 105.0, "filed_at": "2026-05-01"},  # restatement
     ])
     tmp_pit.write_snapshot("fundamentals", facts, snapshot_id="20260601T000000Z")
     conn = tmp_pit.connect()
