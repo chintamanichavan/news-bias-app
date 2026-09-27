@@ -68,6 +68,14 @@ export default function LabPage() {
   const [hits, setHits] = useState<SearchHit[]>([])
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Deep links: every card on the platform opens a security as /lab?symbol=X
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('symbol')
+      if (q) setSymbol(q.toUpperCase())
+    } catch {}
+  }, [])
+
   const { data: d, loading } = useResource<Dossier>(`/api/lab/${encodeURIComponent(symbol)}`)
 
   useEffect(() => {

@@ -127,7 +127,10 @@ export default function PortfolioPage() {
                 </thead>
                 <tbody>
                   {data.watchlist.map(n => (
-                    <tr key={n.ticker} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
+                    <tr key={n.ticker}
+                      className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => { window.location.href = `/lab?symbol=${encodeURIComponent(n.ticker)}` }}
+                      title={`Open ${n.ticker} in the Research Lab`}>
                       <td className="px-4 py-3">
                         <div className="font-semibold tabular-nums">{n.ticker}
                           <span className="ml-2 font-normal text-muted-foreground">{n.name}</span>
