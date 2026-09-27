@@ -15,9 +15,12 @@ the same starting costs. Runs are logged to the experiments table.
 
 import math
 
+import numpy as np
+
 import alpha
 import monitor
 import simulation
+import validation
 
 COST_PER_SIDE = 0.0015  # 10 bps costs + 5 bps slippage
 TOP_K = 3
@@ -129,6 +132,17 @@ async def run(days: int = 150) -> dict:
                 n += 1
         bench.append(r / n if n else 0.0)
 
+    # ── Phase 2 guards: this result may not overstate itself ───────────────
+    # Trials: every prior backtest experiment counts against this one's DSR.
+    n_trials = validation.trials_count("backtest") + len(WINDOWS)
+    dsr = validation.deflated_sharpe(oos_returns, n_trials=n_trials)
+    # PBO across the config family (each window's full-period return stream)
+    full = np.array([
+        _daily_strategy_returns(dates, closes, panel, symbols, w, 1, len(dates))
+        for w in WINDOWS
+    ]).T
+    pbo = validation.pbo_cscv(full) if full.size else {"pbo": None}
+
     out = {
         "universe": symbols,
         "common_days": len(dates),
@@ -137,10 +151,14 @@ async def run(days: int = 150) -> dict:
         "folds": folds,
         "oos_combined": _stats(oos_returns),
         "benchmark_oos": _stats(bench),
+        "deflated_sharpe": dsr,
+        "pbo": pbo,
         "note": ("Walk-forward: the window is chosen only on data before each test fold. "
                  "OOS combined concatenates the test folds; the benchmark holds the same "
-                 "universe equal-weight over the same OOS days."),
+                 "universe equal-weight over the same OOS days. DSR discounts the Sharpe "
+                 "for every registered trial; PBO is CSCV over the config family."),
     }
     monitor.log_experiment("backtest", {"days": days, "universe": len(symbols), "top_k": TOP_K},
-                           {"oos": out["oos_combined"], "bench": out["benchmark_oos"]})
+                           {"oos": out["oos_combined"], "bench": out["benchmark_oos"],
+                            "dsr": dsr.get("dsr"), "pbo": pbo.get("pbo")})
     return out

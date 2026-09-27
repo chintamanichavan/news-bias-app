@@ -1,4 +1,14 @@
+import json
+
 import paper_trader as pt
+
+
+def _clear_gate(db):
+    """Insert an alpha study that clears the hurdle so entries are allowed."""
+    conn = db.get_conn()
+    conn.execute("INSERT INTO experiments (kind, params, metrics) VALUES ('alpha', '{}', ?)",
+                 (json.dumps({"ic_t": 3.5, "ic_mean": 0.05}),))
+    conn.commit(); conn.close()
 
 
 def _positions(db):
@@ -15,7 +25,17 @@ def _trades(db):
     return rows
 
 
+def test_alpha_gate_blocks_entries_by_default(tmp_db, offline_universe):
+    """Limited resources buy validated edge or nothing: with no cleared alpha
+    study on record, the book must refuse to open positions."""
+    pt.on_cycle([{"entity": "AAA", "composite": 0.5}], {"AAA": 50.0}, vols={"AAA": 0.2})
+    assert _positions(tmp_db) == []
+    rep = pt.report({})
+    assert rep["alpha_gate"]["cleared"] is False
+
+
 def test_first_rebalance_accounting(tmp_db, offline_universe):
+    _clear_gate(tmp_db)
     results = [
         {"entity": "AAA", "composite": 0.20},
         {"entity": "BBB", "composite": 0.06},

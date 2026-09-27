@@ -29,6 +29,7 @@ import monitor
 import particle
 import simulation
 import universe
+import validation
 
 MIN_SIGNAL_DAYS = 12   # a symbol needs this much history to join the panel
 MAX_SYMBOLS = 15
@@ -150,20 +151,25 @@ async def run(days: int = 120) -> dict:
         "tercile_spread_annualized_pct": round(sum(spreads) / len(spreads) * 252 * 100, 1) if spreads else None,
         "avg_daily_turnover": round(sum(turnovers) / len(turnovers), 2) if turnovers else None,
         "snapshot_study": snapshot_note,
-        "verdict": _verdict(ic1),
     }
+    hurdle = validation.significance_hurdle(validation.trials_count("alpha") + 1)
+    out["t_hurdle"] = hurdle
+    out["verdict"] = _verdict(ic1, hurdle)
     monitor.log_experiment("alpha", {"days": days, "symbols": len(symbols)},
                            {"ic_mean": ic1.get("mean"), "ic_t": ic1.get("t_stat"),
-                            "spread_ann_pct": out["tercile_spread_annualized_pct"]})
+                            "spread_ann_pct": out["tercile_spread_annualized_pct"],
+                            "t_hurdle": hurdle})
     return out
 
 
-def _verdict(ic1: dict) -> str:
+def _verdict(ic1: dict, hurdle: float = 2.0) -> str:
+    """The gate rises with the number of registered trials (Harvey–Liu)."""
     mean, t = ic1.get("mean"), ic1.get("t_stat")
     if mean is None:
         return "Not enough overlapping days for a verdict yet."
-    if t is not None and abs(t) >= 2 and mean > 0.02:
-        return "The news signal shows statistically meaningful predictive rank power — worth sizing."
+    if t is not None and abs(t) >= hurdle and mean > 0.02:
+        return (f"The news signal clears the trials-adjusted bar (|t| ≥ {hurdle}) "
+                "— worth sizing.")
     if mean and mean > 0:
         return "Positive but not significant — keep banking data before allocating on it."
     return "No predictive power at this horizon so far — the honest null result."

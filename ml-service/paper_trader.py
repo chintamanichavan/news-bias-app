@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 import db
 import optimizer
 import risk
+import validation
 from execution import broker
 
 CAPITAL = 100_000.0
@@ -134,7 +135,11 @@ def on_cycle(results: list[dict], quotes: dict[str, float],
         except ValueError:
             due = True
 
-    if due and not halted:
+    # The alpha gate: no NEW capital until a study has cleared the
+    # trials-adjusted hurdle. Exits, stops and the kill-switch still run.
+    gate = validation.alpha_gate()
+
+    if due and not halted and gate["cleared"]:
         by_symbol = {r["entity"]: r for r in results
                      if r["entity"] not in ("markets", "weather") and r["entity"] in quotes}
         candidates = sorted(
@@ -168,6 +173,14 @@ def on_cycle(results: list[dict], quotes: dict[str, float],
                 continue
             comp = by_symbol[sym]["composite"]
             cash += _buy(conn, sym, qty, price, comp, f"signal {comp:+.2f} w={w:.0%}")
+        conn.execute("UPDATE paper_state SET last_rebalance = ? WHERE id = 1", (_now(),))
+    elif due and not halted:
+        # Gate closed: still consume the rebalance slot so exits fire on
+        # signal decay, but no entries.
+        for pos in _positions(conn):
+            comp = next((r["composite"] for r in results if r["entity"] == pos["symbol"]), None)
+            if comp is not None and comp < EXIT_THRESHOLD:
+                cash += _sell(conn, pos, price_of(pos), "signal exit (gate closed)")
         conn.execute("UPDATE paper_state SET last_rebalance = ? WHERE id = 1", (_now(),))
 
     # ── Persist ────────────────────────────────────────────────────────────
@@ -220,6 +233,7 @@ def report(quotes: dict[str, float] | None = None) -> dict:
 
     conn.close()
     return {
+        "alpha_gate": validation.alpha_gate(),
         "capital": CAPITAL,
         "equity": round(equity, 2),
         "cash": round(state["cash"], 2),
