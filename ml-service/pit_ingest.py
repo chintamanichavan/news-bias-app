@@ -106,17 +106,25 @@ async def ingest_prices(symbols: list[str], client: httpx.AsyncClient) -> int:
     """EOD prices: Stooq first (keyless, stable), Yahoo chart as fallback for
     networks Stooq's browser-check blocks. Whichever fills a symbol, the
     source column says so."""
+    import os
+    skip_stooq = os.environ.get("ARTHA_SKIP_STOOQ") == "1"
     frames = []
     stooq_blocked = 0
     for sym in symbols:
-        try:
-            r = await client.get("https://stooq.com/q/d/l/",
-                                 params={"s": f"{sym.lower()}.us", "i": "d"})
-            r.raise_for_status()
-            frames.append(parse_stooq_csv(sym, r.text))
-            continue
-        except Exception:
-            stooq_blocked += 1
+        if not skip_stooq:
+            try:
+                # Tight timeout: when Stooq blackholes an IP, a symbol must
+                # cost seconds, not the client's full 60s connect budget.
+                r = await client.get("https://stooq.com/q/d/l/",
+                                     params={"s": f"{sym.lower()}.us", "i": "d"},
+                                     timeout=8)
+                r.raise_for_status()
+                frames.append(parse_stooq_csv(sym, r.text))
+                continue
+            except Exception:
+                stooq_blocked += 1
+                if stooq_blocked >= 3:
+                    skip_stooq = True  # stop paying the toll per symbol
         try:
             frames.append(await _yahoo_eod(sym, client))
         except Exception as e:

@@ -65,6 +65,20 @@ def build_features(px: pd.DataFrame) -> pd.DataFrame:
     return out.replace([np.inf, -np.inf], np.nan).dropna()
 
 
+def _verdict(ic_mean, ic_t, hurdle, spread) -> str:
+    """IC is not money: a candidate needs the significant rank IC AND a
+    positive top-minus-bottom spread — a model that ranks the middle well
+    while its extreme picks lose is untradable, however pretty the t-stat."""
+    if ic_t is None or ic_mean is None:
+        return "too little test data for a verdict"
+    if abs(ic_t) >= hurdle and ic_mean > 0.02 and (spread or 0) > 0:
+        return "clears the trials-adjusted bar with a tradable spread — a candidate for the gate"
+    if abs(ic_t) >= hurdle and (spread or 0) <= 0:
+        return ("significant rank IC but a NEGATIVE quintile spread — the extremes "
+                "invert; untradable as-is, logged as a research finding")
+    return "does not clear the bar — logged, not deployed"
+
+
 def _r2_oos(y: np.ndarray, yhat: np.ndarray) -> float:
     """GKX out-of-sample R²: benchmarked against a zero forecast, not the mean."""
     return float(1 - np.sum((y - yhat) ** 2) / np.sum(y ** 2))
@@ -142,9 +156,8 @@ def run(as_of: str | None = None) -> dict:
         "quintile_spread_daily": round(float(np.mean(spreads)), 5) if spreads else None,
         "top_features": [{"name": n, "gain": g} for n, g in importance],
         "model_artifact": f"data/models/factory_lgbm_{stamp}.txt",
-        "verdict": ("clears the trials-adjusted bar — a candidate for the gate"
-                    if ic_t is not None and abs(ic_t) >= hurdle and (ic_mean or 0) > 0.02
-                    else "does not clear the bar — logged, not deployed"),
+        "verdict": _verdict(ic_mean, ic_t, hurdle,
+                            float(np.mean(spreads)) if spreads else None),
     }
     monitor.log_experiment("factory", {"horizon": HORIZON, "features": len(feature_cols),
                                        "symbols": out["symbols"]},
