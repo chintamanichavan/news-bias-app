@@ -101,8 +101,9 @@ function BigHistory({ entity }: { entity: string }) {
         H={150} zeroLine yFmt={v => v.toFixed(2)} />
       <p className="mt-1 text-[10px] text-muted-foreground/80 leading-relaxed">
         Daily means. Pre-launch history is derived from the corpus (news + VIX regime only);
-        live capture adds the social, prediction-market and hazard channels — a visible seam
-        where methodology changes is honest, not a bug.
+        live capture adds the social, prediction-market and hazard channels. Since 2026-09-27
+        security composites are market-data-first (momentum/trend backbone; text only modifies
+        conviction) — visible seams where methodology changes are honest, not bugs.
       </p>
     </div>
   )
@@ -143,7 +144,8 @@ function SecurityRow({ s, detailed = false }: { s: Entity; detailed?: boolean })
       <span className="flex-1 min-w-0 text-[11px] text-muted-foreground truncate">{s.name}</span>
       {detailed && (
         <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 hidden sm:inline">
-          news {s.components.news != null ? (s.components.news > 0 ? '+' : '') + s.components.news.toFixed(2) : '·'}
+          mkt {s.components.market != null ? (s.components.market > 0 ? '+' : '') + s.components.market.toFixed(2) : '·'}
+          {' '}· news {s.components.news != null ? (s.components.news > 0 ? '+' : '') + s.components.news.toFixed(2) : '·'}
           {' '}· social {s.components.social != null ? (s.components.social > 0 ? '+' : '') + s.components.social.toFixed(2) : '·'}
         </span>
       )}

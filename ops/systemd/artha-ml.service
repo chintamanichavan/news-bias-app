@@ -1,0 +1,12 @@
+[Unit]
+Description=Artha ML service (FastAPI on :8421)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/kaunteya/code/news-bias-app/ml-service
+ExecStart=/home/kaunteya/code/news-bias-app/ml-service/.venv/bin/uvicorn main:app --port 8421
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

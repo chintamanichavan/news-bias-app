@@ -1,0 +1,9 @@
+[Unit]
+Description=Nightly PIT ingest at 02:30 local
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

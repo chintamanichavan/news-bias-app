@@ -13,9 +13,17 @@ Output: composite ∈ [-1, 1] per entity, snapshotted to signal_snapshots so a
 time series accumulates. Entities are dynamic — the two verticals plus
 whichever securities actually carry signal this cycle (top by mentions across
 news + social), so coverage follows the data, not a watchlist.
+
+Per-security composites are market-data-first (since 2026-09-27): the
+backbone is momentum + trend computed from the PIT store's own price history
+(Jegadeesh & Titman 1993 intermediate-horizon momentum), and text sentiment
+only modifies conviction — it can never create it. Where no price history
+exists, sentiment alone is capped below the paper book's entry threshold, so
+a story can put a name on the radar but cannot open a position.
 """
 
 import json
+import math
 
 import db
 import finlex
@@ -33,6 +41,11 @@ WEATHER_WEIGHTS = {"news": 0.35, "social": 0.25, "hazards": 0.40}
 
 MAX_SYMBOL_ENTITIES = 50  # per cycle; keeps unbounded universe bounded in compute
 
+# Text alone may never cross the paper book's entry threshold (0.05).
+SENTIMENT_ALONE_CAP = 0.04
+# How much text can swing a market-data conviction, either direction.
+SENTIMENT_MODIFIER = 0.35
+
 # Latest cycle's output, served by the API between cycles.
 LAST_RESULTS: list[dict] = []
 LAST_RUN: str | None = None
@@ -48,6 +61,56 @@ def _news_rows(conn) -> list[dict]:
            WHERE datetime(published) > datetime('now', '-24 hours')
              AND sentiment_score IS NOT NULL""",
     ).fetchall()]
+
+
+def market_score(closes: list[float]) -> float | None:
+    """Momentum + trend backbone in [-1, 1] from daily closes (oldest first).
+    20d and 60d momentum squashed by tanh, plus a 100-day trend filter.
+    None when history is too thin to say anything."""
+    if not closes or len(closes) < 61 or closes[-21] <= 0 or closes[-61] <= 0:
+        return None
+    ret20 = closes[-1] / closes[-21] - 1
+    ret60 = closes[-1] / closes[-61] - 1
+    score = 0.6 * math.tanh(ret20 / 0.10) + 0.4 * math.tanh(ret60 / 0.25)
+    if len(closes) >= 100:
+        ma100 = sum(closes[-100:]) / 100
+        score = 0.8 * score + 0.2 * (1.0 if closes[-1] > ma100 else -1.0)
+    return _clamp(score)
+
+
+def compose_security(market: float | None, sentiment: float | None) -> float:
+    """Market data is the backbone; text modifies conviction but cannot create
+    it (Tetlock 2007: news effects are small and fast-decaying). Without price
+    history, sentiment is capped below the entry threshold — radar, not trade."""
+    if market is None:
+        if sentiment is None:
+            return 0.0
+        return max(-SENTIMENT_ALONE_CAP, min(SENTIMENT_ALONE_CAP, 0.5 * sentiment))
+    if sentiment is None:
+        return _clamp(market)
+    # Text agreeing with the market signal strengthens it; text disagreeing
+    # damps it toward zero. It never flips the sign.
+    direction = 1.0 if market >= 0 else -1.0
+    return _clamp(market * (1 + SENTIMENT_MODIFIER * sentiment * direction))
+
+
+def _pit_closes(symbols: list[str], bars: int = 120) -> dict[str, list[float]]:
+    """symbol -> last `bars` daily closes (oldest first) from the PIT store."""
+    if not symbols:
+        return {}
+    try:
+        import pit
+        from datetime import datetime, timezone
+        conn = pit.connect()
+        px = pit.prices_asof(conn, datetime.now(timezone.utc).isoformat())
+    except Exception:
+        return {}
+    px = px[px["symbol"].isin(symbols)]
+    out: dict[str, list[float]] = {}
+    for sym, g in px.groupby("symbol"):
+        closes = g.sort_values("date")["close"].tail(bars)
+        out[str(sym)] = [float(c) for c in closes if c and c > 0]
+    return out
 
 
 def _prediction_drift(conn) -> float | None:
@@ -129,22 +192,25 @@ def compute_composites(vix: float | None = None) -> list[dict]:
         activity[sym] = activity.get(sym, 0) + s["posts"]
     top = sorted(activity, key=lambda s: -activity[s])[:MAX_SYMBOL_ENTITIES]
 
+    closes_by_sym = _pit_closes(top)
     for sym in top:
         news_c = mean(sym_news.get(sym, []))
         soc = sym_social.get(sym)
         social_c = soc["sentiment"] if soc else None
-        used = [(0.5, news_c), (0.5, social_c)]
-        used = [(w, v) for w, v in used if v is not None]
-        if not used:
+        used = [v for v in (news_c, social_c) if v is not None]
+        sentiment = sum(used) / len(used) if used else None
+        market = market_score(closes_by_sym.get(sym, []))
+        if sentiment is None and market is None:
             continue
-        composite = _clamp(sum(w * v for w, v in used) / sum(w for w, _ in used))
+        composite = compose_security(market, sentiment)
         info = universe.lookup(sym)
         results.append({
             "entity": sym,
             "name": info["name"] if info else sym,
             "asset_class": info["asset_class"] if info else None,
             "composite": round(composite, 3),
-            "components": {"news": round(news_c, 3) if news_c is not None else None,
+            "components": {"market": round(market, 3) if market is not None else None,
+                           "news": round(news_c, 3) if news_c is not None else None,
                            "social": round(social_c, 3) if social_c is not None else None},
             "inputs": {"news_articles": len(sym_news.get(sym, [])),
                        "social_posts": soc["posts"] if soc else 0},
