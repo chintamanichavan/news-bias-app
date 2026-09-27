@@ -35,6 +35,9 @@ interface QueueItem {
   in_zone: boolean; to_zone_pct: number
   price: number | null; buy_below: number | null
   note: string | null; on_watchlist: boolean
+  vs_52w_high_pct?: number | null
+  thesis_age_days?: number | null
+  warnings?: string[]
 }
 interface Screened {
   ticker: string; price: number; vs_52w_high_pct: number
@@ -136,6 +139,11 @@ export default function PortfolioPage() {
                     {q.note && (
                       <p className="mt-1.5 text-[11px] text-muted-foreground leading-snug line-clamp-2">{q.note}</p>
                     )}
+                    {(q.warnings ?? []).map((w, i) => (
+                      <p key={i} className="mt-1.5 text-[10.5px] leading-snug font-medium text-amber-700 dark:text-amber-400">
+                        ⚠ {w}
+                      </p>
+                    ))}
                   </a>
                 ))}
               </div>

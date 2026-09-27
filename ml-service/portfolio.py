@@ -297,6 +297,38 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
         if prev is None or (cand["in_zone"] and not prev["in_zone"]):
             entries[q["ticker"]] = cand
 
+    # Falling-knife + stale-thesis context: an in-zone badge means nothing
+    # without knowing HOW the name got there and how old the thesis is.
+    try:
+        import pit
+        from datetime import datetime, timezone
+        pconn = pit.connect()
+        px = pit.prices_asof(pconn, datetime.now(timezone.utc).isoformat(),
+                             symbols=list(entries))
+        by_review = {n["ticker"]: n.get("last_reviewed") for n in names}
+        for sym, e in entries.items():
+            p = px[px["symbol"] == sym]
+            if len(p) > 20:
+                last = float(p["close"].iloc[-1])
+                hi52 = float(p["close"].tail(252).max())
+                e["vs_52w_high_pct"] = round((last / hi52 - 1) * 100, 1)
+            lr = by_review.get(sym)
+            if e["kind"] == "thesis" and lr:
+                try:
+                    age = (datetime.now(timezone.utc)
+                           - datetime.fromisoformat(lr).replace(tzinfo=timezone.utc)).days
+                    e["thesis_age_days"] = age
+                except ValueError:
+                    pass
+            warnings = []
+            if e.get("vs_52w_high_pct") is not None and e["vs_52w_high_pct"] < -40:
+                warnings.append(f"entered via {e['vs_52w_high_pct']}% collapse — falling knife until re-underwritten")
+            if e.get("thesis_age_days") and e["thesis_age_days"] > 90:
+                warnings.append(f"thesis {e['thesis_age_days']}d old — re-read before acting")
+            e["warnings"] = warnings
+    except Exception as exc:
+        print(f"[portfolio] queue context unavailable: {exc!r}")
+
     ranked = sorted(entries.values(),
                     key=lambda e: (not e["in_zone"],
                                    e["to_zone_pct"] if e["to_zone_pct"] is not None else 1e9))
