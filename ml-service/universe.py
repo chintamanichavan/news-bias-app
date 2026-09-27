@@ -307,10 +307,16 @@ _CRYPTO_CANON = {"BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD",
                  "XRP": "XRP-USD", "DOGE": "DOGE-USD", "ADA": "ADA-USD"}
 
 
+def ensure_loaded() -> None:
+    if not _tickers and not _names:
+        load()
+
+
 def extract_symbols(text: str, max_symbols: int = 6) -> list[str]:
     """Cashtags, registry tickers, and issuer-name mentions in `text`."""
     if not text:
         return []
+    ensure_loaded()
     out: set[str] = set()
     for m in _CASHTAG.finditer(text):
         sym = m.group(1).upper()

@@ -16,10 +16,13 @@ import divergence
 import feed_manager
 import hazards
 import alpha
+import alpha_factory
 import backtest
 import lab
 import monitor
 import paper_trader
+import pit
+import sestm
 import particle
 import portfolio
 import research
@@ -985,6 +988,45 @@ async def portfolio_report():
             pass
     out = portfolio.report(quotes)
     _data_cache["portfolio"] = (time.time(), out)
+    return out
+
+
+@app.get("/pit/status")
+def pit_status():
+    """Snapshot counts per PIT table — the data foundation's heartbeat."""
+    return {"tables": pit.tables_present(), "root": str(pit.PIT_ROOT)}
+
+
+@app.post("/pit/ingest")
+async def pit_run_ingest():
+    """Kick a full PIT ingest (prices, EDGAR, FRED, GDELT). Long-running."""
+    import pit_ingest
+    return await pit_ingest.run()
+
+
+@app.post("/sestm/train")
+def sestm_train(days: int = Query(240, ge=60, le=720)):
+    return sestm.train(days)
+
+
+@app.get("/sestm/evaluate")
+def sestm_evaluate(days: int = Query(240, ge=60, le=720)):
+    cached = _data_cache.get(f"sestm-eval:{days}")
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    out = sestm.evaluate(days)
+    _data_cache[f"sestm-eval:{days}"] = (time.time(), out)
+    return out
+
+
+@app.get("/factory/run")
+def factory_run():
+    """Train + evaluate the GKX-protocol LightGBM baseline on the PIT store."""
+    cached = _data_cache.get("factory")
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    out = alpha_factory.run()
+    _data_cache["factory"] = (time.time(), out)
     return out
 
 
