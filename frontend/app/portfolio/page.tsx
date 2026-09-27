@@ -30,6 +30,15 @@ interface Name {
 
 interface Allocation { asset_class: string; region?: string; factor?: string; weight: number }
 
+interface QueueItem {
+  ticker: string; name: string; to_buy_zone_pct: number; in_buy_zone: boolean
+  price: number | null; buy_below: number | null; one_liner: string | null
+}
+interface Screened {
+  ticker: string; price: number; vs_52w_high_pct: number
+  roe_pct: number; rev_cagr_pct: number; fcf: number; dilution_pct: number | null
+}
+
 interface PortfolioData {
   available: boolean
   workspace: string
@@ -37,6 +46,7 @@ interface PortfolioData {
   targets: { base_currency: string; allocations: Allocation[] }
   watchlist: Name[]
   in_buy_zone: string[]
+  analysis_queue: { queue: QueueItem[]; screened: Screened[] }
   decisions: { file: string; title: string; status: string | null }[]
 }
 
@@ -90,14 +100,85 @@ export default function PortfolioPage() {
 
       {data && data.available && (
         <>
-          {/* Buy-zone alert strip */}
-          {data.in_buy_zone.length > 0 && (
-            <div className="mt-6 news-card p-4 border border-emerald-500/40 bg-emerald-500/5">
-              <p className="text-sm">
-                <span className="font-semibold text-emerald-700 dark:text-emerald-300">In the buy zone now:</span>{' '}
-                {data.in_buy_zone.join(' · ')} — re-read the thesis doc before acting, per the IPS.
-              </p>
-            </div>
+          {/* The analysis queue — never fewer than five things to study */}
+          {data.analysis_queue && (
+            <section className="mt-8">
+              <div className="flex items-baseline justify-between mb-3">
+                <p className="news-section-label">Analysis queue</p>
+                <span className="text-[11px] text-muted-foreground">
+                  in-zone + nearest to zone · each opens its Lab dossier
+                </span>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {data.analysis_queue.queue.map(q => (
+                  <a key={q.ticker} href={`/lab?symbol=${encodeURIComponent(q.ticker)}`}
+                    className={`news-card p-4 block hover:-translate-y-0.5 transition-transform border ${
+                      q.in_buy_zone ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border'}`}>
+                    <div className="flex items-baseline justify-between">
+                      <span className="font-bold tabular-nums">{q.ticker}</span>
+                      <span className={`text-[11px] font-semibold tabular-nums ${
+                        q.in_buy_zone ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                        {q.in_buy_zone ? 'IN ZONE' : `+${q.to_buy_zone_pct}%`}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                      ${q.price?.toLocaleString()} vs ${q.buy_below?.toLocaleString()} buy-below
+                    </div>
+                    {q.one_liner && (
+                      <p className="mt-1.5 text-[11px] text-muted-foreground leading-snug line-clamp-2">{q.one_liner}</p>
+                    )}
+                  </a>
+                ))}
+              </div>
+              {data.in_buy_zone.length > 0 && (
+                <p className="mt-2 text-[12px] text-muted-foreground">
+                  Re-read the thesis doc before acting on an in-zone name, per the IPS.
+                </p>
+              )}
+
+              {data.analysis_queue.screened.length > 0 && (
+                <div className="mt-5 news-card overflow-x-auto">
+                  <div className="px-4 pt-3 pb-1 flex items-baseline justify-between">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">
+                      Screened candidates — quality compounders marked down, not yet on the watchlist
+                    </p>
+                    <span className="text-[10px] text-muted-foreground">no thesis yet · research before any verdict (ADR 0007)</span>
+                  </div>
+                  <table className="w-full text-[13px]">
+                    <thead>
+                      <tr className="text-left text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                        <th className="px-4 py-2 font-semibold">Ticker</th>
+                        <th className="px-3 py-2 font-semibold text-right">Price</th>
+                        <th className="px-3 py-2 font-semibold text-right">vs 52w high</th>
+                        <th className="px-3 py-2 font-semibold text-right">ROE</th>
+                        <th className="px-3 py-2 font-semibold text-right">Rev CAGR</th>
+                        <th className="px-3 py-2 font-semibold text-right">FCF</th>
+                        <th className="px-4 py-2 font-semibold text-right">Share change</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.analysis_queue.screened.map(s => (
+                        <tr key={s.ticker}
+                          className="border-b border-border/50 last:border-0 hover:bg-muted/30 cursor-pointer"
+                          onClick={() => { window.location.href = `/lab?symbol=${encodeURIComponent(s.ticker)}` }}>
+                          <td className="px-4 py-2.5 font-semibold tabular-nums">{s.ticker}</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">${s.price.toLocaleString()}</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-red-600 dark:text-red-400">{s.vs_52w_high_pct}%</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">{s.roe_pct}%</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">{s.rev_cagr_pct}%</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">{Math.abs(s.fcf) >= 1e9 ? `$${(s.fcf / 1e9).toFixed(1)}B` : `$${(s.fcf / 1e6).toFixed(0)}M`}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{s.dilution_pct != null ? `${s.dilution_pct > 0 ? '+' : ''}${s.dilution_pct}%` : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="px-4 py-2 text-[10.5px] text-muted-foreground">
+                    Screen: ROE &gt; 15%, positive FCF, revenue CAGR &gt; 5%, share count not inflating — from as-filed
+                    fundamentals in the PIT store, ranked by markdown from the 52-week high.
+                  </p>
+                </div>
+              )}
+            </section>
           )}
 
           {/* The alpha path to compounded wealth */}

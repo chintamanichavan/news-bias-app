@@ -137,5 +137,112 @@ def report(quotes: dict[str, float]) -> dict:
         "targets": targets(),
         "watchlist": names,
         "in_buy_zone": [n["ticker"] for n in names if n.get("in_buy_zone")],
+        "analysis_queue": analysis_queue(names),
         "decisions": decisions(),
+    }
+
+
+# ── The analysis queue: never fewer than five things worth studying ─────────
+
+_screen_cache: dict = {"at": 0.0, "rows": []}
+
+
+def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
+    """Quality compounders from the PIT fundamentals, currently marked down:
+    ROE > 15%, positive FCF, revenue growing, shares not inflating — ranked
+    by discount from their 52-week high. These carry NO thesis: candidates
+    for research, never for a verdict (ADR 0007)."""
+    import time as _t
+    if _t.time() - _screen_cache["at"] < 3600 and _screen_cache["rows"]:
+        return [r for r in _screen_cache["rows"] if r["ticker"] not in exclude][:limit]
+
+    import pandas as pd
+    import pit
+    from datetime import datetime, timezone
+    try:
+        conn = pit.connect()
+        now = datetime.now(timezone.utc).isoformat()
+        f = pit.fundamentals_asof(conn, now)
+        symbols = sorted(f["symbol"].dropna().unique())
+        px = pit.prices_asof(conn, now, symbols=list(symbols))
+    except Exception as e:
+        print(f"[portfolio] screen unavailable: {e!r}")
+        return []
+    if f.empty or px.empty:
+        return []
+
+    flows = f[f["period_start"].notna()].copy()
+    flows["dur"] = (flows["period_end"] - flows["period_start"]).dt.days
+    annual = flows[(flows["dur"] >= 300) & (flows["dur"] <= 400)]
+
+    out = []
+    for sym in symbols:
+        fa = annual[annual["symbol"] == sym]
+        fi = f[f["symbol"] == sym]
+        if fa.empty:
+            continue
+
+        def latest(tags, frame):
+            sub = frame[frame["tag"].isin(tags)].sort_values("period_end")
+            return float(sub["value"].iloc[-1]) if len(sub) else None
+
+        def series(tags):
+            sub = fa[fa["tag"].isin(tags)].sort_values("period_end")
+            return [(pd.Timestamp(r.period_end).year, float(r.value)) for r in sub.itertuples()]
+
+        ni = latest(["NetIncomeLoss"], fa)
+        eq = latest(["StockholdersEquity"], fi)
+        ocf = latest(["NetCashProvidedByUsedInOperatingActivities"], fa)
+        capex = latest(["PaymentsToAcquirePropertyPlantAndEquipment"], fa) or 0.0
+        rev = series(["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax"])
+        shares = series(["WeightedAverageNumberOfDilutedSharesOutstanding"])
+
+        roe = ni / eq * 100 if ni is not None and eq else None
+        fcf = ocf - capex if ocf is not None else None
+        rev_cagr = None
+        if len(rev) >= 4 and rev[0][1] > 0 and rev[-1][1] > 0:
+            yrs = max(1, rev[-1][0] - rev[0][0])
+            rev_cagr = ((rev[-1][1] / rev[0][1]) ** (1 / yrs) - 1) * 100
+        dilution = None
+        if len(shares) >= 3 and shares[0][1]:
+            dilution = (shares[-1][1] / shares[0][1] - 1) * 100
+
+        p = px[px["symbol"] == sym].sort_values("date")
+        if p.empty:
+            continue
+        last = float(p["close"].iloc[-1])
+        hi52 = float(p["close"].tail(252).max())
+        discount = (last / hi52 - 1) * 100
+
+        if (roe is not None and roe > 15 and fcf is not None and fcf > 0
+                and rev_cagr is not None and rev_cagr > 5
+                and (dilution is None or dilution <= 5)):
+            out.append({
+                "ticker": sym, "price": round(last, 2),
+                "vs_52w_high_pct": round(discount, 1),
+                "roe_pct": round(roe, 1), "rev_cagr_pct": round(rev_cagr, 1),
+                "fcf": round(fcf, 0),
+                "dilution_pct": round(dilution, 1) if dilution is not None else None,
+            })
+
+    out.sort(key=lambda r: r["vs_52w_high_pct"])  # deepest markdown first
+    _screen_cache.update(at=_t.time(), rows=out)
+    return [r for r in out if r["ticker"] not in exclude][:limit]
+
+
+def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
+    """In-zone watchlist names, topped up with the nearest-to-zone names
+    until at least `min_size` sit in the queue, plus screened newcomers."""
+    with_zone = [n for n in names if n.get("to_buy_zone_pct") is not None]
+    in_zone = [n for n in with_zone if n.get("in_buy_zone")]
+    near = [n for n in with_zone if not n.get("in_buy_zone")]
+    queue = in_zone + near[: max(0, min_size - len(in_zone))]
+    exclude = {n["ticker"] for n in names}
+    return {
+        "queue": [{"ticker": n["ticker"], "name": n["name"],
+                   "to_buy_zone_pct": n["to_buy_zone_pct"],
+                   "in_buy_zone": bool(n.get("in_buy_zone")),
+                   "price": n.get("price"), "buy_below": n.get("buy_below"),
+                   "one_liner": n.get("one_liner")} for n in queue],
+        "screened": screen_candidates(exclude),
     }
