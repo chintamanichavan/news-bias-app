@@ -41,19 +41,25 @@ GDELT_THEMES = ("ECON_", "MARKET", "OIL", "INFLATION", "CENTRALBANK",
 
 
 def default_symbols(n: int = 100) -> list[str]:
-    """Top-of-registry US symbols (SEC file is cap-ordered) plus core ETFs."""
+    """The band universe first (the tradable set: in-band price with real
+    turnover, from universe.screen_band), topped up with large caps for
+    benchmark context, plus core ETFs."""
+    import universe as _u
+    syms = _u.band_symbols(limit=n)
     conn = db.get_conn()
     rows = conn.execute(
         """SELECT symbol FROM securities
            WHERE asset_class IN ('equity', 'etf') AND region = 'US'
-           ORDER BY rowid LIMIT ?""", (n,),
+           ORDER BY rowid LIMIT ?""", (max(20, n - len(syms)),),
     ).fetchall()
     conn.close()
-    syms = [r[0] for r in rows if r[0].isalpha()]
+    for r in rows:
+        if r[0].isalpha() and r[0] not in syms:
+            syms.append(r[0])
     for etf in ("SPY", "QQQ", "TLT"):
         if etf not in syms:
             syms.append(etf)
-    return syms
+    return syms[: n + 23]
 
 
 # ── Stooq ────────────────────────────────────────────────────────────────────

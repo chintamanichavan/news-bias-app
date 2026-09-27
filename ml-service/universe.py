@@ -340,3 +340,95 @@ def lookup(symbol: str) -> dict | None:
     ).fetchone()
     conn.close()
     return dict(row) if row else None
+
+
+# ── Tradable price band ──────────────────────────────────────────────────────
+# The book starts in low-priced names (user policy: under $10 first, widen
+# later). Configuration, not code: ARTHA_PRICE_MIN / ARTHA_PRICE_MAX.
+
+import os as _os
+
+
+def price_band() -> tuple[float, float]:
+    lo = float(_os.environ.get("ARTHA_PRICE_MIN", 1.0))
+    hi = float(_os.environ.get("ARTHA_PRICE_MAX", 10.0))
+    return (lo, hi) if lo < hi else (1.0, 10.0)
+
+
+def in_band(price: float | None) -> bool:
+    if price is None:
+        return False
+    lo, hi = price_band()
+    return lo <= price <= hi
+
+
+async def screen_band(max_checks: int = 500, max_keep: int = 120,
+                      min_dollar_volume: float = 500_000.0) -> list[dict]:
+    """Sweep the registry for US equities inside the band with real turnover
+    (price x average volume above `min_dollar_volume` — thin names are where
+    manipulation lives). Results persist to the band_universe table so the
+    ingestors and the book share one list."""
+    import asyncio
+    import httpx
+
+    conn = db.get_conn()
+    conn.execute("""CREATE TABLE IF NOT EXISTS band_universe (
+        symbol TEXT PRIMARY KEY, price REAL, dollar_volume REAL,
+        checked_at DATETIME DEFAULT CURRENT_TIMESTAMP)""")
+    rows = conn.execute(
+        """SELECT symbol FROM securities WHERE asset_class = 'equity'
+           AND region = 'US' ORDER BY rowid""").fetchall()
+    conn.close()
+    symbols = [r[0] for r in rows if r[0].isalpha()]
+    # Sample across the whole cap spectrum, not just the top
+    step = max(1, len(symbols) // max_checks)
+    sample = symbols[::step][:max_checks]
+
+    kept: list[dict] = []
+    sem = asyncio.Semaphore(8)
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+
+    async def check(client, sym):
+        async with sem:
+            try:
+                r = await client.get(
+                    f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
+                    params={"range": "1mo", "interval": "1d"})
+                r.raise_for_status()
+                res = r.json()["chart"]["result"][0]
+                price = res["meta"].get("regularMarketPrice")
+                vols = [v for v in res["indicators"]["quote"][0].get("volume") or [] if v]
+                adv = (sum(vols) / len(vols)) if vols else 0
+                if price and in_band(price) and price * adv >= min_dollar_volume:
+                    kept.append({"symbol": sym, "price": float(price),
+                                 "dollar_volume": float(price * adv)})
+            except Exception:
+                pass
+
+    async with httpx.AsyncClient(timeout=15, headers=headers) as client:
+        await asyncio.gather(*[check(client, s) for s in sample])
+
+    kept.sort(key=lambda x: -x["dollar_volume"])
+    kept = kept[:max_keep]
+    conn = db.get_conn()
+    conn.execute("DELETE FROM band_universe")
+    conn.executemany(
+        "INSERT INTO band_universe (symbol, price, dollar_volume) VALUES (?,?,?)",
+        [(k["symbol"], k["price"], k["dollar_volume"]) for k in kept])
+    conn.commit()
+    conn.close()
+    print(f"[universe] band screen: {len(kept)} names in "
+          f"${price_band()[0]:g}-${price_band()[1]:g} with real turnover")
+    return kept
+
+
+def band_symbols(limit: int = 120) -> list[str]:
+    conn = db.get_conn()
+    try:
+        rows = conn.execute(
+            "SELECT symbol FROM band_universe ORDER BY dollar_volume DESC LIMIT ?",
+            (limit,)).fetchall()
+    except Exception:
+        rows = []
+    conn.close()
+    return [r[0] for r in rows]

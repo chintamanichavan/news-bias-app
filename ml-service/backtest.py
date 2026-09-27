@@ -22,7 +22,10 @@ import monitor
 import simulation
 import validation
 
-COST_PER_SIDE = 0.0015  # 10 bps costs + 5 bps slippage
+# 10 bps costs + 5 bps slippage — doubled for the sub-$10 band, where real
+# spreads are wider than large-cap assumptions admit.
+COST_PER_SIDE = 0.0015
+BAND_COST_PER_SIDE = 0.0030
 TOP_K = 3
 WINDOWS = [2, 3, 5]
 N_FOLDS = 3
@@ -47,7 +50,8 @@ def _stats(returns: list[float]) -> dict:
     }
 
 
-def _daily_strategy_returns(dates, closes, panel, symbols, window, lo, hi) -> list[float]:
+def _daily_strategy_returns(dates, closes, panel, symbols, window, lo, hi,
+                            cost: float = COST_PER_SIDE) -> list[float]:
     """Net daily returns of the top-K strategy on dates[lo:hi]."""
     rets: list[float] = []
     prev_hold: set[str] = set()
@@ -73,8 +77,8 @@ def _daily_strategy_returns(dates, closes, panel, symbols, window, lo, hi) -> li
                     day_ret += per * (p1 / p0 - 1)
         # cost on names traded (entered or exited), charged as turnover
         traded = len(hold ^ prev_hold)
-        cost = traded * (1 / max(1, len(hold) or len(prev_hold) or 1)) * COST_PER_SIDE
-        rets.append(day_ret - cost)
+        charge = traded * (1 / max(1, len(hold) or len(prev_hold) or 1)) * cost
+        rets.append(day_ret - charge)
         prev_hold = hold
     return rets
 
@@ -100,6 +104,12 @@ async def run(days: int = 150) -> dict:
     if len(dates) < 45:
         return {"error": "too few common trading days across the universe"}
 
+    # Sub-$10 universes pay sub-$10 spreads
+    import universe as _u
+    last_prices = sorted(closes[s][dates[-1]] for s in symbols if dates[-1] in closes[s])
+    median_px = last_prices[len(last_prices) // 2] if last_prices else 1e9
+    cost = BAND_COST_PER_SIDE if median_px <= _u.price_band()[1] else COST_PER_SIDE
+
     fold_size = len(dates) // N_FOLDS
     folds = []
     oos_returns: list[float] = []
@@ -109,11 +119,11 @@ async def run(days: int = 150) -> dict:
         # pick W on everything before the test fold
         best_w, best_sharpe = WINDOWS[0], -99.0
         for w in WINDOWS:
-            s = _stats(_daily_strategy_returns(dates, closes, panel, symbols, w, 1, train_hi))
+            s = _stats(_daily_strategy_returns(dates, closes, panel, symbols, w, 1, train_hi, cost))
             sh = s["sharpe"] if s["sharpe"] is not None else -99.0
             if sh > best_sharpe:
                 best_w, best_sharpe = w, sh
-        test = _daily_strategy_returns(dates, closes, panel, symbols, best_w, test_lo, test_hi)
+        test = _daily_strategy_returns(dates, closes, panel, symbols, best_w, test_lo, test_hi, cost)
         oos_returns.extend(test)
         folds.append({"fold": f + 1, "chosen_window": best_w,
                       "train_sharpe": round(best_sharpe, 2),
@@ -138,7 +148,7 @@ async def run(days: int = 150) -> dict:
     dsr = validation.deflated_sharpe(oos_returns, n_trials=n_trials)
     # PBO across the config family (each window's full-period return stream)
     full = np.array([
-        _daily_strategy_returns(dates, closes, panel, symbols, w, 1, len(dates))
+        _daily_strategy_returns(dates, closes, panel, symbols, w, 1, len(dates), cost)
         for w in WINDOWS
     ]).T
     pbo = validation.pbo_cscv(full) if full.size else {"pbo": None}
@@ -146,7 +156,7 @@ async def run(days: int = 150) -> dict:
     out = {
         "universe": symbols,
         "common_days": len(dates),
-        "cost_per_side_bps": COST_PER_SIDE * 10_000,
+        "cost_per_side_bps": cost * 10_000,
         "top_k": TOP_K,
         "folds": folds,
         "oos_combined": _stats(oos_returns),

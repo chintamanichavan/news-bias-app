@@ -36,8 +36,9 @@ EXIT_THRESHOLD = 0.0
 STOP_LOSS = -0.08
 MAX_DRAWDOWN = -0.15
 REBALANCE_MIN_HOURS = 20
-MIN_PRICE = 5.0   # liquidity floor — mention-spike microcaps are not a trade
 MAX_CANDIDATES = 8  # optimizer input size
+# Entries only inside the configured price band (start: $1-$10, widen via
+# ARTHA_PRICE_MIN/MAX). The $1 floor is the junk guard.
 
 # Vols from the last cycle, kept for the report's VaR line.
 LAST_VOLS: dict[str, float] = {}
@@ -142,9 +143,10 @@ def on_cycle(results: list[dict], quotes: dict[str, float],
     if due and not halted and gate["cleared"]:
         by_symbol = {r["entity"]: r for r in results
                      if r["entity"] not in ("markets", "weather") and r["entity"] in quotes}
+        import universe as _u
         candidates = sorted(
             (r for r in by_symbol.values()
-             if r["composite"] >= ENTRY_THRESHOLD and quotes[r["entity"]] >= MIN_PRICE),
+             if r["composite"] >= ENTRY_THRESHOLD and _u.in_band(quotes[r["entity"]])),
             key=lambda r: -r["composite"],
         )[:MAX_CANDIDATES]
 
@@ -252,5 +254,6 @@ def report(quotes: dict[str, float] | None = None) -> dict:
             "class_caps": risk.CLASS_CAPS, "stop_loss": STOP_LOSS,
             "kill_switch_drawdown": MAX_DRAWDOWN,
             "slippage_bps": 5.0, "commission": 1.0,
+            "price_band": __import__("universe").price_band(),
         },
     }

@@ -39,16 +39,18 @@ def test_first_rebalance_accounting(tmp_db, offline_universe):
     results = [
         {"entity": "AAA", "composite": 0.20},
         {"entity": "BBB", "composite": 0.06},
-        {"entity": "PENNY", "composite": 0.50},  # below liquidity floor
+        {"entity": "PENNY", "composite": 0.50},   # $0.50: below the $1 junk floor
+        {"entity": "RICH", "composite": 0.40},    # $50: above the $10 band cap
         {"entity": "markets", "composite": 0.5},
     ]
-    quotes = {"AAA": 50.0, "BBB": 20.0, "PENNY": 2.0}
-    pt.on_cycle(results, quotes, vols={"AAA": 0.2, "BBB": 0.2, "PENNY": 0.2})
+    quotes = {"AAA": 8.0, "BBB": 6.0, "PENNY": 0.50, "RICH": 50.0}
+    pt.on_cycle(results, quotes, vols={"AAA": 0.2, "BBB": 0.2, "PENNY": 0.2, "RICH": 0.2})
 
     pos = {p["symbol"]: p for p in _positions(tmp_db)}
-    assert "PENNY" not in pos, "liquidity floor must exclude sub-$5 names"
+    assert "PENNY" not in pos, "sub-$1 junk must be excluded"
+    assert "RICH" not in pos, "the starting band is under $10 — expensive names wait"
     assert "AAA" in pos and "BBB" in pos
-    assert pos["AAA"]["qty"] * 50 > pos["BBB"]["qty"] * 20, "stronger signal gets more capital"
+    assert pos["AAA"]["qty"] * 8 > pos["BBB"]["qty"] * 6, "stronger signal gets more capital"
 
     conn = tmp_db.get_conn()
     state = dict(conn.execute("SELECT * FROM paper_state").fetchone())
