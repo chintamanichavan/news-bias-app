@@ -40,21 +40,30 @@ touching the pipeline.
 - **Reader features** — `particle.py`: topic tagging, key points, 5Ws,
   extractive Q&A, daily headline crossword
 
-## Run locally
+## Run
 
-ML service:
+One command, clean clone:
 ```sh
-cd ml-service
-pip install -r requirements.txt
-uvicorn main:app --reload
+docker compose up --build
+# web on :3002, ML service on :8421; state persists in ml-service/data/
 ```
 
-Frontend:
+Dev mode:
 ```sh
-cd frontend
-pnpm install
-pnpm dev
+cd ml-service && pip install -r requirements.txt -r requirements-dev.txt && uvicorn main:app --reload --port 8421
+cd frontend && pnpm install && pnpm dev -p 3002
 ```
+
+## Tests
+
+```sh
+pytest ml-service/tests -q   # offline: no network calls in the suite
+```
+The suite covers every statistic the UI reports (engine composites, risk math,
+optimizer constraints, trade accounting, topic scope, symbol extraction) and
+includes a no-lookahead regression test that fails if day-t signals ever trade
+day-t returns. CI (GitHub Actions) runs it plus frontend typecheck/lint on
+every push.
 
 ## Retraining
 

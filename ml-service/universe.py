@@ -317,7 +317,7 @@ def extract_symbols(text: str, max_symbols: int = 6) -> list[str]:
         out.add(_CRYPTO_CANON.get(sym, sym))
     for w in _TICKERISH.findall(text):
         if w in _tickers and w not in _AMBIGUOUS:
-            out.add(w)
+            out.add(_CRYPTO_CANON.get(w, w))
     if _name_pattern:
         for m in _name_pattern.finditer(text):
             sym = _names.get(m.group(1))

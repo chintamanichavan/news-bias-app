@@ -1,0 +1,26 @@
+# Artha — one command brings up the platform: `docker compose up --build`
+# ML service on :8421, web on :3002. State (SQLite + sources.json) lives in
+# ./ml-service/data so containers are disposable.
+
+services:
+  ml:
+    build: ./ml-service
+    ports:
+      - "8421:8421"
+    volumes:
+      - ./ml-service/data:/app/data
+    environment:
+      - ARTHA_DB_PATH=/app/data/news_bias.db
+      # Point at the research workspace if it's mounted; degrades cleanly if not
+      - PORTFOLIO_RESEARCH_DIR=/workspace/portfolio-research
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    ports:
+      - "3002:3000"
+    environment:
+      - ML_SERVICE_URL=http://ml:8421
+    depends_on:
+      - ml
+    restart: unless-stopped

@@ -36,22 +36,12 @@ def optimize(signals: dict[str, float], vols: dict[str, float]) -> dict[str, flo
         return {}
     weights = {s: v / total for s, v in raw.items()}
 
-    # Per-name cap, redistributing the excess to uncapped names (two passes
-    # is enough at this book size).
-    for _ in range(2):
-        excess = 0.0
-        uncapped = []
-        for s, w in weights.items():
-            if w > MAX_WEIGHT:
-                excess += w - MAX_WEIGHT
-                weights[s] = MAX_WEIGHT
-            elif w < MAX_WEIGHT - 1e-9:
-                uncapped.append(s)
-        if excess <= 1e-9 or not uncapped:
-            break
-        pool = sum(weights[s] for s in uncapped)
-        for s in uncapped:
-            weights[s] += excess * (weights[s] / pool if pool else 1 / len(uncapped))
+    # Per-name cap. Excess goes to cash, NOT to other names — redistribution
+    # was quietly shoveling capped-off weight into the highest-vol asset,
+    # breaking the signal-per-unit-risk ordering the whole scheme promises.
+    for s, w in weights.items():
+        if w > MAX_WEIGHT:
+            weights[s] = MAX_WEIGHT
 
     # Class caps: scale each over-cap class down; freed weight becomes cash.
     exposures = risk.class_exposures(weights)

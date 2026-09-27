@@ -1,9 +1,12 @@
+import os
 import sqlite3
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "data" / "news_bias.db"
+# Overridable so containers mount a volume and tests use a throwaway file.
+DB_PATH = Path(os.environ.get("ARTHA_DB_PATH",
+                              Path(__file__).parent / "data" / "news_bias.db"))
 
 
 def get_conn():
