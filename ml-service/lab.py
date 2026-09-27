@@ -22,12 +22,14 @@ research lab fed by free data.
 """
 
 import math
+from datetime import datetime, timezone
 from statistics import NormalDist
 
 import httpx
 from scipy import stats as sstats
 
 import db
+import pit
 import simulation
 import universe
 
@@ -420,9 +422,181 @@ async def dossier(symbol: str, days: int = 500) -> dict:
                        "hurst": _hurst(closes)},
         "relative": {"benchmark": BENCHMARK, "beta": beta, "correlation": corr},
         "rolling_vol_30d": roll_vol[-160:],
+        "long_term": long_term_record(await _pit_or_fetch_decade(symbol, closes_pairs)),
+        "fundamentals_history": fundamentals_history(symbol),
         "profile": await _profile(symbol),
         "options": await _options_read(symbol),
         "engine": {"snapshots": list(reversed(snaps)),
                    "latest_composite": snaps[0]["composite"] if snaps else None},
         "recent_headlines": _news_context(symbol),
+    }
+
+
+# ── The long-term record: 7-10 years of prices + as-filed fundamentals ──────
+
+_FLOW_TAGS = {
+    "revenue": ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax"],
+    "net_income": ["NetIncomeLoss"],
+    "operating_income": ["OperatingIncomeLoss"],
+    "gross_profit": ["GrossProfit"],
+    "eps_diluted": ["EarningsPerShareDiluted"],
+    "operating_cash_flow": ["NetCashProvidedByUsedInOperatingActivities"],
+    "capex": ["PaymentsToAcquirePropertyPlantAndEquipment"],
+    "buybacks": ["PaymentsForRepurchaseOfCommonStock"],
+    "dividends_paid": ["PaymentsOfDividendsCommonStock"],
+    "rnd": ["ResearchAndDevelopmentExpense"],
+    "taxes_paid": ["IncomeTaxesPaidNet"],
+    "diluted_shares": ["WeightedAverageNumberOfDilutedSharesOutstanding"],
+}
+_INSTANT_TAGS = {"equity": ["StockholdersEquity"], "assets": ["Assets"],
+                 "cash": ["CashAndCashEquivalentsAtCarryingValue"]}
+
+
+def _cagr(first: float, last: float, years: float) -> float | None:
+    if first is None or last is None or first <= 0 or last <= 0 or years <= 0:
+        return None
+    return round(((last / first) ** (1 / years) - 1) * 100, 1)
+
+
+async def _pit_or_fetch_decade(symbol: str, fallback: list[tuple[str, float]]) -> list[tuple[str, float]]:
+    """Prefer the PIT store's full price history (10y where ingested); fall
+    back to the dossier's own fetch when the store hasn't met this symbol."""
+    try:
+        conn = pit.connect()
+        df = pit.prices_asof(conn, datetime.now(timezone.utc).isoformat(), symbols=[symbol])
+        if len(df) > len(fallback):
+            return [(str(r.date)[:10], float(r.close)) for r in df.itertuples()]
+    except Exception as e:
+        print(f"[lab] PIT decade read failed for {symbol}: {e!r}")
+    return fallback
+
+
+def fundamentals_history(symbol: str) -> dict | None:
+    """Annual as-filed series per fiscal year (flow facts spanning ~a year;
+    instants at fiscal year end), with growth rates and society-facing lines
+    (taxes paid, R&D, dividends, buybacks)."""
+    conn = pit.connect()
+    try:
+        df = pit.fundamentals_asof(conn, datetime.now(timezone.utc).isoformat())
+    except Exception as e:
+        print(f"[lab] fundamentals read failed for {symbol}: {e!r}")
+        return None
+    if df is None or df.empty:
+        return None
+    df = df[df["symbol"] == symbol]
+    if df.empty:
+        return None
+
+    import pandas as pd
+    years: dict[int, dict] = {}
+
+    # annual flows: duration within [300, 400] days keeps out quarters & TTM
+    flows = df[df["period_start"].notna()].copy()
+    if not flows.empty:
+        flows["dur"] = (flows["period_end"] - flows["period_start"]).dt.days
+        annual = flows[(flows["dur"] >= 300) & (flows["dur"] <= 400)]
+        for name, tags in _FLOW_TAGS.items():
+            sub = annual[annual["tag"].isin(tags)]
+            for r in sub.itertuples():
+                fy = int(pd.Timestamp(r.period_end).year)
+                years.setdefault(fy, {})[name] = float(r.value)
+
+    for name, tags in _INSTANT_TAGS.items():
+        sub = df[df["tag"].isin(tags)]
+        for r in sub.itertuples():
+            fy = int(pd.Timestamp(r.period_end).year)
+            # keep the latest instant within the year (fiscal year end)
+            cur = years.setdefault(fy, {})
+            cur[name] = float(r.value)
+
+    rows = []
+    for fy in sorted(years):
+        y = years[fy]
+        rev, ni = y.get("revenue"), y.get("net_income")
+        ocf, capex = y.get("operating_cash_flow"), y.get("capex")
+        row = {"fy": fy, **{k: y.get(k) for k in list(_FLOW_TAGS) + list(_INSTANT_TAGS)}}
+        row["fcf"] = round(ocf - capex, 0) if ocf is not None and capex is not None else None
+        row["net_margin_pct"] = round(ni / rev * 100, 1) if ni is not None and rev else None
+        row["op_margin_pct"] = (round(y["operating_income"] / rev * 100, 1)
+                                if y.get("operating_income") is not None and rev else None)
+        row["roe_pct"] = (round(ni / y["equity"] * 100, 1)
+                          if ni is not None and y.get("equity") else None)
+        rows.append(row)
+    # a real long-term record needs at least a few fiscal years
+    rows = [r for r in rows if any(r.get(k) is not None for k in ("revenue", "net_income"))]
+    if len(rows) < 3:
+        return None
+
+    first, last = rows[0], rows[-1]
+    span = max(1, last["fy"] - first["fy"])
+
+    def series_cagr(key):
+        vals = [(r["fy"], r[key]) for r in rows if r.get(key)]
+        if len(vals) < 2:
+            return None
+        return _cagr(vals[0][1], vals[-1][1], max(1, vals[-1][0] - vals[0][0]))
+
+    return {
+        "fiscal_years": rows,
+        "span_years": span,
+        "cagr": {
+            "revenue": series_cagr("revenue"),
+            "net_income": series_cagr("net_income"),
+            "eps_diluted": series_cagr("eps_diluted"),
+            "fcf": series_cagr("fcf"),
+        },
+        "shares_change_pct": (round((last["diluted_shares"] / first["diluted_shares"] - 1) * 100, 1)
+                              if first.get("diluted_shares") and last.get("diluted_shares") else None),
+        "society": {
+            "taxes_paid_total": round(sum(r["taxes_paid"] for r in rows if r.get("taxes_paid")), 0) or None,
+            "rnd_total": round(sum(r["rnd"] for r in rows if r.get("rnd")), 0) or None,
+            "dividends_total": round(sum(r["dividends_paid"] for r in rows if r.get("dividends_paid")), 0) or None,
+            "buybacks_total": round(sum(r["buybacks"] for r in rows if r.get("buybacks")), 0) or None,
+        },
+    }
+
+
+def long_term_record(closes_pairs: list[tuple[str, float]]) -> dict | None:
+    """The price side of the 7+ year view: CAGR ladder, era drawdowns, and a
+    monthly-decimated series for charting."""
+    if len(closes_pairs) < 500:
+        return None
+    dates = [d for d, _ in closes_pairs]
+    closes = [c for _, c in closes_pairs]
+    last = closes[-1]
+
+    def cagr_over(years: int) -> float | None:
+        n = years * TRADING_DAYS
+        if len(closes) > n:
+            return _cagr(closes[-n - 1], last, years)
+        # a decade of data is often 2,510 bars, not 2,520 — accept 95% and
+        # annualize over the true span
+        if len(closes) >= n * 0.95:
+            true_years = len(closes) / TRADING_DAYS
+            return _cagr(closes[0], last, true_years)
+        return None
+
+    peak, max_dd, dd_at = closes[0], 0.0, dates[0]
+    for d, c in closes_pairs:
+        if c >= peak:
+            peak = c
+        dd = c / peak - 1
+        if dd < max_dd:
+            max_dd, dd_at = dd, d
+
+    monthly = []
+    seen_month = None
+    for d, c in closes_pairs:
+        m = str(d)[:7]
+        if m != seen_month:
+            monthly.append({"t": str(d)[:10], "v": round(c, 4)})
+            seen_month = m
+    monthly.append({"t": str(dates[-1])[:10], "v": round(last, 4)})
+
+    return {
+        "span_years": round(len(closes) / TRADING_DAYS, 1),
+        "cagr": {f"{y}y": cagr_over(y) for y in (3, 5, 7, 10)},
+        "worst_drawdown_pct": round(max_dd * 100, 1),
+        "worst_drawdown_at": str(dd_at)[:10],
+        "monthly_series": monthly,
     }

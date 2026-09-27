@@ -5,6 +5,7 @@
 // exists. Search the registry or type any Yahoo-valid symbol raw.
 
 import { useEffect, useRef, useState } from 'react'
+import { ChartLegend, TimeSeriesChart } from '@/components/quantviz'
 import { useResource } from '@/lib/useResource'
 
 interface SearchHit { symbol: string; name: string; asset_class: string; region: string }
@@ -35,6 +36,20 @@ interface Dossier {
     trading: Record<string, number | null>
   } | null
   options: { atm_iv_pct: number | null; put_call_oi: number | null; contracts: number } | null
+  long_term: {
+    span_years: number
+    cagr: Record<string, number | null>
+    worst_drawdown_pct: number
+    worst_drawdown_at: string
+    monthly_series: { t: string; v: number }[]
+  } | null
+  fundamentals_history: {
+    span_years: number
+    fiscal_years: Record<string, number | null>[]
+    cagr: Record<string, number | null>
+    shares_change_pct: number | null
+    society: Record<string, number | null>
+  } | null
   engine: { snapshots: { taken_at: string; composite: number }[]; latest_composite: number | null }
   recent_headlines: { title: string; published: string; sentiment: number; source: string }[]
 }
@@ -274,6 +289,101 @@ export default function LabPage() {
               )}
             </div>
           </div>
+
+          {/* The long-term record — the 7+ year view long-term investing needs */}
+          {d.long_term && (
+            <div className="mt-4 news-card p-5">
+              <div className="flex items-baseline justify-between mb-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Long-term record · {d.long_term.span_years} years
+                </p>
+                <span className="text-[11px] text-muted-foreground tabular-nums">
+                  worst drawdown {d.long_term.worst_drawdown_pct}% ({d.long_term.worst_drawdown_at})
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-3 mb-3">
+                {Object.entries(d.long_term.cagr).map(([h, v]) => (
+                  <div key={h}>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{h} CAGR</div>
+                    <div className={`text-lg font-bold tabular-nums ${v != null && v >= 0 ? 'text-emerald-600 dark:text-emerald-400' : v != null ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                      {v != null ? `${v > 0 ? '+' : ''}${v}%` : '—'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <TimeSeriesChart
+                series={[{ label: 'monthly close', points: d.long_term.monthly_series,
+                           cls: 'stroke-foreground/70', fill: 'fill-foreground/5' }]}
+                H={180} yFmt={v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(0)} />
+            </div>
+          )}
+
+          {/* The business, year by year — as filed with the SEC */}
+          {d.fundamentals_history && (() => {
+            const fh = d.fundamentals_history!
+            const fy = fh.fiscal_years
+            const pts = (key: string) => fy.filter(r => r[key] != null)
+              .map(r => ({ t: `${r.fy}-06-30`, v: r[key] as number }))
+            const fmtB = (v: number) => Math.abs(v) >= 1e9 ? `${(v / 1e9).toFixed(0)}B` : `${(v / 1e6).toFixed(0)}M`
+            const soc = fh.society
+            return (
+              <div className="mt-4 news-card p-5">
+                <div className="flex items-baseline justify-between mb-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    The business, year by year · {fh.span_years} fiscal years as filed
+                  </p>
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    share count {fh.shares_change_pct != null ? `${fh.shares_change_pct > 0 ? '+' : ''}${fh.shares_change_pct}%` : '—'} over the span
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                  {Object.entries(fh.cagr).map(([k, v]) => (
+                    <div key={k}>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{k.replace(/_/g, ' ')} CAGR</div>
+                      <div className={`text-lg font-bold tabular-nums ${v != null && v >= 0 ? 'text-emerald-600 dark:text-emerald-400' : v != null ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                        {v != null ? `${v > 0 ? '+' : ''}${v}%` : '—'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {pts('revenue').length >= 3 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Revenue &amp; net income</p>
+                      <TimeSeriesChart
+                        series={[
+                          { label: 'revenue', points: pts('revenue'), cls: 'stroke-indigo-500', fill: 'fill-indigo-500/10' },
+                          { label: 'net income', points: pts('net_income'), cls: 'stroke-emerald-500' },
+                        ]} H={150} yFmt={fmtB} />
+                      <ChartLegend items={[
+                        { label: 'revenue', cls: 'stroke-indigo-500' },
+                        { label: 'net income', cls: 'stroke-emerald-500' },
+                      ]} />
+                    </div>
+                  )}
+                  {pts('fcf').length >= 3 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Free cash flow &amp; margins</p>
+                      <TimeSeriesChart
+                        series={[{ label: 'FCF', points: pts('fcf'), cls: 'stroke-emerald-600', fill: 'fill-emerald-500/10' }]}
+                        H={110} yFmt={fmtB} zeroLine />
+                      <div className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                        latest: net margin {fy[fy.length - 1].net_margin_pct ?? '—'}% · op margin {fy[fy.length - 1].op_margin_pct ?? '—'}% · ROE {fy[fy.length - 1].roe_pct ?? '—'}%
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <p className="mt-4 pt-3 border-t border-border/60 text-[11.5px] text-muted-foreground tabular-nums">
+                  What it put back over the span:
+                  {soc.dividends_total != null && <> dividends <span className="font-semibold text-foreground">{fmtB(soc.dividends_total)}</span> ·</>}
+                  {soc.buybacks_total != null && <> buybacks <span className="font-semibold text-foreground">{fmtB(soc.buybacks_total)}</span> ·</>}
+                  {soc.taxes_paid_total != null && <> taxes paid <span className="font-semibold text-foreground">{fmtB(soc.taxes_paid_total)}</span> ·</>}
+                  {soc.rnd_total != null && <> R&amp;D <span className="font-semibold text-foreground">{fmtB(soc.rnd_total)}</span> ·</>}
+                  {' '}from filings with the SEC, as filed.
+                </p>
+              </div>
+            )
+          })()}
 
           {/* Engine + headlines */}
           {(d.engine.latest_composite != null || d.recent_headlines.length > 0) && (

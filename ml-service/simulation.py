@@ -50,7 +50,7 @@ def _daily_news_sentiment(conn, days: int) -> dict[str, float]:
 
 
 async def _daily_closes(symbol: str, days: int) -> list[tuple[str, float]]:
-    rng = ("5y" if days > 800 else "2y" if days > 300 else
+    rng = ("10y" if days > 1400 else "5y" if days > 800 else "2y" if days > 300 else
            "1y" if days > 180 else "6mo" if days > 90 else "3mo")
     async with httpx.AsyncClient(timeout=15, headers=YAHOO_HEADERS) as client:
         r = await client.get(

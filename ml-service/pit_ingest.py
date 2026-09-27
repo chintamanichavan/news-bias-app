@@ -80,7 +80,7 @@ def parse_stooq_csv(symbol: str, text: str) -> pd.DataFrame:
     return df[["symbol", "date", "open", "high", "low", "close", "volume", "source"]]
 
 
-async def _yahoo_eod(sym: str, client: httpx.AsyncClient, years: int = 5) -> pd.DataFrame:
+async def _yahoo_eod(sym: str, client: httpx.AsyncClient, years: int = 10) -> pd.DataFrame:
     """Fallback provider. Provenance is recorded in the source column; the
     PIT discipline (immutable snapshots, contracts, as-of reads) holds
     regardless of which provider filled a row."""
@@ -97,6 +97,11 @@ async def _yahoo_eod(sym: str, client: httpx.AsyncClient, years: int = 5) -> pd.
         "open": q.get("open"), "high": q.get("high"), "low": q.get("low"),
         "close": q.get("close"), "volume": q.get("volume"),
     }).dropna(subset=["close"]).drop_duplicates(subset=["date"])
+    df = df[df["close"] > 0]
+    # Decade-old rows sometimes carry zero opens/highs — null them rather
+    # than let one bad field sink the batch at the contract.
+    for c in ("open", "high", "low"):
+        df.loc[df[c] <= 0, c] = None
     df["symbol"] = sym
     df["source"] = "yahoo"
     return df[["symbol", "date", "open", "high", "low", "close", "volume", "source"]]
@@ -141,10 +146,20 @@ async def ingest_prices(symbols: list[str], client: httpx.AsyncClient) -> int:
 
 # ── EDGAR companyfacts ───────────────────────────────────────────────────────
 
+# The long-horizon set: scale, profitability, cash generation, capital
+# returns, reinvestment, and what the business pays into society (taxes,
+# and current employees come from the profile endpoint).
 EDGAR_TAGS = {"Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax",
               "NetIncomeLoss", "EarningsPerShareDiluted", "StockholdersEquity",
               "Assets", "Liabilities", "CashAndCashEquivalentsAtCarryingValue",
-              "OperatingIncomeLoss"}
+              "OperatingIncomeLoss", "GrossProfit",
+              "NetCashProvidedByUsedInOperatingActivities",
+              "PaymentsToAcquirePropertyPlantAndEquipment",
+              "PaymentsForRepurchaseOfCommonStock",
+              "PaymentsOfDividendsCommonStock",
+              "ResearchAndDevelopmentExpense",
+              "IncomeTaxesPaidNet",
+              "WeightedAverageNumberOfDilutedSharesOutstanding"}
 
 
 def parse_companyfacts(symbol: str, payload: dict) -> pd.DataFrame:
@@ -158,10 +173,12 @@ def parse_companyfacts(symbol: str, payload: dict) -> pd.DataFrame:
                 if not e.get("end") or e.get("val") is None or not e.get("filed"):
                     continue
                 rows.append({"cik": cik, "symbol": symbol, "tag": tag, "unit": unit,
+                             "period_start": e.get("start"),
                              "period_end": e["end"], "value": float(e["val"]),
                              "filed_at": e["filed"]})
     df = pd.DataFrame(rows)
     if not df.empty:
+        df["period_start"] = pd.to_datetime(df["period_start"], errors="coerce")
         df["period_end"] = pd.to_datetime(df["period_end"])
         df["filed_at"] = pd.to_datetime(df["filed_at"])
         df = df[df["filed_at"] >= df["period_end"]]

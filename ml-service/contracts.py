@@ -34,6 +34,7 @@ _SCHEMAS: dict[str, pa.DataFrameSchema] = {
             "symbol": Column(str, nullable=True),
             "tag": Column(str),
             "unit": Column(str),
+            "period_start": Column("datetime64[ns]", nullable=True),  # null for instants
             "period_end": Column("datetime64[ns]"),
             "value": Column(float),
             "filed_at": Column("datetime64[ns]"),

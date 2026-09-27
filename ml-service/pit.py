@@ -72,7 +72,10 @@ def connect() -> duckdb.DuckDBPyConnection:
     for table in TABLES:
         glob = str(PIT_ROOT / table / "snapshot=*" / "*.parquet")
         if list((PIT_ROOT / table).glob("snapshot=*/*.parquet")):
-            conn.execute(f"CREATE VIEW {table} AS SELECT * FROM read_parquet('{glob}')")
+            # union_by_name: snapshots may gain columns over time (e.g.
+            # fundamentals grew period_start); older files read as NULL.
+            conn.execute(
+                f"CREATE VIEW {table} AS SELECT * FROM read_parquet('{glob}', union_by_name=true)")
     return conn
 
 
@@ -117,7 +120,7 @@ def fundamentals_asof(conn, as_of: str, tag: str | None = None) -> pd.DataFrame:
     params = [as_of, as_of] + ([tag] if tag else [])
     return conn.execute(
         f"""
-        SELECT cik, symbol, tag, unit, period_end, value, filed_at FROM (
+        SELECT cik, symbol, tag, unit, period_start, period_end, value, filed_at FROM (
           SELECT *, ROW_NUMBER() OVER (
             PARTITION BY cik, tag, period_end ORDER BY filed_at DESC, ingested_at DESC) AS rn
           FROM fundamentals
