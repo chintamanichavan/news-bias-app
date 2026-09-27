@@ -8,6 +8,7 @@
 
 import CompoundingJourney from '@/components/CompoundingJourney'
 import LoadError from '@/components/LoadError'
+import MandateStrip from '@/components/MandateStrip'
 import { useResource } from '@/lib/useResource'
 
 interface Name {
@@ -80,7 +81,7 @@ export default function PortfolioPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-      <p className="news-section-label">Long horizon · 5+ years</p>
+      <p className="news-section-label">Wealth tier · long horizon · 7+ years</p>
       <h1 className="mt-1 font-serif text-4xl sm:text-5xl font-bold tracking-tight leading-none">
         Portfolio Research
       </h1>
@@ -95,6 +96,8 @@ export default function PortfolioPage() {
           <span className="not-italic block mt-1 text-[11px] uppercase tracking-wider">— Investment Policy Statement</span>
         </blockquote>
       )}
+
+      <MandateStrip active="wealth" />
 
       {error && !data && <div className="mt-8"><LoadError message={error} onRetry={reload} /></div>}
       {loading && !data && <div className="mt-8 skeleton h-96 rounded-2xl" />}

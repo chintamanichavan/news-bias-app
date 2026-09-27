@@ -17,6 +17,8 @@ export interface Paper {
   capital: number; equity: number; cash: number; total_return_pct: number
   max_drawdown_pct: number; exposure_pct: number; hit_rate: number | null
   var_1d_95_pct: number; var_1d_95_usd: number
+  var_method?: string
+  hrp_alternative?: Record<string, number> | null
   class_exposures: Record<string, number>
   positions: Position[]; equity_curve: { taken_at: string; equity: number; cash: number }[]
   recent_trades: Trade[]
@@ -59,6 +61,7 @@ export interface Backtest {
   benchmark_oos: { total_return_pct: number | null; sharpe: number | null; max_drawdown_pct: number | null }
   deflated_sharpe?: { sharpe: number | null; dsr: number | null; sr_benchmark: number | null; trials?: number; skew?: number; kurtosis?: number; n?: number }
   pbo?: { pbo: number | null; combinations?: number }
+  caveats?: string[]
   note: string
 }
 export interface Health {
@@ -149,7 +152,8 @@ export function PaperExpanded({ p }: { p: Paper }) {
           sub={`cash $${p.cash.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
           tone={pnlTone(p.total_return_pct)} />
         <Stat label="Return" value={`${p.total_return_pct > 0 ? '+' : ''}${p.total_return_pct.toFixed(2)}%`} tone={pnlTone(p.total_return_pct)} sub={`max DD ${p.max_drawdown_pct}%`} />
-        <Stat label="1-day VaR 95%" value={`$${p.var_1d_95_usd.toLocaleString()}`} sub={`${p.var_1d_95_pct}% of equity`} />
+        <Stat label="1-day VaR 95%" value={`$${p.var_1d_95_usd.toLocaleString()}`}
+          sub={p.var_method ?? `${p.var_1d_95_pct}% of equity`} />
         <Stat label="Hit rate" value={p.hit_rate != null ? `${Math.round(p.hit_rate * 100)}%` : '—'} sub="closed trades" />
         <Stat label="Exposure" value={`${p.exposure_pct}%`} sub={`gate ${p.alpha_gate.cleared ? 'open' : 'closed'}`} />
       </div>
@@ -230,6 +234,13 @@ export function PaperExpanded({ p }: { p: Paper }) {
           <span><span className="text-muted-foreground">Frictions</span> · {p.risk_limits.slippage_bps} bps + ${p.risk_limits.commission}/order</span>
           <span><span className="text-muted-foreground">Capital</span> · $100k paper, delayed quotes</span>
         </div>
+        {p.hrp_alternative && (
+          <p className="mt-3 text-[11.5px] text-muted-foreground tabular-nums">
+            <span className="uppercase tracking-wider text-[9.5px] font-semibold mr-1.5">HRP alternative</span>
+            López de Prado&rsquo;s risk-only allocation over the same book:{' '}
+            {Object.entries(p.hrp_alternative).map(([s, w]) => `${s} ${(w * 100).toFixed(0)}%`).join(' · ')}
+          </p>
+        )}
       </Section>
     </div>
   )

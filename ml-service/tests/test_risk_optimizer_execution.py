@@ -53,3 +53,60 @@ def test_paper_broker_fills():
     assert buy.cash_delta < -1000.0  # gross + commission
     assert sell.cash_delta < 1000.0  # commission comes out
     assert sell.cash_delta > 990.0
+
+
+# ── Ledoit–Wolf shrinkage + HRP ──────────────────────────────────────────────
+
+def _synthetic_returns(t=250, n=4, seed=11):
+    import numpy as np
+    rng = np.random.default_rng(seed)
+    common = rng.normal(0, 0.01, t)
+    return np.column_stack([0.7 * common + rng.normal(0, 0.008, t) for _ in range(n)])
+
+
+def test_ledoit_wolf_cov_is_valid_and_shrunk():
+    import numpy as np
+    rets = _synthetic_returns()
+    cov, delta = risk.ledoit_wolf_cov(rets)
+    assert 0.0 <= delta <= 1.0
+    assert np.allclose(cov, cov.T)
+    eig = np.linalg.eigvalsh(cov)
+    assert eig.min() > -1e-12  # positive semi-definite
+    # Diagonal must stay the sample variances (both S and F share them).
+    x = rets - rets.mean(axis=0)
+    s = x.T @ x / len(rets)
+    assert np.allclose(np.diag(cov), np.diag(s))
+    # Short histories shrink harder than long ones.
+    _, delta_short = risk.ledoit_wolf_cov(rets[:60])
+    assert delta_short >= delta
+
+
+def test_portfolio_var_cov_matches_hand_calc():
+    import numpy as np
+    cov = np.array([[0.0004, 0.0], [0.0, 0.0009]])
+    got = risk.portfolio_var_cov({"A": 0.5, "B": 0.5}, ["A", "B"], cov)
+    want = risk.VAR_Z_95 * math.sqrt(0.25 * 0.0004 + 0.25 * 0.0009)
+    assert math.isclose(got, want, rel_tol=1e-9)
+
+
+def test_hrp_weights_sum_and_favor_low_variance():
+    import numpy as np
+    # Uncorrelated with very different variances: HRP must overweight the
+    # quiet names, and weights are a full long-only allocation.
+    cov = np.diag([0.0001, 0.0001, 0.0025, 0.0025])
+    w = optimizer.hrp_weights(["Q1", "Q2", "L1", "L2"], cov)
+    assert math.isclose(sum(w.values()), 1.0, rel_tol=1e-3)
+    assert all(v > 0 for v in w.values())
+    assert w["Q1"] > w["L1"] and w["Q2"] > w["L2"]
+
+
+def test_optimize_accepts_cov_for_vol_target(offline_universe):
+    import numpy as np
+    # A hot flat-corr estimate scales the book; a near-zero true covariance
+    # should leave more of it invested.
+    signals = {"AAPL": 0.5, "MSFT": 0.5}
+    vols = {"AAPL": 0.9, "MSFT": 0.9}
+    flat = optimizer.optimize(signals, vols)
+    calm_cov = (["AAPL", "MSFT"], np.diag([1e-6, 1e-6]), 0.5)
+    calm = optimizer.optimize(signals, vols, cov=calm_cov)
+    assert sum(calm.values()) >= sum(flat.values())

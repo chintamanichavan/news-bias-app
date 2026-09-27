@@ -88,3 +88,32 @@ def test_factory_features_no_lookahead():
 def test_nautilus_importable():
     bridge = pytest.importorskip("nautilus_bridge")
     assert callable(bridge.run_parity_backtest)
+
+
+# ── Triple-barrier labels (López de Prado ch. 3) ────────────────────────────
+
+import math  # noqa: E402
+
+def test_triple_barrier_first_touch_and_vertical():
+    import numpy as np
+    import pandas as pd
+    import alpha_factory as af
+
+    # 30 warm-up bars establish sigma, then a +30% spike on the next bar:
+    # the label at the eve of the spike must be the touch return, not the
+    # fixed-horizon endpoint (which drifts back down).
+    rng = np.random.default_rng(3)
+    calm = 100 * np.cumprod(1 + rng.normal(0, 0.005, 30))
+    path = np.concatenate([calm, [calm[-1] * 1.30], [calm[-1] * 1.02] * af.HORIZON])
+    labels = af.triple_barrier_labels(pd.Series(path))
+    assert math.isclose(labels.iloc[29], 0.30, rel_tol=1e-9)
+
+    # A quiet drift never touches a barrier: the vertical (fixed-horizon)
+    # label applies.
+    quiet = pd.Series(100 * np.cumprod(1 + rng.normal(0, 0.004, 60)))
+    lq = af.triple_barrier_labels(quiet)
+    i = 30
+    expected = quiet.iloc[i + af.HORIZON] / quiet.iloc[i] - 1
+    sigma = quiet.pct_change().rolling(20).std().iloc[i] * math.sqrt(af.HORIZON)
+    if abs(expected) < 2.0 * sigma:  # guard: only assert when no touch occurred
+        assert math.isclose(lq.iloc[i], expected, rel_tol=1e-9)

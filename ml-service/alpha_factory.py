@@ -15,6 +15,7 @@ row the store didn't hold at the as-of instant. The model artifact is
 LightGBM's own text format, saved under data/models/.
 """
 
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,9 +33,37 @@ HORIZON = 5          # forward days for the label
 MIN_HISTORY = 80     # bars a symbol needs before it contributes rows
 
 
-def build_features(px: pd.DataFrame) -> pd.DataFrame:
+def triple_barrier_labels(closes: pd.Series, pt: float = 2.0, sl: float = 2.0,
+                          horizon: int = HORIZON) -> pd.Series:
+    """López de Prado (2018, *Advances in Financial ML*, ch. 3): the label is
+    the return at the FIRST barrier touched — profit-take at +pt·σ, stop at
+    −sl·σ (σ = trailing 20-day daily vol scaled to the horizon), or the
+    vertical barrier at `horizon` days. A fixed-horizon label grades a path
+    by where it ends; this grades it by what a holder with a stop would have
+    actually experienced."""
+    c = closes.reset_index(drop=True)
+    sigma = c.pct_change().rolling(20).std() * math.sqrt(horizon)
+    out = np.full(len(c), np.nan)
+    for i in range(len(c) - 1):
+        s = sigma.iloc[i]
+        if not np.isfinite(s) or s <= 0 or not c.iloc[i]:
+            continue
+        up, dn = pt * s, -sl * s
+        last = min(i + horizon, len(c) - 1)
+        for j in range(i + 1, last + 1):
+            r = c.iloc[j] / c.iloc[i] - 1
+            if r >= up or r <= dn:
+                out[i] = r
+                break
+        else:
+            out[i] = c.iloc[last] / c.iloc[i] - 1
+    return pd.Series(out, index=closes.index)
+
+
+def build_features(px: pd.DataFrame, label_mode: str = "fixed") -> pd.DataFrame:
     """px: prices_asof output. Returns one row per (symbol, date) with the
-    feature panel and the forward-HORIZON return label."""
+    feature panel and the label — forward-HORIZON return ("fixed") or the
+    first-barrier-touch return ("tb")."""
     frames = []
     for sym, g in px.groupby("symbol"):
         g = g.sort_values("date").reset_index(drop=True)
@@ -57,7 +86,10 @@ def build_features(px: pd.DataFrame) -> pd.DataFrame:
         f["turn_trend_10"] = v.rolling(10).mean() / v.rolling(60).mean() - 1
         f["corr_cv_10"] = c.rolling(10).corr(v)
         f["max_dd_20"] = c / c.rolling(20).max() - 1
-        f["label"] = c.shift(-HORIZON) / c - 1
+        if label_mode == "tb":
+            f["label"] = triple_barrier_labels(c).to_numpy()
+        else:
+            f["label"] = c.shift(-HORIZON) / c - 1
         frames.append(f)
     if not frames:
         return pd.DataFrame()
@@ -84,7 +116,7 @@ def _r2_oos(y: np.ndarray, yhat: np.ndarray) -> float:
     return float(1 - np.sum((y - yhat) ** 2) / np.sum(y ** 2))
 
 
-def run(as_of: str | None = None) -> dict:
+def run(as_of: str | None = None, label_mode: str = "fixed") -> dict:
     as_of = as_of or datetime.now(timezone.utc).isoformat()
     conn = pit.connect()
     try:
@@ -94,7 +126,7 @@ def run(as_of: str | None = None) -> dict:
     if px.empty or px["symbol"].nunique() < 5:
         return {"error": "PIT price store too thin — run pit_ingest first"}
 
-    panel = build_features(px)
+    panel = build_features(px, label_mode=label_mode)
     if len(panel) < 2000:
         return {"error": f"only {len(panel)} feature rows — need more history/symbols"}
 
@@ -149,6 +181,8 @@ def run(as_of: str | None = None) -> dict:
         "symbols": int(panel["symbol"].nunique()),
         "features": len(feature_cols),
         "horizon_days": HORIZON,
+        "label_mode": label_mode,
+        "caveats": [validation.SURVIVORSHIP_CAVEAT],
         "r2_oos": round(r2, 5),
         "rank_ic": {"mean": round(ic_mean, 4) if ic_mean is not None else None,
                     "t_stat": round(ic_t, 2) if ic_t is not None else None,
@@ -160,7 +194,7 @@ def run(as_of: str | None = None) -> dict:
                             float(np.mean(spreads)) if spreads else None),
     }
     monitor.log_experiment("factory", {"horizon": HORIZON, "features": len(feature_cols),
-                                       "symbols": out["symbols"]},
+                                       "symbols": out["symbols"], "labels": label_mode},
                            {"r2_oos": out["r2_oos"], "ic": out["rank_ic"],
                             "spread": out["quintile_spread_daily"]})
     return out

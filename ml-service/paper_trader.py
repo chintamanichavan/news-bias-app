@@ -150,9 +150,11 @@ def on_cycle(results: list[dict], quotes: dict[str, float],
             key=lambda r: -r["composite"],
         )[:MAX_CANDIDATES]
 
+        cov = risk.pit_cov([c["entity"] for c in candidates]) if len(candidates) >= 2 else None
         target_weights = optimizer.optimize(
             {c["entity"]: c["composite"] for c in candidates},
             {c["entity"]: vols.get(c["entity"], risk.DEFAULT_VOL) for c in candidates},
+            cov=cov,
         )
 
         # Exits: dropped from the target book, or signal flipped negative
@@ -231,7 +233,17 @@ def report(quotes: dict[str, float] | None = None) -> dict:
     exposure = sum(p["market_value"] for p in positions)
 
     weights = {p["symbol"]: p["market_value"] / equity for p in positions if equity}
-    var_pct = risk.portfolio_var(weights, LAST_VOLS) * 100
+    # VaR: Ledoit–Wolf covariance from PIT joint history when the book is
+    # thick enough for one; the flat-correlation approximation otherwise.
+    var_method, hrp_alt = "flat-corr (0.35) parametric", None
+    cov = risk.pit_cov(list(weights)) if len(weights) >= 2 else None
+    if cov is not None:
+        var_pct = risk.portfolio_var_cov(weights, cov[0], cov[1]) * 100
+        var_method = f"Ledoit–Wolf parametric (shrinkage δ={cov[2]:.2f})"
+        if len(cov[0]) >= 3:
+            hrp_alt = optimizer.hrp_weights(cov[0], cov[1])
+    else:
+        var_pct = risk.portfolio_var(weights, LAST_VOLS) * 100
 
     conn.close()
     return {
@@ -245,6 +257,8 @@ def report(quotes: dict[str, float] | None = None) -> dict:
         "hit_rate": round(wins / len(closed), 2) if closed else None,
         "var_1d_95_pct": round(var_pct, 2),
         "var_1d_95_usd": round(var_pct / 100 * equity, 0),
+        "var_method": var_method,
+        "hrp_alternative": hrp_alt,
         "class_exposures": risk.class_exposures(weights),
         "positions": positions,
         "equity_curve": curve,

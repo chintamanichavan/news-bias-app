@@ -114,5 +114,7 @@ def pipeline_health() -> dict:
             break
         if c["status"] == "stale":
             worst = "stale"
+    import finlex
     return {"overall": worst, "components": components, "counts": counts,
-            "outliers": outliers[:10], "db_bytes": db_bytes}
+            "outliers": outliers[:10], "db_bytes": db_bytes,
+            "lexicon": finlex.LEXICON_MODE}

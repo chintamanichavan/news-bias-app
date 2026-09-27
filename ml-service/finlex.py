@@ -77,6 +77,45 @@ LM_UNCERTAINTY = {
 
 _WORD_RE = re.compile(r"[a-z']+")
 
+# ── Optional upgrade: the full LM Master Dictionary, user-supplied ──────────
+# The complete dictionary (~4k sentiment words) is a free download for
+# personal/academic research from sraf.nd.edu; COMMERCIAL use requires a
+# license from Loughran & McDonald, so it is NOT redistributed with Artha.
+# Drop the master CSV at data/lm_master.csv and the channels upgrade
+# themselves on the next start; otherwise the compact subset above applies.
+
+LEXICON_MODE = "built-in subset"
+_LM_MASTER = None
+
+
+def _load_master_dictionary() -> None:
+    global LEXICON_MODE
+    import csv
+    from pathlib import Path
+    path = Path(__file__).parent / "data" / "lm_master.csv"
+    if not path.exists():
+        return
+    try:
+        with open(path, newline="", encoding="utf-8-sig") as fh:
+            for row in csv.DictReader(fh):
+                w = (row.get("Word") or "").strip().lower()
+                if not w:
+                    continue
+                # Category columns hold the year the word was added, 0 if not a member.
+                if int(float(row.get("Positive") or 0)):
+                    LM_POSITIVE.add(w)
+                if int(float(row.get("Negative") or 0)):
+                    LM_NEGATIVE.add(w)
+                if int(float(row.get("Uncertainty") or 0)):
+                    LM_UNCERTAINTY.add(w)
+        LEXICON_MODE = (f"LM master dictionary ({len(LM_POSITIVE)} pos / "
+                        f"{len(LM_NEGATIVE)} neg / {len(LM_UNCERTAINTY)} unc)")
+    except Exception as e:
+        print(f"[finlex] lm_master.csv present but unreadable: {e!r}")
+
+
+_load_master_dictionary()
+
 
 def lm_scores(text: str) -> dict[str, float]:
     """Loughran-McDonald channel: polarity from finance word counts plus an

@@ -32,6 +32,15 @@ import db
 
 EULER_GAMMA = 0.5772156649015329
 
+# Stamped onto every multi-year result: the universe is built from names that
+# are listed TODAY, so the companies that died on the way are invisible.
+# Shumway (1997, J. Finance) showed omitting delisting returns materially
+# inflates measured performance. Free data cannot cure this; honesty can.
+SURVIVORSHIP_CAVEAT = (
+    "Universe holds only currently-listed names — delisted failures are absent, "
+    "so multi-year results skew optimistic (delisting bias; Shumway 1997)."
+)
+
 
 # ── Purged K-fold with embargo ──────────────────────────────────────────────
 

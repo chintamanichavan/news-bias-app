@@ -10,6 +10,7 @@ import {
   type Alpha, type Backtest, type Bakeoff, type Experiment, type Health,
   type Paper, type Sim, PaperExpanded, Stat, pnlTone,
 } from '@/components/benches'
+import MandateStrip from '@/components/MandateStrip'
 import { ChartLegend, HBarList, Section, TimeSeriesChart } from '@/components/quantviz'
 import { useResource } from '@/lib/useResource'
 
@@ -34,13 +35,15 @@ export default function StrategyPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-      <p className="news-section-label">Where signals face consequences</p>
+      <p className="news-section-label">Rich tier · short horizon · where signals face consequences</p>
       <h1 className="mt-1 font-serif text-4xl sm:text-5xl font-bold tracking-tight leading-none">Strategy Lab</h1>
       <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-[66ch]">
         Six benches: the paper book under full risk policy, single-asset simulation,
         alpha discovery with its trials-adjusted bar, the walk-forward backtest with its
         overfitting guards, the model bakeoff, and the pipeline watching itself.
       </p>
+
+      <MandateStrip active="rich" />
 
       {/* Section anchors */}
       <nav className="mt-5 mb-8 flex flex-wrap gap-1.5">
@@ -170,6 +173,9 @@ export default function StrategyPage() {
                 </div>
               </Section>
               <p className="text-[12px] text-muted-foreground leading-relaxed max-w-[90ch]">{bt.note}</p>
+              {(bt.caveats ?? []).map((c, i) => (
+                <p key={i} className="mt-1.5 text-[11.5px] leading-relaxed max-w-[90ch] text-amber-700 dark:text-amber-400">⚠ {c}</p>
+              ))}
             </div>)}
         </Bench>
 

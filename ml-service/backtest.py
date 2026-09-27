@@ -163,6 +163,7 @@ async def run(days: int = 150) -> dict:
         "benchmark_oos": _stats(bench),
         "deflated_sharpe": dsr,
         "pbo": pbo,
+        "caveats": [validation.SURVIVORSHIP_CAVEAT],
         "note": ("Walk-forward: the window is chosen only on data before each test fold. "
                  "OOS combined concatenates the test folds; the benchmark holds the same "
                  "universe equal-weight over the same OOS days. DSR discounts the Sharpe "

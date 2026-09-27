@@ -19,6 +19,7 @@ import alpha
 import alpha_factory
 import backtest
 import lab
+import mandates
 import monitor
 import paper_trader
 import pit
@@ -1028,14 +1029,24 @@ def sestm_evaluate(days: int = Query(240, ge=60, le=720)):
 
 
 @app.get("/factory/run")
-def factory_run():
-    """Train + evaluate the GKX-protocol LightGBM baseline on the PIT store."""
-    cached = _data_cache.get("factory")
+def factory_run(labels: str = Query("fixed", pattern="^(fixed|tb)$")):
+    """Train + evaluate the GKX-protocol LightGBM baseline on the PIT store.
+    labels=tb swaps the fixed-horizon label for triple-barrier first-touch
+    returns (López de Prado ch. 3)."""
+    key = f"factory:{labels}"
+    cached = _data_cache.get(key)
     if cached and time.time() - cached[0] < 3600:
         return cached[1]
-    out = alpha_factory.run()
-    _data_cache["factory"] = (time.time(), out)
+    out = alpha_factory.run(label_mode=labels)
+    _data_cache[key] = (time.time(), out)
     return out
+
+
+@app.get("/mandates")
+def mandates_snapshot():
+    """The two-tier capital mandate — long term wealthy, short term rich —
+    with each book's live status and the firewall rules between them."""
+    return mandates.snapshot()
 
 
 @app.get("/health/pipeline")
