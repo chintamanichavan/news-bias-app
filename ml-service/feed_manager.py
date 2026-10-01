@@ -1,4 +1,5 @@
 import asyncio
+import sqlite3
 import hashlib
 import json
 import re
@@ -205,17 +206,31 @@ async def fetch_all_feeds(sentiment_model=None) -> int:
             except Exception:
                 pass
 
+    # Each stage is isolated: a failure in one (a locked database, a scraper
+    # blowing up) must not skip the stages after it.
+
     # Scrape full article text for short-body sources BEFORE scoring/summarizing,
     # so the summarizer has real content to work with.
-    await _enrich_short_bodies()
+    try:
+        await _enrich_short_bodies()
+    except Exception as e:
+        print(f"[feed] enrich stage failed: {e!r}")
 
     if sentiment_model and sentiment_model.polarity_clf is not None:
-        await _score_unscored_feed(sentiment_model)
+        try:
+            await _score_unscored_feed(sentiment_model)
+        except Exception as e:
+            print(f"[feed] scoring stage failed: {e!r}")
 
-    conn = db.get_conn()
-    _group_stories(conn)
-    conn.commit()
-    conn.close()
+    try:
+        conn = db.get_conn()
+        try:
+            _group_stories(conn)
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"[feed] story grouping failed: {e!r}")
     return total_new
 
 
@@ -244,13 +259,19 @@ async def _enrich_short_bodies(max_attempts: int = 40):
         for row in rows:
             text = await scraper.try_extract(row["url"])
             conn = db.get_conn()
-            current_len = len(row["body"] or "")
-            if text and len(text) > current_len:
-                db.replace_article_body(conn, row["id"], text)
-            else:
-                db.mark_scrape_attempted(conn, row["id"])
-            conn.commit()
-            conn.close()
+            try:
+                current_len = len(row["body"] or "")
+                if text and len(text) > current_len:
+                    db.replace_article_body(conn, row["id"], text)
+                else:
+                    db.mark_scrape_attempted(conn, row["id"])
+                conn.commit()
+            except sqlite3.OperationalError as e:
+                # Another writer held the lock past the busy timeout. Skip this
+                # article; it is retried on the next refresh.
+                print(f"[feed] enrich skipped {row['id']}: {e}")
+            finally:
+                conn.close()
             attempts += 1
             if attempts >= max_attempts:
                 break
@@ -375,6 +396,11 @@ def _group_stories(conn):
 
 
 async def periodic_refresh(sentiment_model=None):
+    # The loop must outlive any single bad cycle: an exception escaping here
+    # ends the task for the life of the process, and news silently stops.
     while True:
-        await fetch_all_feeds(sentiment_model)
+        try:
+            await fetch_all_feeds(sentiment_model)
+        except Exception as e:
+            print(f"[feed] refresh cycle failed: {e!r}")
         await asyncio.sleep(REFRESH_INTERVAL)

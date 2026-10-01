@@ -10,7 +10,7 @@ DB_PATH = Path(os.environ.get("ARTHA_DB_PATH",
 
 
 def get_conn():
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=10)
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
