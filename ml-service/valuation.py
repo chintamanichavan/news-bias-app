@@ -9,8 +9,9 @@ Expected yearly return over HORIZON years, from three plain inputs:
     return         = (terminal / price)^(1/HORIZON) - 1 + dividend yield
 
 Every input is held down on purpose, so the estimate errs low:
-- growth is the SLOWER of the revenue and EPS records, never above GROWTH_CAP
-  and never below zero;
+- earnings are the latest year or the three-year average, whichever is lower;
+- growth is the SLOWEST of the full revenue record, the last three years of
+  revenue, and the EPS record — never above GROWTH_CAP, never below zero;
 - the exit multiple is the company's own decade-median P/E, never above
   EXIT_PE_CAP — no credit for the market staying generous;
 - dividends count at today's payout, with no growth.
@@ -23,11 +24,35 @@ MIN_RETURN = 0.15
 TARGET_RETURN = 0.20
 GROWTH_CAP = 0.15
 EXIT_PE_CAP = 25.0
+# An estimate above this is far more likely a data fault (a mis-scaled EPS
+# fact, a reused ticker) than a bargain. It is flagged, never trusted.
+MAX_CREDIBLE = 0.60
+# The latest annual EPS must be this recent, in fiscal years.
+MAX_EPS_AGE_YEARS = 2
 
 
-def conservative_growth(rev_cagr: float | None, eps_cagr: float | None) -> float:
-    """The slower of the two records, held inside [0, GROWTH_CAP]."""
-    known = [g for g in (rev_cagr, eps_cagr) if g is not None]
+def base_eps(eps_by_year: list[float]) -> float | None:
+    """Earnings to value: the latest year, or the three-year average when
+    that is lower — one windfall year must not set the price. None when
+    either is not positive."""
+    if not eps_by_year:
+        return None
+    latest = eps_by_year[-1]
+    recent = eps_by_year[-3:]
+    avg = sum(recent) / len(recent)
+    base = min(latest, avg)
+    return base if base > 0 else None
+
+
+def cagr(first: float, last: float, years: int) -> float | None:
+    if first <= 0 or last <= 0 or years < 1:
+        return None
+    return (last / first) ** (1 / years) - 1
+
+
+def conservative_growth(*rates: float | None) -> float:
+    """The slowest of the records given, held inside [0, GROWTH_CAP]."""
+    known = [g for g in rates if g is not None]
     if not known:
         return 0.0
     return max(0.0, min(GROWTH_CAP, min(known)))
@@ -67,7 +92,7 @@ def price_for_return(hurdle: float, eps: float, growth: float, exit_pe: float,
 def tier(ret: float | None) -> str | None:
     """'target' at TARGET_RETURN or better, 'minimum' at MIN_RETURN or
     better, None below the floor (or when no estimate exists)."""
-    if ret is None:
+    if ret is None or ret > MAX_CREDIBLE:
         return None
     if ret >= TARGET_RETURN:
         return "target"

@@ -80,13 +80,14 @@ def parse_stooq_csv(symbol: str, text: str) -> pd.DataFrame:
     return df[["symbol", "date", "open", "high", "low", "close", "volume", "source"]]
 
 
-async def _yahoo_eod(sym: str, client: httpx.AsyncClient, years: int = 10) -> pd.DataFrame:
+async def _yahoo_eod(sym: str, client: httpx.AsyncClient, years: int = 10,
+                     span: str | None = None) -> pd.DataFrame:
     """Fallback provider. Provenance is recorded in the source column; the
     PIT discipline (immutable snapshots, contracts, as-of reads) holds
     regardless of which provider filled a row."""
     r = await client.get(
         f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
-        params={"range": f"{years}y", "interval": "1d"},
+        params={"range": span or f"{years}y", "interval": "1d"},
         headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
     )
     r.raise_for_status()
@@ -301,12 +302,47 @@ async def ingest_gdelt(client: httpx.AsyncClient) -> int:
 
 # ── Runner ───────────────────────────────────────────────────────────────────
 
+async def ingest_wide_prices(symbols: list[str], client: httpx.AsyncClient,
+                             full: bool) -> int:
+    """Keep the widened long-term universe fresh. A month of bars is enough
+    on most nights; `full` re-pulls the decade so a split's back-adjustment
+    reaches the stored history."""
+    frames = []
+    for sym in symbols:
+        try:
+            frames.append(await _yahoo_eod(sym, client, span=None if full else "1mo"))
+        except Exception as e:
+            print(f"[pit] wide prices {sym} skipped: {e!r}")
+        await asyncio.sleep(0.12)
+    if not frames:
+        return 0
+    batch = pd.concat(frames, ignore_index=True)
+    pit.write_snapshot("prices_eod", batch)
+    print(f"[pit] wide prices: {len(batch)} rows across {len(frames)} symbols")
+    return len(batch)
+
+
+EDGAR_PER_RUN = 150
+
+
 async def run(symbols: list[str] | None = None) -> dict:
+    explicit = symbols is not None
     symbols = symbols or default_symbols()
     started = datetime.now(timezone.utc).isoformat()
+    today = datetime.now(timezone.utc)
     async with httpx.AsyncClient(timeout=60, headers=UA, follow_redirects=True) as client:
         prices = await ingest_prices(symbols, client)
         fundamentals = await ingest_edgar(symbols, client)
+        if not explicit:
+            import widen
+            wide = [s for s in widen.wide_symbols() if s not in symbols]
+            if wide:
+                prices += await ingest_wide_prices(wide, client, full=today.weekday() == 6)
+                # filings change quarterly: a rotating slice each night walks
+                # the whole wide list every couple of weeks
+                start = (today.timetuple().tm_yday * EDGAR_PER_RUN) % len(wide)
+                part = (wide + wide)[start:start + EDGAR_PER_RUN]
+                fundamentals += await ingest_edgar(part, client, limit=len(part))
         macro = await ingest_fred(client)
         tone = await ingest_gdelt(client)
     out = {"started": started, "prices_eod": prices, "fundamentals": fundamentals,

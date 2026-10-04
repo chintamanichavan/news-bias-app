@@ -183,12 +183,18 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
     flows["dur"] = (flows["period_end"] - flows["period_start"]).dt.days
     annual = flows[(flows["dur"] >= 300) & (flows["dur"] <= 400)]
 
+    # split once per table: filtering the whole frame per symbol does not
+    # survive a universe of thousands
+    annual_by = dict(tuple(annual.groupby("symbol")))
+    facts_by = dict(tuple(f.groupby("symbol")))
+    px_by = dict(tuple(px.groupby("symbol")))
+
     out = []
     vals: dict[str, dict] = {}
     for sym in symbols:
-        fa = annual[annual["symbol"] == sym]
-        fi = f[f["symbol"] == sym]
-        if fa.empty:
+        fa = annual_by.get(sym)
+        fi = facts_by.get(sym)
+        if fa is None or fa.empty or sym not in px_by:
             continue
 
         def latest(tags, frame):
@@ -219,9 +225,7 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
         if len(shares) >= 3 and shares[0][1]:
             dilution = (shares[-1][1] / shares[0][1] - 1) * 100
 
-        p = px[px["symbol"] == sym].sort_values("date").reset_index(drop=True)
-        if p.empty:
-            continue
+        p = px_by[sym].sort_values("date").reset_index(drop=True)
         last = float(p["close"].iloc[-1])
         hi52 = float(p["close"].tail(252).max())
         discount = (last / hi52 - 1) * 100
@@ -233,7 +237,10 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
         # set against its dollar price.
         eps_series = series(["EarningsPerShareDiluted"], unit="USD/shares")
         val = None
-        if len(eps_series) >= 5 and eps_series[-1][1] and eps_series[-1][1] > 0:
+        this_year = datetime.now(timezone.utc).year
+        eps_base = valuation.base_eps([e for _, e in eps_series])
+        if (len(eps_series) >= 5 and eps_base
+                and eps_series[-1][0] >= this_year - valuation.MAX_EPS_AGE_YEARS):
             pe_hist = []
             pdates = p["date"]
             for fy, eps in eps_series:
@@ -244,19 +251,24 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
             if len(pe_hist) >= 5:
                 pe_hist.sort()
                 median_pe = pe_hist[len(pe_hist) // 2]
-                eps_now = eps_series[-1][1]
-                eps_cagr = None
-                if eps_series[0][1] > 0:
-                    yrs = max(1, eps_series[-1][0] - eps_series[0][0])
-                    eps_cagr = (eps_now / eps_series[0][1]) ** (1 / yrs) - 1
+                eps_now = eps_base
+                eps_cagr = valuation.cagr(eps_series[0][1], eps_series[-1][1],
+                                          eps_series[-1][0] - eps_series[0][0])
+                rev_recent = (valuation.cagr(rev[-4][1], rev[-1][1], rev[-1][0] - rev[-4][0])
+                              if len(rev) >= 4 else None)
                 growth = valuation.conservative_growth(
-                    rev_cagr / 100 if rev_cagr is not None else None, eps_cagr)
+                    rev_cagr / 100 if rev_cagr is not None else None, rev_recent, eps_cagr)
+                # dividends: the lowest of the last three years, so a special
+                # payout is not counted as if it came every year
                 declared = series(["CommonStockDividendsPerShareDeclared"], unit="USD/shares")
                 if declared and declared[-1][0] >= eps_series[-1][0] - 1:
-                    dps = declared[-1][1]
+                    dps = min(d for _, d in declared[-3:])
                 else:
-                    div_paid = latest(["PaymentsOfDividendsCommonStock", "PaymentsOfDividends"], fa) or 0.0
-                    dps = div_paid / shares[-1][1] if shares and shares[-1][1] else 0.0
+                    paid = series(["PaymentsOfDividendsCommonStock", "PaymentsOfDividends"])
+                    per_share = (min(d for _, d in paid[-3:]) / shares[-1][1]
+                                 if paid and shares and shares[-1][1]
+                                 and paid[-1][0] >= eps_series[-1][0] - 1 else 0.0)
+                    dps = max(0.0, per_share)
                 ret = valuation.expected_return(last, eps_now, growth, median_pe, dps)
                 floor_px = valuation.price_for_return(
                     valuation.MIN_RETURN, eps_now, growth, median_pe, dps)
@@ -273,6 +285,7 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
                     "div_yield_pct": round(dps / last * 100, 2) if last else 0.0,
                     "to_zone_pct": round((last / floor_px - 1) * 100, 1) if floor_px else None,
                     "in_zone": valuation.tier(ret) is not None,
+                    "suspect": ret is not None and ret > valuation.MAX_CREDIBLE,
                 }
                 vals[sym] = val
 
@@ -289,7 +302,7 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
                            "buy_below": None, "target_below": None,
                            "fair_value": None, "growth_pct": None,
                            "exit_pe": None, "div_yield_pct": None,
-                           "to_zone_pct": None, "in_zone": False}),
+                           "to_zone_pct": None, "in_zone": False, "suspect": False}),
             })
 
     # highest expected return first; names with no estimate last
@@ -307,7 +320,7 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
     `min_size` sit in the row. Distances are always shown; a fifth name is
     never manufactured by loosening the bar."""
     watchlist_tickers = {n["ticker"] for n in names}
-    quality = screen_candidates(exclude=set(), limit=40)
+    quality = screen_candidates(exclude=set(), limit=400)
     vals = valuations()
 
     entries: dict[str, dict] = {}
@@ -319,7 +332,7 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
         under_thesis = bool(n.get("in_buy_zone"))
         # no dollar earnings to value (losses, foreign filer) = the floor
         # cannot be shown to be met, so the name does not count as in zone
-        clears = ret is not None and ret >= valuation.MIN_RETURN * 100
+        clears = bool(v and v["in_zone"])
         entries[n["ticker"]] = {
             "ticker": n["ticker"], "name": n["name"], "kind": "thesis",
             "in_zone": under_thesis and clears,
@@ -331,9 +344,10 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
             "target_below": v["target_below"] if v else None,
             "rule_blocked": under_thesis and not clears,
             "rule_unchecked": ret is None,
+            "suspect": bool(v and v["suspect"]),
         }
     for q in quality:
-        if q.get("to_zone_pct") is None:
+        if q.get("to_zone_pct") is None or q.get("suspect"):
             continue
         prev = entries.get(q["ticker"])
         cand = {
@@ -376,7 +390,10 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
                 except ValueError:
                     pass
             warnings = []
-            if e.get("rule_blocked") and e.get("rule_unchecked"):
+            if e.get("suspect"):
+                warnings.append(f"estimate of {e['expected_return_pct']}% a year is not credible — "
+                                f"likely a data fault; check the filings by hand")
+            elif e.get("rule_blocked") and e.get("rule_unchecked"):
                 warnings.append("under your buy price, but no dollar earnings to value — "
                                 "the 15% floor cannot be shown, so it stays out of the zone")
             elif e.get("rule_blocked"):
@@ -396,7 +413,8 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
                                    -(e.get("expected_return_pct") or 0) if e["in_zone"]
                                    else (e["to_zone_pct"] if e["to_zone_pct"] is not None else 1e9)))
     in_zone = [e for e in ranked if e["in_zone"]]
-    queue = ranked[: max(min_size, len(in_zone))]
+    # the cards hold the best ten; the table below carries the full list
+    queue = ranked[: max(min_size, min(10, len(in_zone)))]
     return {
         "queue": queue,
         "in_zone_count": len(in_zone),
@@ -413,5 +431,7 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
                  "horizon_years": valuation.HORIZON,
                  "growth_cap_pct": valuation.GROWTH_CAP * 100,
                  "exit_pe_cap": valuation.EXIT_PE_CAP},
-        "screened": [q for q in quality if q["ticker"] not in watchlist_tickers][:8],
+        "screened": [q for q in quality if q["expected_return_pct"] is not None
+                     and not q["suspect"]][:40],
+        "suspect_count": len([1 for v in vals.values() if v["suspect"]]),
     }

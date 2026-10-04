@@ -3,6 +3,8 @@ is held down so the estimate errs low."""
 
 import math
 
+import pytest
+
 import valuation as v
 
 
@@ -46,3 +48,26 @@ def test_tiers():
     assert v.tier(0.15) == "minimum"
     assert v.tier(0.199) == "minimum"
     assert v.tier(0.20) == "target"
+
+
+def test_base_eps_ignores_a_windfall_year():
+    # one huge year must not set the price: the three-year average is lower
+    assert math.isclose(v.base_eps([2.0, 2.2, 2.1, 9.0]), (2.2 + 2.1 + 9.0) / 3)
+    # a falling business is valued on where it is now, not where it was
+    assert v.base_eps([5.0, 4.0, 3.0]) == 3.0
+    # losses on either measure: nothing to value
+    assert v.base_eps([1.0, -6.0, 1.0]) is None
+    assert v.base_eps([2.0, 2.0, -0.5]) is None
+    assert v.base_eps([]) is None
+
+
+def test_growth_takes_the_slowest_record():
+    assert v.conservative_growth(0.12, 0.04, 0.20) == 0.04
+    assert v.conservative_growth(0.12, None, 0.20) == 0.12
+    assert v.cagr(100.0, 121.0, 2) == pytest.approx(0.10)
+    assert v.cagr(-1.0, 5.0, 3) is None
+
+
+def test_an_incredible_return_is_not_a_tier():
+    assert v.tier(v.MAX_CREDIBLE) == "target"
+    assert v.tier(v.MAX_CREDIBLE + 0.01) is None

@@ -67,7 +67,7 @@ interface PortfolioData {
   in_buy_zone: string[]
   analysis_queue: {
     queue: QueueItem[]; in_zone_count: number; target_count?: number
-    rule?: ReturnRule; screened: Screened[]
+    rule?: ReturnRule; screened: Screened[]; suspect_count?: number
     clears_rule_unscreened?: { ticker: string; expected_return_pct: number; tier: string | null }[]
   }
   decisions: { file: string; title: string; status: string | null }[]
@@ -203,7 +203,7 @@ export default function PortfolioPage() {
                 <div className="mt-5 news-card overflow-x-auto">
                   <div className="px-4 pt-3 pb-1 flex items-baseline justify-between">
                     <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">
-                      Screened candidates — quality compounders by expected return, not yet on the watchlist
+                      Quality screen, ranked by expected return — top 40 of the widened universe
                     </p>
                     <span className="text-[10px] text-muted-foreground">no thesis yet · research before any verdict (ADR 0007)</span>
                   </div>
@@ -252,7 +252,10 @@ export default function PortfolioPage() {
                     fundamentals. Expected return: latest annual EPS grown for {data.analysis_queue.rule?.horizon_years ?? 5} years
                     at the slower of its revenue and EPS record (capped at {data.analysis_queue.rule?.growth_cap_pct ?? 15}%), sold
                     at its own decade-median P/E (capped at {data.analysis_queue.rule?.exit_pe_cap ?? 25}), plus today&rsquo;s
-                    dividend yield. An estimate from the past record, not a forecast.
+                    dividend yield. Earnings are the latest year or the three-year average, whichever is lower. An estimate
+                    from the past record, not a forecast{(data.analysis_queue.suspect_count ?? 0) > 0
+                      ? ` — ${data.analysis_queue.suspect_count} names with estimates above 60% a year were set aside as likely data faults.`
+                      : '.'}
                   </p>
                 </div>
               )}
