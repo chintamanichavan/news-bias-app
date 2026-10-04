@@ -39,12 +39,23 @@ interface QueueItem {
   vs_52w_high_pct?: number | null
   thesis_age_days?: number | null
   warnings?: string[]
+  expected_return_pct?: number | null
+  tier?: 'target' | 'minimum' | null
+  target_below?: number | null
 }
 interface Screened {
   ticker: string; price: number; vs_52w_high_pct: number
   roe_pct: number; rev_cagr_pct: number; fcf: number; dilution_pct: number | null
   fair_value: number | null; buy_below: number | null
   to_zone_pct: number | null; in_zone: boolean
+  expected_return_pct: number | null
+  tier: 'target' | 'minimum' | null
+  target_below: number | null
+  growth_pct: number | null; exit_pe: number | null; div_yield_pct: number | null
+}
+interface ReturnRule {
+  min_pct: number; target_pct: number; horizon_years: number
+  growth_cap_pct: number; exit_pe_cap: number
 }
 
 interface PortfolioData {
@@ -54,7 +65,11 @@ interface PortfolioData {
   targets: { base_currency: string; allocations: Allocation[] }
   watchlist: Name[]
   in_buy_zone: string[]
-  analysis_queue: { queue: QueueItem[]; in_zone_count: number; screened: Screened[] }
+  analysis_queue: {
+    queue: QueueItem[]; in_zone_count: number; target_count?: number
+    rule?: ReturnRule; screened: Screened[]
+    clears_rule_unscreened?: { ticker: string; expected_return_pct: number; tier: string | null }[]
+  }
   decisions: { file: string; title: string; status: string | null }[]
 }
 
@@ -115,29 +130,43 @@ export default function PortfolioPage() {
             <section className="mt-8">
               <div className="flex items-baseline justify-between mb-3">
                 <p className="news-section-label">
-                  Buy-zone queue · {data.analysis_queue.in_zone_count} in zone now
+                  Buy-zone queue · {data.analysis_queue.in_zone_count} clear the 15% floor
+                  {' · '}{data.analysis_queue.target_count ?? 0} at 20%+
                 </p>
                 <span className="text-[11px] text-muted-foreground">
-                  thesis zones + systematic value zones · each opens its Lab dossier
+                  return rule: 20% a year target, 15% bare minimum · each opens its Lab dossier
                 </span>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {data.analysis_queue.queue.map(q => (
                   <a key={q.ticker} href={`/lab?symbol=${encodeURIComponent(q.ticker)}`}
                     className={`news-card p-4 block hover:-translate-y-0.5 transition-transform border ${
-                      q.in_zone ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border'}`}>
+                      q.tier === 'target' && q.in_zone ? 'border-emerald-500/60 bg-emerald-500/10'
+                        : q.in_zone ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border'}`}>
                     <div className="flex items-baseline justify-between">
                       <span className="font-bold tabular-nums">{q.ticker}</span>
                       <span className={`text-[11px] font-semibold tabular-nums ${
                         q.in_zone ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
-                        {q.in_zone ? 'IN ZONE' : `+${q.to_zone_pct}%`}
+                        {q.in_zone ? (q.tier === 'target' ? '20%+ TARGET' : q.tier === 'minimum' ? '15%+ MINIMUM' : 'IN ZONE')
+                          : `+${q.to_zone_pct}%`}
                       </span>
+                    </div>
+                    <div className="mt-1 flex items-baseline gap-1.5 tabular-nums">
+                      <span className={`text-[18px] font-bold leading-none ${
+                        q.expected_return_pct == null ? 'text-muted-foreground'
+                          : q.expected_return_pct >= 15 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+                        {q.expected_return_pct != null ? `${q.expected_return_pct}%` : '—'}
+                      </span>
+                      <span className="text-[9.5px] uppercase tracking-wider text-muted-foreground">expected a year</span>
                     </div>
                     <div className="mt-1 text-[11px] text-muted-foreground tabular-nums">
                       ${q.price?.toLocaleString()} vs ${q.buy_below?.toLocaleString()}
                       <span className="ml-1 text-[9.5px] uppercase tracking-wider">
-                        {q.kind === 'thesis' ? 'thesis zone' : 'value zone'}
+                        {q.kind === 'thesis' ? 'your buy price' : '15% price'}
                       </span>
+                      {q.target_below != null && (
+                        <span className="block">20% at ${q.target_below.toLocaleString()} or less</span>
+                      )}
                     </div>
                     {q.note && (
                       <p className="mt-1.5 text-[11px] text-muted-foreground leading-snug line-clamp-2">{q.note}</p>
@@ -150,6 +179,20 @@ export default function PortfolioPage() {
                   </a>
                 ))}
               </div>
+              {(data.analysis_queue.clears_rule_unscreened ?? []).length > 0 && (
+                <p className="mt-2 text-[12px] text-muted-foreground leading-relaxed">
+                  <span className="uppercase tracking-wider text-[9.5px] font-semibold mr-1.5">Clear 15% on the numbers, not screened</span>
+                  {data.analysis_queue.clears_rule_unscreened!.map((c, i) => (
+                    <span key={c.ticker}>
+                      {i > 0 && ' · '}
+                      <a className="underline decoration-dotted tabular-nums" href={`/lab?symbol=${encodeURIComponent(c.ticker)}`}>
+                        {c.ticker} {c.expected_return_pct}%
+                      </a>
+                    </span>
+                  ))}
+                  {' '}— failed the quality screen or have no thesis. Research leads only.
+                </p>
+              )}
               {data.in_buy_zone.length > 0 && (
                 <p className="mt-2 text-[12px] text-muted-foreground">
                   Re-read the thesis doc before acting on an in-zone name, per the IPS.
@@ -160,7 +203,7 @@ export default function PortfolioPage() {
                 <div className="mt-5 news-card overflow-x-auto">
                   <div className="px-4 pt-3 pb-1 flex items-baseline justify-between">
                     <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">
-                      Screened candidates — quality compounders marked down, not yet on the watchlist
+                      Screened candidates — quality compounders by expected return, not yet on the watchlist
                     </p>
                     <span className="text-[10px] text-muted-foreground">no thesis yet · research before any verdict (ADR 0007)</span>
                   </div>
@@ -170,8 +213,10 @@ export default function PortfolioPage() {
                         <th className="px-4 py-2 font-semibold">Ticker</th>
                         <th className="px-3 py-2 font-semibold text-right">Price</th>
                         <th className="px-3 py-2 font-semibold text-right">vs 52w high</th>
-                        <th className="px-3 py-2 font-semibold text-right">Value zone</th>
-                        <th className="px-3 py-2 font-semibold text-right">To zone</th>
+                        <th className="px-3 py-2 font-semibold text-right">Expected / yr</th>
+                        <th className="px-3 py-2 font-semibold text-right">15% price</th>
+                        <th className="px-3 py-2 font-semibold text-right">20% price</th>
+                        <th className="px-3 py-2 font-semibold text-right">To 15%</th>
                         <th className="px-3 py-2 font-semibold text-right">ROE</th>
                         <th className="px-3 py-2 font-semibold text-right">Rev CAGR</th>
                         <th className="px-3 py-2 font-semibold text-right">FCF</th>
@@ -186,9 +231,13 @@ export default function PortfolioPage() {
                           <td className="px-4 py-2.5 font-semibold tabular-nums">{s.ticker}</td>
                           <td className="px-3 py-2.5 text-right tabular-nums">${s.price.toLocaleString()}</td>
                           <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-red-600 dark:text-red-400">{s.vs_52w_high_pct}%</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{s.buy_below != null ? `$${s.buy_below.toLocaleString()}` : '—'}</td>
                           <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${s.in_zone ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
-                            {s.in_zone ? 'IN ZONE' : s.to_zone_pct != null ? `+${s.to_zone_pct}%` : '—'}
+                            {s.expected_return_pct != null ? `${s.expected_return_pct}%` : '—'}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{s.buy_below != null ? `$${s.buy_below.toLocaleString()}` : '—'}</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{s.target_below != null ? `$${s.target_below.toLocaleString()}` : '—'}</td>
+                          <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${s.in_zone ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+                            {s.in_zone ? (s.tier === 'target' ? '20%+' : '15%+') : s.to_zone_pct != null ? `+${s.to_zone_pct}%` : '—'}
                           </td>
                           <td className="px-3 py-2.5 text-right tabular-nums">{s.roe_pct}%</td>
                           <td className="px-3 py-2.5 text-right tabular-nums">{s.rev_cagr_pct}%</td>
@@ -200,8 +249,10 @@ export default function PortfolioPage() {
                   </table>
                   <p className="px-4 py-2 text-[10.5px] text-muted-foreground">
                     Screen: ROE &gt; 15%, positive FCF, revenue CAGR &gt; 5%, share count not inflating — from as-filed
-                    fundamentals. Value zone: the company&rsquo;s own decade-median P/E on latest annual EPS, minus a 15%
-                    margin of safety — its own history as the anchor, never someone else&rsquo;s multiple.
+                    fundamentals. Expected return: latest annual EPS grown for {data.analysis_queue.rule?.horizon_years ?? 5} years
+                    at the slower of its revenue and EPS record (capped at {data.analysis_queue.rule?.growth_cap_pct ?? 15}%), sold
+                    at its own decade-median P/E (capped at {data.analysis_queue.rule?.exit_pe_cap ?? 25}), plus today&rsquo;s
+                    dividend yield. An estimate from the past record, not a forecast.
                   </p>
                 </div>
               )}

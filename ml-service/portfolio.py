@@ -18,6 +18,7 @@ from pathlib import Path
 import yaml
 
 import db
+import valuation
 
 PF_DIR = Path(os.environ.get("PORTFOLIO_RESEARCH_DIR",
                              os.path.expanduser("~/code/portfolio-research")))
@@ -144,14 +145,21 @@ def report(quotes: dict[str, float]) -> dict:
 
 # ── The analysis queue: never fewer than five things worth studying ─────────
 
-_screen_cache: dict = {"at": 0.0, "rows": []}
+_screen_cache: dict = {"at": 0.0, "rows": [], "valuations": {}}
+
+
+def valuations() -> dict[str, dict]:
+    """ticker -> return-rule valuation for every filer with enough record,
+    quality screen or not. Shares the screen's hourly cache."""
+    screen_candidates(exclude=set(), limit=1)
+    return _screen_cache["valuations"]
 
 
 def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
-    """Quality compounders from the PIT fundamentals, currently marked down:
-    ROE > 15%, positive FCF, revenue growing, shares not inflating — ranked
-    by discount from their 52-week high. These carry NO thesis: candidates
-    for research, never for a verdict (ADR 0007)."""
+    """Quality compounders from the PIT fundamentals: ROE > 15%, positive
+    FCF, revenue growing, shares not inflating — ranked by expected yearly
+    return under the return rule (valuation.py). These carry NO thesis:
+    candidates for research, never for a verdict (ADR 0007)."""
     import time as _t
     if _t.time() - _screen_cache["at"] < 3600 and _screen_cache["rows"]:
         return [r for r in _screen_cache["rows"] if r["ticker"] not in exclude][:limit]
@@ -176,6 +184,7 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
     annual = flows[(flows["dur"] >= 300) & (flows["dur"] <= 400)]
 
     out = []
+    vals: dict[str, dict] = {}
     for sym in symbols:
         fa = annual[annual["symbol"] == sym]
         fi = f[f["symbol"] == sym]
@@ -186,8 +195,11 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
             sub = frame[frame["tag"].isin(tags)].sort_values("period_end")
             return float(sub["value"].iloc[-1]) if len(sub) else None
 
-        def series(tags):
-            sub = fa[fa["tag"].isin(tags)].sort_values("period_end")
+        def series(tags, unit=None):
+            sub = fa[fa["tag"].isin(tags)]
+            if unit:
+                sub = sub[sub["unit"] == unit]
+            sub = sub.sort_values("period_end")
             return [(pd.Timestamp(r.period_end).year, float(r.value)) for r in sub.itertuples()]
 
         ni = latest(["NetIncomeLoss"], fa)
@@ -214,13 +226,13 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
         hi52 = float(p["close"].tail(252).max())
         discount = (last / hi52 - 1) * 100
 
-        # Systematic buy zone: the business's own decade-median P/E on its
-        # latest annual EPS, with a 15% margin of safety. No hand-made
-        # thesis exists for these names, so the anchor is the company's own
-        # long-run valuation history — never someone else's multiple.
-        eps_series = series(["EarningsPerShareDiluted"])
-        fair = buy_below = to_zone = None
-        in_zone = False
+        # The return rule: what does today's price imply per year, on the
+        # company's own record? Growth is the slower of revenue and EPS,
+        # the exit multiple its own decade-median P/E — both capped.
+        # Dollar earnings only: an ADR that files in yen or yuan cannot be
+        # set against its dollar price.
+        eps_series = series(["EarningsPerShareDiluted"], unit="USD/shares")
+        val = None
         if len(eps_series) >= 5 and eps_series[-1][1] and eps_series[-1][1] > 0:
             pe_hist = []
             pdates = p["date"]
@@ -232,10 +244,37 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
             if len(pe_hist) >= 5:
                 pe_hist.sort()
                 median_pe = pe_hist[len(pe_hist) // 2]
-                fair = median_pe * eps_series[-1][1]
-                buy_below = 0.85 * fair
-                to_zone = (last / buy_below - 1) * 100
-                in_zone = last <= buy_below
+                eps_now = eps_series[-1][1]
+                eps_cagr = None
+                if eps_series[0][1] > 0:
+                    yrs = max(1, eps_series[-1][0] - eps_series[0][0])
+                    eps_cagr = (eps_now / eps_series[0][1]) ** (1 / yrs) - 1
+                growth = valuation.conservative_growth(
+                    rev_cagr / 100 if rev_cagr is not None else None, eps_cagr)
+                declared = series(["CommonStockDividendsPerShareDeclared"], unit="USD/shares")
+                if declared and declared[-1][0] >= eps_series[-1][0] - 1:
+                    dps = declared[-1][1]
+                else:
+                    div_paid = latest(["PaymentsOfDividendsCommonStock", "PaymentsOfDividends"], fa) or 0.0
+                    dps = div_paid / shares[-1][1] if shares and shares[-1][1] else 0.0
+                ret = valuation.expected_return(last, eps_now, growth, median_pe, dps)
+                floor_px = valuation.price_for_return(
+                    valuation.MIN_RETURN, eps_now, growth, median_pe, dps)
+                target_px = valuation.price_for_return(
+                    valuation.TARGET_RETURN, eps_now, growth, median_pe, dps)
+                val = {
+                    "expected_return_pct": round(ret * 100, 1) if ret is not None else None,
+                    "tier": valuation.tier(ret),
+                    "buy_below": round(floor_px, 2) if floor_px else None,
+                    "target_below": round(target_px, 2) if target_px else None,
+                    "fair_value": round(median_pe * eps_now, 2),
+                    "growth_pct": round(growth * 100, 1),
+                    "exit_pe": round(min(median_pe, valuation.EXIT_PE_CAP), 1),
+                    "div_yield_pct": round(dps / last * 100, 2) if last else 0.0,
+                    "to_zone_pct": round((last / floor_px - 1) * 100, 1) if floor_px else None,
+                    "in_zone": valuation.tier(ret) is not None,
+                }
+                vals[sym] = val
 
         if (roe is not None and roe > 15 and fcf is not None and fcf > 0
                 and rev_cagr is not None and rev_cagr > 5
@@ -246,39 +285,52 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
                 "roe_pct": round(roe, 1), "rev_cagr_pct": round(rev_cagr, 1),
                 "fcf": round(fcf, 0),
                 "dilution_pct": round(dilution, 1) if dilution is not None else None,
-                "fair_value": round(fair, 2) if fair else None,
-                "buy_below": round(buy_below, 2) if buy_below else None,
-                "to_zone_pct": round(to_zone, 1) if to_zone is not None else None,
-                "in_zone": in_zone,
+                **(val or {"expected_return_pct": None, "tier": None,
+                           "buy_below": None, "target_below": None,
+                           "fair_value": None, "growth_pct": None,
+                           "exit_pe": None, "div_yield_pct": None,
+                           "to_zone_pct": None, "in_zone": False}),
             })
 
-    # in-zone first, then closest to zone, then deepest markdown
-    out.sort(key=lambda r: (not r["in_zone"],
-                            r["to_zone_pct"] if r["to_zone_pct"] is not None else 1e9,
-                            r["vs_52w_high_pct"]))
-    _screen_cache.update(at=_t.time(), rows=out)
+    # highest expected return first; names with no estimate last
+    out.sort(key=lambda r: -(r["expected_return_pct"]
+                             if r["expected_return_pct"] is not None else -1e9))
+    _screen_cache.update(at=_t.time(), rows=out, valuations=vals)
     return [r for r in out if r["ticker"] not in exclude][:limit]
 
 
 def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
-    """A merged buy-zone queue of holdable businesses: watchlist names in
-    their thesis zones AND quality names in the systematic value zone (own
-    decade-median P/E, 15% margin of safety) — topped up with the nearest
-    to either zone until at least `min_size` sit in the row. Distances are
-    always shown; a fifth name is never manufactured by loosening the bar."""
+    """A merged buy-zone queue of holdable businesses, all held to the return
+    rule: 15% a year is the floor, 20% the target. Watchlist names must be
+    under their thesis price AND clear the floor; quality-screen names need
+    only clear the floor. Topped up with the nearest names until at least
+    `min_size` sit in the row. Distances are always shown; a fifth name is
+    never manufactured by loosening the bar."""
     watchlist_tickers = {n["ticker"] for n in names}
     quality = screen_candidates(exclude=set(), limit=40)
+    vals = valuations()
 
     entries: dict[str, dict] = {}
     for n in names:
         if n.get("to_buy_zone_pct") is None:
             continue
+        v = vals.get(n["ticker"])
+        ret = v["expected_return_pct"] if v else None
+        under_thesis = bool(n.get("in_buy_zone"))
+        # no dollar earnings to value (losses, foreign filer) = the floor
+        # cannot be shown to be met, so the name does not count as in zone
+        clears = ret is not None and ret >= valuation.MIN_RETURN * 100
         entries[n["ticker"]] = {
             "ticker": n["ticker"], "name": n["name"], "kind": "thesis",
-            "in_zone": bool(n.get("in_buy_zone")),
+            "in_zone": under_thesis and clears,
             "to_zone_pct": n["to_buy_zone_pct"],
             "price": n.get("price"), "buy_below": n.get("buy_below"),
             "note": n.get("one_liner"), "on_watchlist": True,
+            "expected_return_pct": ret,
+            "tier": v["tier"] if v else None,
+            "target_below": v["target_below"] if v else None,
+            "rule_blocked": under_thesis and not clears,
+            "rule_unchecked": ret is None,
         }
     for q in quality:
         if q.get("to_zone_pct") is None:
@@ -288,9 +340,12 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
             "ticker": q["ticker"], "name": q["ticker"], "kind": "value",
             "in_zone": bool(q["in_zone"]), "to_zone_pct": q["to_zone_pct"],
             "price": q["price"], "buy_below": q["buy_below"],
-            "note": (f"ROE {q['roe_pct']}% · rev {q['rev_cagr_pct']}%/yr · "
-                     f"zone = own decade-median P/E − 15%"),
+            "note": (f"ROE {q['roe_pct']}% · growth {q['growth_pct']}%/yr · "
+                     f"exit P/E {q['exit_pe']}"),
             "on_watchlist": q["ticker"] in watchlist_tickers,
+            "expected_return_pct": q["expected_return_pct"],
+            "tier": q["tier"], "target_below": q["target_below"],
+            "rule_blocked": False, "rule_unchecked": False,
         }
         # a name can be out of its strict thesis zone yet inside the value
         # zone — surface whichever view puts it closer to actionable
@@ -321,6 +376,12 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
                 except ValueError:
                     pass
             warnings = []
+            if e.get("rule_blocked") and e.get("rule_unchecked"):
+                warnings.append("under your buy price, but no dollar earnings to value — "
+                                "the 15% floor cannot be shown, so it stays out of the zone")
+            elif e.get("rule_blocked"):
+                warnings.append(f"under your buy price, but only {e['expected_return_pct']}% a year "
+                                f"expected — below the 15% floor")
             if e.get("vs_52w_high_pct") is not None and e["vs_52w_high_pct"] < -40:
                 warnings.append(f"entered via {e['vs_52w_high_pct']}% collapse — falling knife until re-underwritten")
             if e.get("thesis_age_days") and e["thesis_age_days"] > 90:
@@ -329,13 +390,28 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
     except Exception as exc:
         print(f"[portfolio] queue context unavailable: {exc!r}")
 
+    # in the zone: best expected return first; outside it: nearest first
     ranked = sorted(entries.values(),
                     key=lambda e: (not e["in_zone"],
-                                   e["to_zone_pct"] if e["to_zone_pct"] is not None else 1e9))
+                                   -(e.get("expected_return_pct") or 0) if e["in_zone"]
+                                   else (e["to_zone_pct"] if e["to_zone_pct"] is not None else 1e9)))
     in_zone = [e for e in ranked if e["in_zone"]]
     queue = ranked[: max(min_size, len(in_zone))]
     return {
         "queue": queue,
         "in_zone_count": len(in_zone),
+        "target_count": len([e for e in in_zone if e.get("tier") == "target"]),
+        # clears the return floor on the numbers but did NOT pass the quality
+        # screen and has no thesis — leads to research, nothing more
+        "clears_rule_unscreened": sorted(
+            ({"ticker": s, "expected_return_pct": v["expected_return_pct"], "tier": v["tier"]}
+             for s, v in vals.items()
+             if v["in_zone"] and s not in entries),
+            key=lambda r: -r["expected_return_pct"])[:8],
+        "rule": {"min_pct": valuation.MIN_RETURN * 100,
+                 "target_pct": valuation.TARGET_RETURN * 100,
+                 "horizon_years": valuation.HORIZON,
+                 "growth_cap_pct": valuation.GROWTH_CAP * 100,
+                 "exit_pe_cap": valuation.EXIT_PE_CAP},
         "screened": [q for q in quality if q["ticker"] not in watchlist_tickers][:8],
     }

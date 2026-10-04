@@ -29,7 +29,8 @@ WEALTH = {
     "vehicle": "portfolio workspace: watchlist, value/thesis zones, ADR decision log",
     "entry_discipline": [
         "quality screen first: ROE > 15%, positive FCF, revenue CAGR > 5%, dilution <= 5%",
-        "price second: inside the buy zone (own decade-median P/E x EPS, 15% margin of safety)",
+        "price second: the return rule — today's price must imply 15% a year at the least, "
+        "20% for a full-size idea (5 years, growth capped at 15%, exit P/E capped at 25)",
         "falling-knife rule: a zone entered via a >40% collapse needs re-underwriting, not a buy",
         "stale-thesis rule: a thesis older than 90 days gets re-read before acting",
     ],
