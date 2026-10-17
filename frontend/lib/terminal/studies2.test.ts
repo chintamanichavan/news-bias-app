@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   candlePatterns, cci, chaikin, dmi, envelopes, historicalVol, hurst, ichimoku, moneyFlow, obv, parabolicSar,
-  pivots, pointAndFigure, roc, seasonality, stochastic, williamsR, type Ohlcv,
+  intradayVol, pivots, pointAndFigure, roc, seasonality, stochastic, volumeAtPrice, volumeByTime, williamsR, type Ohlcv,
 } from './studies'
 
 const bar = (i: number, c: number, spread = 1, v = 100, o = c): Ohlcv =>
@@ -112,5 +112,29 @@ describe('range studies', () => {
     expect(pointAndFigure([10, 11, 12, 13, 12, 11, 10, 9], 1, 3))
       .toEqual([{ up: true, from: 11, to: 13 }, { up: false, from: 12, to: 9 }])
     expect(pointAndFigure([10, 10.4, 12.6], 1, 3)).toEqual([{ up: true, from: 11, to: 12 }])
+  })
+})
+
+describe('intraday analytics', () => {
+  const bar = (date: string, p: number, v: number): Ohlcv => ({ date, open: p, high: p, low: p, close: p, volume: v })
+
+  it('volume at price finds the busiest level and a 70% value area', () => {
+    const b = [bar('d', 10, 10), bar('d', 11, 70), bar('d', 12, 15), bar('d', 13, 5)]
+    const v = volumeAtPrice(b, 3)
+    expect(v.total).toBe(100)
+    expect(v.poc).toBeCloseTo(11.5, 9)                // the 11–12 bin holds 70
+    expect(v.valueLow).toBeCloseTo(11, 9)
+    expect(v.valueHigh).toBeCloseTo(12, 9)
+  })
+
+  it('volume by time averages past sessions and keeps the last one apart', () => {
+    const rows = volumeByTime([bar('2026-10-14T09:30', 1, 100), bar('2026-10-15T09:30', 1, 300), bar('2026-10-16T09:30', 1, 50)])
+    expect(rows).toEqual([{ time: '09:30', average: 200, today: 50 }])
+  })
+
+  it('intraday volatility skips the overnight gap', () => {
+    const v = intradayVol([bar('2026-10-15T15:55', 100, 1), bar('2026-10-16T09:30', 150, 1), bar('2026-10-16T09:35', 151, 1), bar('2026-10-16T09:40', 150, 1)], 2, 252 * 78)
+    expect(v[2]).toBeNull()                           // its window reaches back over the night
+    expect(v[3]).not.toBeNull()
   })
 })

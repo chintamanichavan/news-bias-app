@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, book, company, dcf, econ, ownership, filings, futures, fx, govts, indexmove, ipos, movers, news, options, peers,
+from . import (alerts, book, company, dcf, econ, members, ownership, filings, futures, fx, govts, indexmove, ipos, movers, news, options, peers,
                quotes, rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
@@ -343,7 +343,7 @@ async def valuation(symbol: str, growth: float | None = Query(None, ge=-50, le=5
 
 
 @router.get("/intraday/{symbol}")
-async def intraday_bars(symbol: str, span: str = Query("5d", pattern="^(1d|5d|1mo)$")):
+async def intraday_bars(symbol: str, span: str = Query("5d", pattern="^(1d|5d|1mo|60d)$")):
     return {"symbol": symbol.upper(), "span": span, "bars": await returns.intraday(symbol.upper(), span)}
 
 
@@ -383,3 +383,12 @@ async def filing_search(q: str = Query(..., min_length=2, max_length=200), forms
     if symbol and cik is None:
         raise HTTPException(404, f"{symbol.upper()} is not an SEC filer.")
     return await ownership.search(q, forms, start, end, cik)
+
+
+
+@router.get("/members/{index}")
+async def index_members(index: str):
+    code = index.upper()
+    if code not in indexmove.INDICES:
+        raise HTTPException(404, f"Members are available for {', '.join(indexmove.INDICES)}.")
+    return await members.members(code)

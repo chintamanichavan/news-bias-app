@@ -69,3 +69,10 @@ def test_fill_day_is_the_exchange_day():
     new_york = -4 * 3600
     assert trading.local_day("2026-10-17T03:13:16+00:00", new_york) == "2026-10-16"
     assert trading.local_day("2026-10-16T14:00:00+00:00", new_york) == "2026-10-16"
+
+
+def test_a_weekend_fill_uses_fridays_session():
+    sessions = {"2026-10-15", "2026-10-16"}
+    assert trading.session_for("2026-10-17", sessions) == "2026-10-16"
+    assert trading.session_for("2026-10-15", sessions) == "2026-10-15"
+    assert trading.session_for("2026-10-01", sessions) is None

@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react'
 import { ChartLegend, TimeSeriesChart, type Series } from '@/components/quantviz'
 import Candles, { type Bar } from '../Candles'
+import XYChart from '../XYChart'
 import { Fail, Fetched, Note, Table } from '../kit'
 import type { ViewProps } from './types'
 import { useDividends } from './Dividends'
 import { pct, price, tone } from '@/lib/terminal/numbers'
 import {
   bollinger, candlePatterns, cci, chaikin, dmi, envelopes, historicalVol, hurst, ichimoku, macd, moneyFlow, obv,
-  parabolicSar, pivots, pointAndFigure, readings, roc, rsi, seasonality, sma, stochastic, williamsR, type Line,
+  intradayVol, parabolicSar, pivots, pointAndFigure, readings, roc, rsi, seasonality, sma, stochastic, volumeAtPrice,
+  volumeByTime, williamsR, type Line,
 } from '@/lib/terminal/studies'
 import { useResource } from '@/lib/useResource'
 
@@ -285,6 +287,64 @@ const STUDIES: Record<string, Study> = {
     const cols = pointAndFigure(c.closes.slice(-c.n), box, 3)
     return <PointFigure cols={cols} box={box} />
   },
+  HVT: c => STUDIES.NSV(c),
+  VAP: c => {
+    const v = volumeAtPrice(c.bars)
+    const max = Math.max(...v.levels.map(l => l.volume))
+    const last = c.closes[c.closes.length - 1]
+    return (
+      <>
+        <div className="space-y-px font-mono text-[10.5px] tabular-nums">
+          {[...v.levels].reverse().map(l => {
+            const inValue = l.low >= v.valueLow - 1e-9 && l.high <= v.valueHigh + 1e-9
+            const isPoc = v.poc > l.low && v.poc < l.high
+            return (
+              <div key={l.low} className="flex items-center gap-2">
+                <span className={`w-28 text-right ${last >= l.low && last < l.high ? 'font-bold text-foreground' : 'text-muted-foreground'}`}>{price(l.low)}–{price(l.high)}</span>
+                <div className="flex-1"><div className={`h-2.5 rounded-r ${isPoc ? 'bg-amber-500' : inValue ? 'bg-indigo-500/70' : 'bg-muted-foreground/30'}`} style={{ width: `${(l.volume / max) * 100}%` }} /></div>
+              </div>
+            )
+          })}
+        </div>
+        <Note>Volume at price over the window, from each bar&apos;s typical price. Amber is the busiest level ({price(v.poc)}); blue is the value area holding 70% of the volume ({price(v.valueLow)} to {price(v.valueHigh)}). The last price is in bold.</Note>
+      </>
+    )
+  },
+  AVGV: c => {
+    const rows = volumeByTime(c.bars)
+    const day = c.bars[c.bars.length - 1].date.slice(0, 10)
+    let cumAvg = 0, cumToday = 0
+    const cum = rows.map(r => ({ t: r.time, avg: (cumAvg += r.average ?? 0), today: r.today == null ? null : (cumToday += r.today) }))
+    const minutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5))
+    const pts = (k: 'avg' | 'today') => cum.filter(r => r[k] != null).map(r => ({ x: minutes(r.t), y: r[k] as number }))
+    const lastToday = cum.filter(r => r.today != null).pop()
+    return (
+      <>
+        <ChartLegend items={[{ label: 'Average of past sessions', cls: 'stroke-indigo-500' }, { label: day, cls: 'stroke-amber-500' }]} />
+        <XYChart series={[{ label: 'avg', cls: 'stroke-indigo-500', points: pts('avg') }, { label: 'today', cls: 'stroke-amber-500', points: pts('today') }]}
+          xFmt={x => `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(Math.round(x % 60)).padStart(2, '0')}`} yFmt={v => `${(v / 1e6).toFixed(0)}M`} />
+        {lastToday && <p className="text-[13px] tabular-nums">By {lastToday.t}, {day} traded {(lastToday.today! / 1e6).toFixed(1)}M shares against {(lastToday.avg / 1e6).toFixed(1)}M on an average day by then: <b>{(lastToday.today! / lastToday.avg).toFixed(2)}×</b>.</p>}
+        <Table rows={rows.filter(r => r.average != null)} rowKey={r => r.time} columns={[
+          { head: 'Time', align: 'left', cell: r => r.time },
+          { head: 'Average volume', cell: r => Math.round(r.average!).toLocaleString('en-US') },
+          { head: day, cell: r => (r.today == null ? '—' : r.today.toLocaleString('en-US')) },
+        ]} />
+        <Note>Cumulative volume through the day, in 5-minute slots, averaged over the last 60 sessions Yahoo keeps, in exchange time.</Note>
+      </>
+    )
+  },
+  GIV: c => {
+    // 5-minute bars: 78 a session, 252 sessions a year
+    const v = intradayVol(c.bars, 12, 252 * 78)
+    return (
+      <>
+        <Price c={c} />
+        <Lower H={150} series={[{ label: 'Vol', cls: 'stroke-indigo-500', points: c.bars.slice(-c.n)
+          .map((b, i) => ({ t: b.date, v: v[v.length - c.n + i] })).filter((p): p is { t: string; v: number } => p.v != null) }]} />
+        <Note>Realised volatility over the last hour of 5-minute bars, annualised, in percent. Each session&apos;s first hour has no reading, so the line never spans the overnight gap.</Note>
+      </>
+    )
+  },
   SEAG: () => null,             // drawn by Seasonal, which needs ten years
   GPCA: () => null,             // drawn by Actions, which needs dividends
   IGPV: c => (
@@ -311,6 +371,7 @@ const STUDIES: Record<string, Study> = {
 const INTRADAY_OF: Record<string, string> = {
   IGPC: 'GPC', IGPO: 'GPO', IBOL: 'BOLL', ICCI: 'CMCI', IDMI: 'DMI', IGOC: 'GOC', IMAC: 'MACD', IMAE: 'MAE',
   IPTS: 'PTPS', IROC: 'ROC', IRSI: 'RSI', ITAS: 'TAS', IWLP: 'WLPR', IGPV: 'IGPV', GIM: 'GM', IGPF: 'IGPF',
+  VWAP: 'IGPV', VAP: 'VAP', AVGV: 'AVGV', GIV: 'GIV',
 }
 
 export const TECHNICAL_CODES = [...Object.keys(STUDIES), ...Object.keys(INTRADAY_OF)]
@@ -435,16 +496,17 @@ export default function Technical(props: ViewProps) {
   const study = INTRADAY_OF[command.fn] ?? command.fn
   const intraday = command.fn in INTRADAY_OF
   const choices = intraday ? INTRADAY : DAILY
-  const fallback = intraday ? '5D' : ['NSV', 'KAOS'].includes(command.fn) ? '1Y' : ['PIV', 'PIVG'].includes(command.fn) ? '1M' : '6M'
+  const fallback = command.fn === 'VWAP' ? '1D' : intraday ? '5D' : ['NSV', 'HVT', 'KAOS'].includes(command.fn) ? '1Y' : ['PIV', 'PIVG'].includes(command.fn) ? '1M' : '6M'
   const arg = (command.args[0] ?? fallback).toUpperCase()
   const valid = arg in choices
-  const { data, error, loading } = useBars(sec.symbol, intraday ? INTRADAY[valid ? arg : fallback] : null)
+  const span = command.fn === 'AVGV' ? '60d' : intraday ? INTRADAY[valid ? arg : fallback] : null
+  const { data, error, loading } = useBars(sec.symbol, span)
   if (!valid) return <Fail message={`Period ${command.args[0]} is not available. Use ${Object.keys(choices).join(', ')}.`} />
   if (command.fn === 'SEAG') return <Seasonal symbol={sec.symbol} />
 
   return (
     <div className="space-y-3">
-      {!['NSV', 'KAOS'].includes(command.fn) && (
+      {!['NSV', 'HVT', 'KAOS', 'AVGV'].includes(command.fn) && (
         <div className="flex flex-wrap gap-1">
           {Object.keys(choices).map(a => (
             <button key={a} onClick={() => run(`${sec.label} ${command.fn} ${a}`)}
@@ -455,7 +517,7 @@ export default function Technical(props: ViewProps) {
       <Fetched data={data} error={error} loading={loading}>
         {d => {
           const bars = d.bars
-          const n = intraday ? Math.max(10, bars.length - WARMUP) : command.fn === 'KAOS' || command.fn === 'NSV' ? Math.min(bars.length, 252) : DAILY[arg]
+          const n = intraday ? Math.max(10, bars.length - WARMUP) : ['KAOS', 'NSV', 'HVT'].includes(command.fn) ? Math.min(bars.length, 252) : DAILY[valid ? arg : fallback]
           if (bars.length < (intraday ? WARMUP + 10 : n + 30)) return <Note>Not enough history for this study.</Note>
           const c: Ctx = { bars, closes: bars.map(b => b.close), n, intraday, symbol: sec.symbol }
           if (study === 'IGPF') return Fibonacci(c)

@@ -144,6 +144,11 @@ const BY_HAND: Fn[] = [
   // Screening
   live('CORR', 'Correlation matrix', 'Markets', false),
   live('MOV', 'Index movers', 'Markets', false),
+  live('MEMB', 'Index members and weights', 'Markets', false),
+  live('GWGT', 'Index sector weights', 'Markets', false),
+  live('MRR', 'Members ranked by return', 'Markets', false),
+  live('WEIB', 'Market breadth', 'Markets', false),
+  live('LVI', 'Unusual volume', 'Markets', false),
 
   // Technical: daily studies
   live('GPC', 'Candlestick chart', 'Technical', true),
@@ -193,6 +198,11 @@ const BY_HAND: Fn[] = [
   live('ITAS', 'Intraday stochastics', 'Technical', true),
   live('IWLP', 'Intraday Williams %R', 'Technical', true),
   live('GIM', 'Intraday money flow', 'Technical', true),
+  live('VWAP', 'VWAP dashboard', 'Technical', true),
+  live('VAP', 'Volume at price', 'Technical', true),
+  live('AVGV', 'Average volume by time of day', 'Technical', true),
+  live('GIV', 'Intraday volatility', 'Technical', true),
+  live('HVT', 'Historical volatility table', 'Technical', true),
   // Technical: two or more securities
   live('HS', 'Historical spread and ratio', 'Technical', true),
   live('HSP', 'Spread graph', 'Technical', true),

@@ -131,6 +131,13 @@ def local_day(iso: str, offset: int) -> str:
     return datetime.fromtimestamp(t, tz=timezone.utc).date().isoformat()
 
 
+def session_for(day: str, sessions: set[str]) -> str | None:
+    """The session a fill is measured against: its own day, or for a fill on
+    a weekend or holiday the last session before it."""
+    before = [s for s in sessions if s <= day]
+    return max(before) if before else None
+
+
 async def _day_bars(symbol: str) -> tuple[int, list[dict]]:
     async def make():
         async with web.client() as c:
@@ -152,8 +159,8 @@ async def tca() -> dict:
     rows = []
     for o in filled:
         offset, bars = await _day_bars(o["symbol"])
-        day = local_day(o["filled_at"], offset)
-        day_vwap = vwap([(b["price"], b["volume"]) for b in bars if b["day"] == day])
+        day = session_for(local_day(o["filled_at"], offset), {b["day"] for b in bars})
+        day_vwap = vwap([(b["price"], b["volume"]) for b in bars if b["day"] == day]) if day else None
         notional = o["fill_price"] * o["quantity"]
         vs_arrival = slippage_bps(o["side"], o["fill_price"], o["arrival_mid"]) if o["arrival_mid"] else None
         rows.append({

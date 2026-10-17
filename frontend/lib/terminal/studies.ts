@@ -369,3 +369,54 @@ export function pointAndFigure(xs: number[], box: number, reversal = 3): { up: b
   }
   return cols
 }
+
+// ── intraday analytics ───────────────────────────────────────────────────────
+
+/** Volume traded at each price level (bars' typical prices in equal bins),
+ *  the busiest level (point of control) and the value area: the levels
+ *  around it holding 70% of the volume. */
+export function volumeAtPrice(b: Ohlcv[], bins = 30) {
+  const tp = b.map(x => (x.high + x.low + x.close) / 3)
+  const lo = Math.min(...b.map(x => x.low)), hi = Math.max(...b.map(x => x.high))
+  const width = (hi - lo) / bins || 1
+  const levels = Array.from({ length: bins }, (_, i) => ({ low: lo + i * width, high: lo + (i + 1) * width, volume: 0 }))
+  tp.forEach((p, i) => { levels[Math.min(bins - 1, Math.floor((p - lo) / width))].volume += b[i].volume ?? 0 })
+  const total = levels.reduce((a, l) => a + l.volume, 0)
+  let poc = 0
+  levels.forEach((l, i) => { if (l.volume > levels[poc].volume) poc = i })
+  let a = poc, z = poc, inside = levels[poc].volume
+  while (inside < 0.7 * total && (a > 0 || z < bins - 1)) {
+    const down = a > 0 ? levels[a - 1].volume : -1, up = z < bins - 1 ? levels[z + 1].volume : -1
+    if (up >= down) inside += levels[++z].volume; else inside += levels[--a].volume
+  }
+  return { levels, poc: (levels[poc].low + levels[poc].high) / 2, valueLow: levels[a].low, valueHigh: levels[z].high, total }
+}
+
+/** Average volume in each time-of-day slot across past sessions, and the
+ *  last session's volume in the same slots. Dates are 'YYYY-MM-DDTHH:MM'. */
+export function volumeByTime(b: Ohlcv[]) {
+  const last = b[b.length - 1].date.slice(0, 10)
+  const slots = new Map<string, { sum: number; days: number; today: number | null }>()
+  for (const x of b) {
+    const t = x.date.slice(11, 16)
+    const s = slots.get(t) ?? { sum: 0, days: 0, today: null }
+    if (x.date.slice(0, 10) === last) s.today = x.volume ?? 0
+    else { s.sum += x.volume ?? 0; s.days += 1 }
+    slots.set(t, s)
+  }
+  return Array.from(slots.entries()).sort((p, q) => p[0].localeCompare(q[0]))
+    .map(([time, s]) => ({ time, average: s.days ? s.sum / s.days : null, today: s.today }))
+}
+
+/** Rolling realised volatility of bar returns, annualised by bars per year,
+ *  never across the gap between sessions. */
+export function intradayVol(b: Ohlcv[], window: number, barsPerYear: number): Line {
+  const r = b.map((x, i) => (i === 0 || x.date.slice(0, 10) !== b[i - 1].date.slice(0, 10) ? null : Math.log(x.close / b[i - 1].close)))
+  return b.map((_, i) => {
+    const w = r.slice(Math.max(0, i - window + 1), i + 1)
+    if (i < window - 1 || w.some(v => v == null)) return null
+    const xs = w as number[]
+    const m = xs.reduce((s, v) => s + v, 0) / xs.length
+    return Math.sqrt((xs.reduce((s, v) => s + (v - m) ** 2, 0) / (xs.length - 1)) * barsPerYear) * 100
+  })
+}

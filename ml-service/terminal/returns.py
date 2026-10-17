@@ -140,7 +140,7 @@ async def bars(symbol: str, span: str = "5y") -> list[dict]:
     return await web.cached(f"bars:{symbol}:{span}", 1800, make)
 
 
-INTRADAY = {"1d": "2m", "5d": "5m", "1mo": "30m"}
+INTRADAY = {"1d": "2m", "5d": "5m", "1mo": "30m", "60d": "5m"}
 
 
 def parse_intraday(payload: dict) -> list[dict]:
@@ -161,7 +161,8 @@ def parse_intraday(payload: dict) -> list[dict]:
 
 async def intraday(symbol: str, span: str = "5d") -> list[dict]:
     """Bars for the intraday studies: 2-minute over a day, 5-minute over
-    five days, 30-minute over a month."""
+    five days, 30-minute over a month, and 5-minute over 60 days (the most
+    Yahoo keeps) for volume-by-time-of-day."""
     async def make():
         async with web.client() as c:
             r = await c.get(CHART.format(symbol=symbol), params={"range": span, "interval": INTRADAY[span]})

@@ -61,6 +61,7 @@ import Technical, { TECHNICAL_CODES } from './Technical'
 import Pairs from './Pairs'
 import { Corr, Hra } from './Relations'
 import Mov from './Mov'
+import Members from './Members'
 import WorldBonds from './WorldBonds'
 import Valuation from './Valuation'
 import { FilingSearch, Insiders, ShortHistory, Thirteenf, UkShorts } from './Owners'
@@ -89,6 +90,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   HS: Pairs, HSP: Pairs, HSE: Pairs, HSN: Pairs, SGP: Pairs, GR: Pairs, SGIP: Pairs, ISGP: Pairs, GV: Pairs,
   GIPS: Chart, GIPW: Chart, MGR: Compare,
   HRA: Hra, CORR: Corr, MOV: Mov, WB: WorldBonds,
+  MEMB: Members, GWGT: Members, MRR: Members, WEIB: Members, LVI: Members,
   WACC: Valuation, DCF: Valuation, DDM: Valuation,
   INSD: Insiders, GPTR: Insiders, SIA: ShortHistory, SPOS: UkShorts, FLNG: Thirteenf, PHDC: Thirteenf,
   CFS: FilingSearch, EDGS: FilingSearch, ACF: FilingSearch, CFA: FilingSearch, DSCO: FilingSearch,

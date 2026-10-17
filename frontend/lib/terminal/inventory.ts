@@ -213,15 +213,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg's own audio and video broadcasts"
  },
  {
-  "code": "AVGV",
-  "name": "Average volume at time",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "intraday analytics",
-  "why": "Average volume by time of day from Yahoo 5-minute bars (last 60 days)"
- },
- {
   "code": "AXES",
   "name": "Dealer axes pages search",
   "group": "Fixed income",
@@ -3882,15 +3873,6 @@ export const INVENTORY: Fn[] = [
   "why": "Intraday bid/ask history needs licensed exchange feeds"
  },
  {
-  "code": "GIV",
-  "name": "Intraday volatility graph",
-  "group": "Options",
-  "security": true,
-  "status": "planned",
-  "batch": "intraday analytics",
-  "why": "Intraday realized volatility from Yahoo 5-minute bars"
- },
- {
   "code": "GMM",
   "name": "Global macro movers",
   "group": "Economy",
@@ -3999,15 +3981,6 @@ export const INVENTORY: Fn[] = [
   "security": true,
   "status": "impossible",
   "why": "Structured guidance data is licensed; press releases are free text only"
- },
- {
-  "code": "GWGT",
-  "name": "Index group weightings",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "fund/ETF",
-  "why": "Sector and stock weights of SPY, DIA, QQQ from State Street/Invesco holdings files"
  },
  {
   "code": "GX",
@@ -4190,15 +4163,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "economy by country",
   "why": "Census new residential construction and sales, FHFA house price index CSV"
- },
- {
-  "code": "HVT",
-  "name": "Historical volatility table",
-  "group": "Options",
-  "security": true,
-  "status": "planned",
-  "batch": "options tools",
-  "why": "Historical volatility table (10 to 260 days) from Yahoo bars"
  },
  {
   "code": "HWIZ",
@@ -4865,15 +4829,6 @@ export const INVENTORY: Fn[] = [
   "why": "League table data is proprietary"
  },
  {
-  "code": "LVI",
-  "name": "Equities with abnormal volume",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "equity market monitors",
-  "why": "Stocks trading far above average volume across index members (Yahoo)"
- },
- {
   "code": "MADL",
   "name": "Company M&A deal list",
   "group": "Deals",
@@ -4994,15 +4949,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Bloomberg Media content"
- },
- {
-  "code": "MEMB",
-  "name": "Index members and weightings",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "fund/ETF",
-  "why": "Index members and weights from SPY/DIA/QQQ and other ETF holdings files"
  },
  {
   "code": "MEMC",
@@ -5234,15 +5180,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Bloomberg contributor pages"
- },
- {
-  "code": "MRR",
-  "name": "Member ranked returns of an index or portfolio",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "fund/ETF",
-  "why": "Members of an index (ETF holdings) or portfolio ranked by return"
  },
  {
   "code": "MRSK",
@@ -7436,15 +7373,6 @@ export const INVENTORY: Fn[] = [
   "why": "Loan-level MBS data is licensed"
  },
  {
-  "code": "VAP",
-  "name": "Volume at price",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "intraday analytics",
-  "why": "Volume at price profile from Yahoo intraday bars"
- },
- {
   "code": "VAR",
   "name": "Value at risk",
   "group": "Portfolio",
@@ -7574,15 +7502,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "options tools",
   "why": "Variance swap fair strike by replication from Yahoo option chains"
- },
- {
-  "code": "VWAP",
-  "name": "Price and volume dashboard (VWAP)",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "intraday analytics",
-  "why": "VWAP dashboard from Yahoo 1- to 5-minute bars"
  },
  {
   "code": "WALG",
@@ -7746,15 +7665,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "ECO"
- },
- {
-  "code": "WEIB",
-  "name": "Market breadth",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "equity market monitors",
-  "why": "Breadth: advances/declines, new highs, % above 50/200-day across S&P 500 members"
  },
  {
   "code": "WEIF",
