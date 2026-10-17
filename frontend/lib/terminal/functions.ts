@@ -1,0 +1,165 @@
+// Every terminal function, one entry each. The status says whether it works
+// today, is planned (with its phase in docs/TERMINAL.md), or cannot be built
+// on free data — in which case `why` says what is missing.
+
+export type Status = 'live' | 'planned' | 'impossible'
+
+export interface Fn {
+  code: string
+  name: string
+  group: Group
+  /** true when the function needs a security; otherwise it is market-wide */
+  security: boolean
+  status: Status
+  phase?: number
+  why?: string
+}
+
+export type Group =
+  | 'Company'
+  | 'Options'
+  | 'Markets'
+  | 'Rates & FX'
+  | 'Economy'
+  | 'News'
+  | 'Screening'
+  | 'Portfolio'
+  | 'Trading'
+  | 'Tools'
+
+const live = (code: string, name: string, group: Group, security: boolean): Fn =>
+  ({ code, name, group, security, status: 'live' })
+
+const planned = (code: string, name: string, group: Group, security: boolean, phase: number): Fn =>
+  ({ code, name, group, security, status: 'planned', phase })
+
+const impossible = (code: string, name: string, group: Group, why: string): Fn =>
+  ({ code, name, group, security: false, status: 'impossible', why })
+
+const DEALER = 'Dealer quotes are sent privately to Bloomberg; there is no free source.'
+const OWN_NEWSROOM = "Bloomberg's own reporters and analysts write it."
+
+export const FUNCTIONS: Fn[] = [
+  // Company
+  live('DES', 'Description', 'Company', true),
+  live('GP', 'Price chart', 'Company', true),
+  live('GIP', 'Intraday chart', 'Company', true),
+  live('HP', 'Historical prices', 'Company', true),
+  live('FA', 'Financial analysis', 'Company', true),
+  live('CN', 'Company news', 'Company', true),
+  live('BETA', 'Beta and risk', 'Company', true),
+  planned('EE', 'Earnings estimates', 'Company', true, 3),
+  planned('ERN', 'Earnings history', 'Company', true, 3),
+  planned('EVTS', 'Corporate events', 'Company', true, 3),
+  planned('DVD', 'Dividend history', 'Company', true, 3),
+  planned('CACS', 'Corporate actions', 'Company', true, 3),
+  planned('HDS', 'Holders', 'Company', true, 3),
+  planned('OWN', 'Ownership summary', 'Company', true, 3),
+  planned('MGMT', 'Management', 'Company', true, 3),
+  planned('ANR', 'Analyst recommendations', 'Company', true, 3),
+  planned('RV', 'Relative valuation', 'Company', true, 3),
+  planned('SI', 'Short interest', 'Company', true, 3),
+  planned('CF', 'Company filings', 'Company', true, 3),
+  planned('TRA', 'Total return', 'Company', true, 3),
+  planned('COMP', 'Comparative returns', 'Company', true, 3),
+  planned('G', 'Multi-security chart', 'Company', true, 3),
+  planned('ESG', 'ESG scores (where published)', 'Company', true, 3),
+  impossible('SPLC', 'Supply chain', 'Company', 'A proprietary supply-chain database.'),
+  impossible('CRPR', 'Credit ratings', 'Company', 'Rating agencies license their ratings.'),
+  impossible('DDIS', 'Debt distribution', 'Company', 'Bond holdings and terms are not published free.'),
+  impossible('BI', 'Bloomberg Intelligence', 'Company', OWN_NEWSROOM),
+  impossible('BRC', 'Broker research', 'Company', 'Brokers license their research.'),
+  impossible('MA', 'Mergers and acquisitions', 'Company', 'A proprietary deal database.'),
+
+  // Options
+  planned('OMON', 'Option monitor', 'Options', true, 4),
+  planned('OV', 'Option valuation', 'Options', true, 4),
+  planned('OSA', 'Option scenario analysis', 'Options', true, 4),
+  planned('IVOL', 'Implied volatility', 'Options', true, 4),
+  planned('HIVG', 'Historical vs implied volatility', 'Options', true, 4),
+  planned('SKEW', 'Volatility skew', 'Options', true, 4),
+  planned('OVDV', 'Volatility surface', 'Options', true, 4),
+
+  // Markets
+  live('WEI', 'World equity indices', 'Markets', false),
+  live('GLCO', 'Commodities', 'Markets', false),
+  live('WETR', 'Weather', 'Markets', false),
+  planned('MOST', 'Most active and movers', 'Markets', false, 2),
+  planned('MMAP', 'Market heat map', 'Markets', false, 2),
+  planned('IMAP', 'Industry map', 'Markets', false, 2),
+  planned('CTM', 'Futures contract tables', 'Markets', false, 2),
+  planned('IPO', 'IPO calendar', 'Markets', false, 3),
+  impossible('MBO', 'Market depth', 'Markets', 'Order-book feeds are licensed by the exchanges.'),
+  impossible('BNEF', 'Energy research', 'Markets', OWN_NEWSROOM),
+
+  // Rates & FX
+  planned('GC', 'Yield curve', 'Rates & FX', false, 2),
+  planned('BTMM', 'Treasury and money markets', 'Rates & FX', false, 2),
+  planned('WCRS', 'World currency rates', 'Rates & FX', false, 2),
+  planned('FXC', 'Currency cross rates', 'Rates & FX', false, 2),
+  planned('WIRP', 'Rate move probabilities', 'Rates & FX', false, 2),
+  impossible('WB', 'World bond prices', 'Rates & FX', DEALER),
+  impossible('ALLQ', 'All dealer quotes', 'Rates & FX', DEALER),
+  impossible('YAS', 'Bond yield analysis', 'Rates & FX', DEALER),
+  impossible('FXFC', 'FX forecasts', 'Rates & FX', 'Bloomberg surveys forecasters itself.'),
+
+  // Economy
+  planned('ECO', 'Economic calendar', 'Economy', false, 2),
+  planned('ECST', 'Economic statistics', 'Economy', false, 2),
+  impossible('ECFC', "Economists' forecasts", 'Economy', 'Bloomberg surveys economists itself.'),
+
+  // News
+  live('N', 'News', 'News', false),
+  live('TOP', 'Top stories', 'News', false),
+  planned('NSE', 'News search', 'News', false, 2),
+  impossible('FIRST', 'First Word headlines', 'News', OWN_NEWSROOM),
+  impossible('READ', 'Most read', 'News', 'Needs readership across many users.'),
+  impossible('TV', 'Bloomberg TV', 'News', 'A licensed broadcast.'),
+
+  // Screening
+  live('SECF', 'Security finder', 'Screening', false),
+  planned('EQS', 'Equity screener', 'Screening', false, 2),
+  planned('BQL', 'Query language', 'Screening', false, 5),
+  impossible('SRCH', 'Bond search', 'Screening', DEALER),
+  impossible('FSRC', 'Fund screener', 'Screening', 'Fund holdings and terms are a proprietary database.'),
+
+  // Portfolio
+  live('PORT', 'Portfolio', 'Portfolio', false),
+  planned('PRTU', 'Portfolio upload', 'Portfolio', false, 5),
+  planned('MARS', 'Scenario and risk', 'Portfolio', false, 5),
+  planned('ATTR', 'Performance attribution', 'Portfolio', false, 5),
+
+  // Trading
+  planned('EMSX', 'Order ticket (paper)', 'Trading', true, 5),
+  planned('TCA', 'Trade cost analysis (paper)', 'Trading', false, 5),
+  impossible('TSOX', 'Bond trading', 'Trading', DEALER),
+  impossible('FXGO', 'FX trading', 'Trading', DEALER),
+  impossible('IOI', 'Indications of interest', 'Trading', 'Broker interest is shared only on Bloomberg\'s network.'),
+
+  // Tools
+  live('HELP', 'Help', 'Tools', false),
+  live('FUNC', 'Function search', 'Tools', false),
+  planned('W', 'Watchlist monitor', 'Tools', false, 5),
+  planned('ALRT', 'Alerts', 'Tools', false, 5),
+  planned('NOTE', 'Notes', 'Tools', true, 5),
+  planned('EXPT', 'Export to CSV', 'Tools', false, 5),
+  planned('TEAR', 'Tear sheet', 'Tools', true, 5),
+  impossible('IB', 'Instant Bloomberg chat', 'Tools', 'A messaging network; the value is everyone else on it.'),
+  impossible('MSG', 'Bloomberg mail', 'Tools', 'A messaging network; the value is everyone else on it.'),
+  impossible('BPS', 'People search', 'Tools', 'A proprietary people database.'),
+]
+
+const BY_CODE = new Map(FUNCTIONS.map(f => [f.code, f]))
+
+export function lookup(code: string): Fn | undefined {
+  return BY_CODE.get(code.toUpperCase())
+}
+
+/** Functions whose code or name contains the query, codes first. */
+export function searchFunctions(query: string): Fn[] {
+  const q = query.trim().toUpperCase()
+  if (!q) return FUNCTIONS
+  const byCode = FUNCTIONS.filter(f => f.code.startsWith(q))
+  const byName = FUNCTIONS.filter(f => !f.code.startsWith(q) && f.name.toUpperCase().includes(q))
+  return [...byCode, ...byName]
+}
