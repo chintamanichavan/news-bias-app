@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Query
 
-from . import company, econ, futures, fx, movers, news, rates, returns, screener, yahoo
+from . import company, econ, filings, futures, fx, ipos, movers, news, peers, rates, returns, screener, yahoo
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -86,3 +86,21 @@ async def tra(symbols: str = Query(..., min_length=1, max_length=120),
               span: str = Query("5y", pattern="^(1y|3y|5y|10y)$")):
     wanted = [s.strip().upper() for s in symbols.split(",") if s.strip()][:8]
     return await returns.compare(wanted, span)
+
+
+@router.get("/filings/{symbol}")
+async def cf(symbol: str):
+    try:
+        return await filings.filings(symbol.upper())
+    except filings.NotFiler as e:
+        raise HTTPException(404, str(e))
+
+
+@router.get("/peers/{symbol}")
+async def rv(symbol: str):
+    return await peers.relative(symbol.upper())
+
+
+@router.get("/ipos")
+async def ipo():
+    return await ipos.calendar()

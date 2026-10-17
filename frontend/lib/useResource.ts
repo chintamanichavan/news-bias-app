@@ -62,6 +62,20 @@ export async function fetchJSON<T>(url: string, attempts = 3): Promise<T> {
   return (await fetchWithRetry(url, attempts)) as T
 }
 
+/** A 4xx: the request itself was wrong, so retrying cannot help. Carries
+ *  the server's own explanation when it sent one (FastAPI's `detail`). */
+class ClientError extends Error {}
+
+async function clientError(res: Response): Promise<ClientError> {
+  try {
+    const body = (await res.json()) as { detail?: unknown }
+    if (typeof body.detail === 'string' && body.detail) return new ClientError(body.detail)
+  } catch {
+    /* not JSON */
+  }
+  return new ClientError(`Request failed (${res.status})`)
+}
+
 async function fetchWithRetry(url: string, attempts: number): Promise<unknown> {
   let lastError: Error | null = null
   for (let i = 0; i < attempts; i++) {
@@ -70,15 +84,14 @@ async function fetchWithRetry(url: string, attempts: number): Promise<unknown> {
       // 5xx is usually the proxy reporting the ML service is down or still
       // booting — worth another go. 4xx is our own bug; retrying won't help.
       if (!res.ok) {
-        if (res.status < 500) throw new Error(`Request failed (${res.status})`)
+        if (res.status < 500) throw await clientError(res)
         lastError = new Error(`Service unavailable (${res.status})`)
       } else {
         return await res.json()
       }
     } catch (e) {
       lastError = e as Error
-      // A 4xx we raised above should not be retried.
-      if (lastError.message.startsWith('Request failed')) break
+      if (lastError instanceof ClientError) break
     }
     if (i < attempts - 1) {
       await new Promise(r => setTimeout(r, BACKOFF_MS[Math.min(i, BACKOFF_MS.length - 1)]))
@@ -130,7 +143,11 @@ export function useResource<T>(
     if (!promise) {
       promise = fetchWithRetry(url, attempts)
       inflight.set(url, promise)
-      promise.finally(() => { if (inflight.get(url) === promise) inflight.delete(url) })
+      // the cleanup chain is a promise of its own; without the catch, every
+      // failed request would also surface as an unhandled rejection
+      promise
+        .finally(() => { if (inflight.get(url) === promise) inflight.delete(url) })
+        .catch(() => {})
     }
 
     try {
@@ -142,8 +159,13 @@ export function useResource<T>(
       setError(null)
     } catch (e) {
       if (!alive.current) return
-      // Keep whatever we were already showing — a failed refresh should not
-      // blank a page that was working a moment ago.
+      // A failed refresh keeps what this URL was already showing. A URL that
+      // has never loaded takes ownership with no data, so its error shows
+      // instead of another URL's payload or an endless loading state.
+      if (dataKey.current !== url) {
+        setData(null)
+        dataKey.current = url
+      }
       setError((e as Error).message)
     } finally {
       if (alive.current) {

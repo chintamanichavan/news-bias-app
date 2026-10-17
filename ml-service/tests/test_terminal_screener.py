@@ -52,3 +52,9 @@ def test_incredible_returns_are_set_aside():
     assert screener.credible(22.3) == 22.3
     assert screener.credible(60.0) == 60.0
     assert screener.credible(13381.4) is None
+
+
+def test_missing_dividends_are_unknown_not_zero():
+    annual = _facts([_year("EarningsPerShareDiluted", 2025, 2.0, "USD/shares")])
+    px = pd.DataFrame({"date": pd.bdate_range("2025-01-02", periods=30), "close": [50.0] * 30})
+    assert screener.measures("X", annual, annual, px)["yield"] is None

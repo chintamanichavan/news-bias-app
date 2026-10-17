@@ -82,7 +82,9 @@ def measures(symbol: str, annual: pd.DataFrame, facts: pd.DataFrame, px: pd.Data
 
     paid = _series(annual, DIVIDENDS)
     dps = paid[-1][1] / shares[-1][1] if paid and shares and shares[-1][1] else 0.0
-    row["yield"] = round(dps / last * 100, 2) if dps > 0 else 0.0
+    # no dividend line in the filings is not the same as no dividend
+    # (JNJ's filings lack it), so missing stays missing rather than 0%
+    row["yield"] = round(dps / last * 100, 2) if dps > 0 else None
     return row
 
 
