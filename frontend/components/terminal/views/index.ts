@@ -61,6 +61,7 @@ import { PriceBars, Study } from './Technical'
 import { Corr, Hra } from './Relations'
 import Mov from './Mov'
 import WorldBonds from './WorldBonds'
+import Valuation from './Valuation'
 import Tca from './Tca'
 
 /** The screen for each live function code. */
@@ -84,6 +85,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   EMSX: Emsx, TCA: Tca,
   GPC: PriceBars, GPO: PriceBars, TECH: Study, RSI: Study, MACD: Study, BOLL: Study,
   HRA: Hra, CORR: Corr, MOV: Mov, WB: WorldBonds,
+  WACC: Valuation, DCF: Valuation, DDM: Valuation,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, book, company, econ, filings, futures, fx, govts, indexmove, ipos, movers, news, options, peers,
+from . import (alerts, book, company, dcf, econ, filings, futures, fx, govts, indexmove, ipos, movers, news, options, peers,
                quotes, rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
@@ -319,3 +319,23 @@ async def index_movers(index: str):
 @router.get("/wb")
 async def world_bonds():
     return await govts.world()
+
+
+
+@router.get("/valuation/{symbol}")
+async def valuation(symbol: str, growth: float | None = Query(None, ge=-50, le=50),
+                    terminal_growth: float | None = Query(None, ge=-5, le=10),
+                    dividend_growth: float | None = Query(None, ge=-50, le=50),
+                    beta: float | None = Query(None, ge=-3, le=5), erp: float | None = Query(None, ge=0, le=20),
+                    rf: float | None = Query(None, ge=-2, le=20), wacc: float | None = Query(None, gt=0, le=30),
+                    ke: float | None = Query(None, gt=0, le=40)):
+    """Overrides arrive in percent (beta as a number) and are used as fractions."""
+    given = {"growth": growth, "terminal_growth": terminal_growth, "dividend_growth": dividend_growth,
+             "erp": erp, "rf": rf, "wacc": wacc, "ke": ke}
+    overrides = {k: v / 100 for k, v in given.items() if v is not None}
+    if beta is not None:
+        overrides["beta"] = beta
+    try:
+        return await dcf.valuation(symbol.upper(), overrides)
+    except dcf.NoInputs as e:
+        raise HTTPException(404, str(e))
