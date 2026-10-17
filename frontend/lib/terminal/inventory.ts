@@ -2173,15 +2173,6 @@ export const INVENTORY: Fn[] = [
   "target": "CRV"
  },
  {
-  "code": "CRYP",
-  "name": "Cryptocurrency monitor",
-  "group": "Rates & FX",
-  "security": false,
-  "status": "planned",
-  "batch": "FX and crypto tools",
-  "why": "Crypto monitor from Yahoo crypto quotes and screener"
- },
- {
   "code": "CSDR",
   "name": "Sovereign debt ratings",
   "group": "Credit",
@@ -3591,24 +3582,6 @@ export const INVENTORY: Fn[] = [
   "target": "WCRS"
  },
  {
-  "code": "FX24",
-  "name": "FX trading sessions graph",
-  "group": "Rates & FX",
-  "security": true,
-  "status": "planned",
-  "batch": "FX and crypto tools",
-  "why": "FX moves by trading session (Asia, Europe, US) from Yahoo intraday bars"
- },
- {
-  "code": "FXCA",
-  "name": "FX conversion calculator",
-  "group": "Rates & FX",
-  "security": false,
-  "status": "planned",
-  "batch": "FX and crypto tools",
-  "why": "Currency conversion calculator at latest and historical Yahoo/ECB rates"
- },
- {
   "code": "FXCT",
   "name": "FX carry-trade performance",
   "group": "Rates & FX",
@@ -3873,15 +3846,6 @@ export const INVENTORY: Fn[] = [
   "why": "Intraday bid/ask history needs licensed exchange feeds"
  },
  {
-  "code": "GMM",
-  "name": "Global macro movers",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "equity market monitors",
-  "why": "Biggest moves across indices, currencies, yields and commodities, in standard deviations"
- },
- {
   "code": "GN",
   "name": "News sentiment chart",
   "group": "News",
@@ -3949,15 +3913,6 @@ export const INVENTORY: Fn[] = [
   "target": "WB"
  },
  {
-  "code": "GRR",
-  "name": "Group ranked returns by industry/sector",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "equity market monitors",
-  "why": "Sector and industry ranked returns from Yahoo sector lists and SPDR sector ETFs"
- },
- {
   "code": "GS",
   "name": "Custom scatter chart",
   "group": "Technical",
@@ -3998,15 +3953,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "government bonds and rates",
   "why": "Yield history for a Treasury tenor (Treasury curve) or a security (FedInvest)"
- },
- {
-  "code": "HALT",
-  "name": "Suspended or halted stocks by exchange",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "equity market monitors",
-  "why": "Trading halts from Nasdaq Trader halts feed (public RSS)"
  },
  {
   "code": "HCP",
@@ -4491,15 +4437,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Internal research distribution on Bloomberg's network"
- },
- {
-  "code": "IRR",
-  "name": "Historical index ranked returns reports",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "equity market monitors",
-  "why": "World indices ranked by return per year from Yahoo"
  },
  {
   "code": "IRSB",
@@ -5196,15 +5133,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Bloomberg messaging rules"
- },
- {
-  "code": "MRV",
-  "name": "Market relative value",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "equity market monitors",
-  "why": "Valuation by country and region from Yahoo index ETF trailing P/E and yield"
  },
  {
   "code": "MSGH",
@@ -7665,15 +7593,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "ECO"
- },
- {
-  "code": "WEIF",
-  "name": "World equity index futures",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "equity market monitors",
-  "why": "World equity index futures on Yahoo (ES, NQ, YM, RTY, NKD and others) vs spot"
  },
  {
   "code": "WEIS",

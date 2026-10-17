@@ -149,6 +149,15 @@ const BY_HAND: Fn[] = [
   live('MRR', 'Members ranked by return', 'Markets', false),
   live('WEIB', 'Market breadth', 'Markets', false),
   live('LVI', 'Unusual volume', 'Markets', false),
+  live('WEIF', 'World equity index futures', 'Markets', false),
+  live('GMM', 'Global macro movers', 'Markets', false),
+  live('IRR', 'World indices ranked by yearly return', 'Markets', false),
+  live('MRV', 'Market valuation by country', 'Markets', false),
+  live('GRR', 'Sectors and industries ranked by return', 'Markets', false),
+  live('HALT', 'Trading halts', 'Markets', false),
+  live('CRYP', 'Cryptocurrency monitor', 'Rates & FX', false),
+  live('FX24', 'FX moves by trading session', 'Rates & FX', false),
+  live('FXCA', 'Currency converter', 'Rates & FX', false),
 
   // Technical: daily studies
   live('GPC', 'Candlestick chart', 'Technical', true),

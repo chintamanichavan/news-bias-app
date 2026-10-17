@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, book, company, dcf, econ, members, ownership, filings, futures, fx, govts, indexmove, ipos, movers, news, options, peers,
+from . import (alerts, book, company, dcf, econ, members, monitors, ownership, filings, futures, fx, govts, indexmove, ipos, movers, news, options, peers,
                quotes, rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
@@ -392,3 +392,14 @@ async def index_members(index: str):
     if code not in indexmove.INDICES:
         raise HTTPException(404, f"Members are available for {', '.join(indexmove.INDICES)}.")
     return await members.members(code)
+
+
+
+@router.get("/monitor/{name}")
+async def monitor(name: str):
+    """WEIF, GMM, IRR, MRV, CRYP, FX24 and HALT."""
+    fn = {"weif": monitors.weif, "gmm": monitors.gmm, "irr": monitors.irr, "mrv": monitors.mrv,
+          "cryp": monitors.crypto, "fx24": monitors.fx24, "halt": monitors.halts}.get(name.lower())
+    if fn is None:
+        raise HTTPException(404, f"No monitor called {name}.")
+    return await fn()
