@@ -3,8 +3,8 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, company, econ, filings, futures, fx, ipos, movers, news, options, peers, quotes,
-               rates, returns, screener, store, vol, yahoo)
+from . import (alerts, book, company, econ, filings, futures, fx, ipos, movers, news, options, peers,
+               quotes, rates, returns, screener, store, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -216,3 +216,48 @@ async def alert_check():
 @router.get("/bars/{symbol}")
 async def daily_bars(symbol: str, span: str = Query("5y", pattern="^(1y|2y|5y|10y|max)$")):
     return {"symbol": symbol.upper(), "bars": await returns.bars(symbol.upper(), span)}
+
+
+
+# ── holdings (PRTU), risk (MARS), attribution (ATTR) ─────────────────────────
+
+class Holding(BaseModel):
+    symbol: str = SYMBOL
+    quantity: float
+    cost: float | None = Field(None, ge=0)
+    opened: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
+class Book(BaseModel):
+    holdings: list[Holding] = Field(..., max_length=500)
+
+
+@router.get("/holdings")
+async def holdings():
+    return await book.holdings_view()
+
+
+@router.put("/holdings")
+def holdings_replace(new: Book):
+    return {"saved": store.replace_holdings([h.model_dump() for h in new.holdings])}
+
+
+@router.post("/holdings")
+def holding_add(h: Holding):
+    return {"id": store.add_holding(h.symbol, h.quantity, h.cost, h.opened)}
+
+
+@router.delete("/holdings/{holding_id}")
+def holding_delete(holding_id: int):
+    store.delete_holding(holding_id)
+    return {"ok": True}
+
+
+@router.get("/risk")
+async def mars():
+    return await book.risk()
+
+
+@router.get("/attribution")
+async def attr():
+    return await book.attribution()

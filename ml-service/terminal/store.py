@@ -1,5 +1,5 @@
-"""The terminal's own data: watchlists, notes and alerts (and, later,
-holdings and paper orders). One small SQLite file of its own, so it never
+"""The terminal's own data: watchlists, notes, alerts and holdings (and,
+later, paper orders). One small SQLite file of its own, so it never
 touches the main database. Every query takes its values as parameters."""
 
 import sqlite3
@@ -16,6 +16,10 @@ CREATE TABLE IF NOT EXISTS watchlists (
 );
 CREATE TABLE IF NOT EXISTS notes (
     id INTEGER PRIMARY KEY, symbol TEXT, body TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS holdings (
+    id INTEGER PRIMARY KEY, symbol TEXT NOT NULL, quantity REAL NOT NULL,
+    cost REAL, opened TEXT, added_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS alerts (
     id INTEGER PRIMARY KEY, symbol TEXT NOT NULL, op TEXT NOT NULL CHECK (op IN ('above', 'below')),
@@ -101,3 +105,28 @@ def delete_alert(alert_id: int) -> None:
 def mark_triggered(alert_id: int, price: float) -> None:
     _run("UPDATE alerts SET triggered_at = ?, triggered_price = ? WHERE id = ? AND triggered_at IS NULL",
          (now(), price, alert_id))
+
+
+# holdings (PRTU): one row per lot; quantities may be negative for shorts
+
+def holdings() -> list[dict]:
+    return _all("SELECT * FROM holdings ORDER BY symbol, id")
+
+
+def replace_holdings(rows: list[dict]) -> int:
+    """Swap the whole book for `rows` in one transaction."""
+    with closing(connect()) as conn, conn:
+        conn.execute("DELETE FROM holdings")
+        conn.executemany(
+            "INSERT INTO holdings (symbol, quantity, cost, opened, added_at) VALUES (?, ?, ?, ?, ?)",
+            [(r["symbol"].upper(), r["quantity"], r.get("cost"), r.get("opened"), now()) for r in rows])
+    return len(rows)
+
+
+def add_holding(symbol: str, quantity: float, cost: float | None, opened: str | None) -> int:
+    return _run("INSERT INTO holdings (symbol, quantity, cost, opened, added_at) VALUES (?, ?, ?, ?, ?)",
+                (symbol.upper(), quantity, cost, opened, now()))
+
+
+def delete_holding(holding_id: int) -> None:
+    _run("DELETE FROM holdings WHERE id = ?", (holding_id,))

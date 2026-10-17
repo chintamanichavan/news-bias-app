@@ -11,7 +11,7 @@ describe('views', () => {
 
   it('explains planned, impossible and bond requests', () => {
     expect(reasonFor('DES', 'EQUITY')).toBeNull()
-    expect(reasonFor('PRTU', null)).toMatch(/phase 5/)
+    expect(reasonFor('TCA', null)).toMatch(/phase 5/)
     expect(reasonFor('IB', null)).toMatch(/messaging network/)
     expect(reasonFor('DES', 'CORP')).toMatch(/dealers/)
     expect(reasonFor('WEI', 'CORP')).toBeNull()

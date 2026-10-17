@@ -125,9 +125,9 @@ export const FUNCTIONS: Fn[] = [
 
   // Portfolio
   live('PORT', 'Portfolio', 'Portfolio', false),
-  planned('PRTU', 'Portfolio upload', 'Portfolio', false, 5),
-  planned('MARS', 'Scenario and risk', 'Portfolio', false, 5),
-  planned('ATTR', 'Performance attribution', 'Portfolio', false, 5),
+  live('PRTU', 'Portfolio upload', 'Portfolio', false),
+  live('MARS', 'Scenario and risk', 'Portfolio', false),
+  live('ATTR', 'Performance attribution', 'Portfolio', false),
 
   // Trading
   planned('EMSX', 'Order ticket (paper)', 'Trading', true, 5),

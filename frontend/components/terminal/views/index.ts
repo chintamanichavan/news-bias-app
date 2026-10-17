@@ -3,6 +3,7 @@ import Bql from './Bql'
 import Calendar from './Calendar'
 import Alerts from './Alerts'
 import Analysts from './Analysts'
+import Attribution from './Attribution'
 import Chart from './Chart'
 import Compare from './Compare'
 import CorporateActions from './CorporateActions'
@@ -24,9 +25,11 @@ import Futures from './Futures'
 import Heatmap from './Heatmap'
 import Hivg from './Hivg'
 import Holders from './Holders'
+import Holdings from './Holdings'
 import Help from './Help'
 import History from './History'
 import Management from './Management'
+import Mars from './Mars'
 import Industries from './Industries'
 import Ipos from './Ipos'
 import Ivol from './Ivol'
@@ -71,6 +74,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   CF: Filings, RV: Peers, IPO: Ipos,
   OMON: Omon, OV: Ov, IVOL: Ivol, HIVG: Hivg, SKEW: Skew, OVDV: Ovdv, OSA: Osa,
   W: Watchlist, NOTE: Notes, ALRT: Alerts, EXPT: Export, TEAR: Tear, BQL: Bql,
+  PRTU: Holdings, MARS: Mars, ATTR: Attribution,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {
