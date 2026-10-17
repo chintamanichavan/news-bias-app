@@ -46,8 +46,9 @@ available free, so their functions answer with that reason.
 
 - Command bar on every page: `/` or `Ctrl-K`. Enter opens the result in the
   terminal.
-- `/terminal`: 1, 2 or 4 panels. `Ctrl-1`..`Ctrl-4` focuses a panel.
-  `Alt-Left` / `Alt-Right` go back and forward in that panel's history.
+- `/terminal`: 1, 2 or 4 panels. `Alt-1`..`Alt-4` focuses a panel.
+  `Alt-[` / `Alt-]` go back and forward in that panel's history. (Ctrl-1 and
+  Alt-Left belong to the browser: switch tab, go back.)
 - Each panel has a link group (none, A, B). Loading a security in one panel
   of a group reloads the others in that group on the new security, keeping
   each one's function.
