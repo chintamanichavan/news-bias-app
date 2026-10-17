@@ -1,7 +1,8 @@
 'use client'
 
-import { forwardRef } from 'react'
+import { forwardRef, useRef } from 'react'
 import CommandInput from './CommandInput'
+import ExportButton from './ExportButton'
 import { viewFor } from './views'
 import { lookup } from '@/lib/terminal/functions'
 import { format } from '@/lib/terminal/parse'
@@ -33,6 +34,7 @@ const TerminalPanel = forwardRef<HTMLInputElement, Props>(function TerminalPanel
 ) {
   const cmd = current(panel)
   const fn = cmd ? lookup(cmd.fn) : undefined
+  const body = useRef<HTMLDivElement>(null)
   const View = cmd ? viewFor(cmd.fn, cmd.security?.key ?? null) : null
 
   return (
@@ -64,11 +66,12 @@ const TerminalPanel = forwardRef<HTMLInputElement, Props>(function TerminalPanel
             <span className="font-mono text-[11px] font-semibold">{cmd.fn}</span>
             <span className="font-serif text-[15px] font-semibold truncate">{fn?.name}</span>
             {cmd.security && <span className="text-[11px] text-muted-foreground truncate">{cmd.security.label}</span>}
+            <span className="ml-auto"><ExportButton target={body} name={format(cmd)} /></span>
           </div>
         )}
         {error && <p className="text-[11.5px] text-red-600 dark:text-red-400">{error}</p>}
       </header>
-      <div className="p-3 flex-1 min-h-0 overflow-auto">
+      <div ref={body} className="p-3 flex-1 min-h-0 overflow-auto">
         {/* keyed by the command, so a screen's own state (typed filters, a
             search box) starts fresh for each command instead of carrying over */}
         {cmd && View ? <View key={`${panel.at}:${format(cmd)}`} command={cmd} run={onRun} /> : (

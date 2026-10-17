@@ -211,3 +211,8 @@ def alert_delete(alert_id: int):
 @router.post("/alerts/check")
 async def alert_check():
     return {"fired": await alerts.check()}
+
+
+@router.get("/bars/{symbol}")
+async def daily_bars(symbol: str, span: str = Query("5y", pattern="^(1y|2y|5y|10y|max)$")):
+    return {"symbol": symbol.upper(), "bars": await returns.bars(symbol.upper(), span)}

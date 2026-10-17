@@ -81,3 +81,13 @@ def test_payments_slipping_across_new_year_are_not_a_cut():
     totals = {r["year"]: r["total"] for r in s["by_year"]}
     assert totals[2023] < totals[2022]          # the totals alone would show a cut
     assert s["years_of_increases"] == 5          # but the rate rose every year
+
+
+def test_parse_bars_keeps_every_daily_field():
+    payload = {"chart": {"result": [{
+        "timestamp": [1700000000, 1700086400],
+        "indicators": {"quote": [{"open": [1.0, None], "high": [2.0, None], "low": [0.5, None], "close": [1.5, None], "volume": [10, None]}],
+                       "adjclose": [{"adjclose": [1.4, None]}]},
+    }]}}
+    rows = returns.parse_bars(payload)
+    assert rows == [{"date": "2023-11-14", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5, "adj_close": 1.4, "volume": 10}]

@@ -13,6 +13,7 @@ import Dividends from './Dividends'
 import Earnings from './Earnings'
 import Economy from './Economy'
 import Estimates from './Estimates'
+import Export from './Export'
 import Events from './Events'
 import Finder from './Finder'
 import Filings from './Filings'
@@ -41,6 +42,7 @@ import Peers from './Peers'
 import Ownership from './Ownership'
 import Portfolio from './Portfolio'
 import Risk from './Risk'
+import Tear from './Tear'
 import TotalReturn from './TotalReturn'
 import Screener from './Screener'
 import ShortInterest from './ShortInterest'
@@ -67,7 +69,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   DVD: Dividends, CACS: CorporateActions, TRA: TotalReturn, COMP: Compare, G: Compare,
   CF: Filings, RV: Peers, IPO: Ipos,
   OMON: Omon, OV: Ov, IVOL: Ivol, HIVG: Hivg, SKEW: Skew, OVDV: Ovdv, OSA: Osa,
-  W: Watchlist, NOTE: Notes, ALRT: Alerts,
+  W: Watchlist, NOTE: Notes, ALRT: Alerts, EXPT: Export, TEAR: Tear,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

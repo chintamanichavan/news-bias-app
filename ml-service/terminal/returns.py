@@ -115,6 +115,31 @@ async def _history(c, symbol: str, span: str, interval: str) -> dict:
     return parse_history(r.json())
 
 
+def parse_bars(payload: dict) -> list[dict]:
+    """Daily open, high, low, close, adjusted close and volume."""
+    res = payload["chart"]["result"][0]
+    q = res["indicators"]["quote"][0]
+    adj = (res["indicators"].get("adjclose") or [{}])[0].get("adjclose") or [None] * len(q.get("close") or [])
+    rows = []
+    for i, t in enumerate(res.get("timestamp") or []):
+        if q["close"][i] is None:
+            continue
+        rows.append({"date": _day(t).isoformat(), "open": q["open"][i], "high": q["high"][i], "low": q["low"][i],
+                     "close": q["close"][i], "adj_close": adj[i], "volume": q["volume"][i]})
+    return rows
+
+
+async def bars(symbol: str, span: str = "5y") -> list[dict]:
+    """Daily bars for EXPT, whatever the span (the market page's own price
+    endpoint switches to weekly bars at five years)."""
+    async def make():
+        async with web.client() as c:
+            r = await c.get(CHART.format(symbol=symbol), params={"range": span, "interval": "1d"})
+            r.raise_for_status()
+            return parse_bars(r.json())
+    return await web.cached(f"bars:{symbol}:{span}", 1800, make)
+
+
 async def history(symbol: str, span: str = "1y", interval: str = "1d") -> dict:
     """Daily history for other screens (HIVG's realized volatility), cached."""
     async def make():
