@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import Chart from './Chart'
+import Curve from './Curve'
 import Description from './Description'
 import Finder from './Finder'
 import Financials from './Financials'
@@ -7,6 +8,7 @@ import Functions from './Functions'
 import Heatmap from './Heatmap'
 import Help from './Help'
 import History from './History'
+import Money from './Money'
 import Movers from './Movers'
 import News from './News'
 import Overview from './Overview'
@@ -15,6 +17,7 @@ import Risk from './Risk'
 import type { ViewProps } from './types'
 import Unavailable, { reasonFor } from './Unavailable'
 import Weather from './Weather'
+import Wirp from './Wirp'
 
 /** The screen for each live function code. */
 const VIEWS: Record<string, ComponentType<ViewProps>> = {
@@ -22,6 +25,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   CN: News, N: News, TOP: News, WEI: Overview, GLCO: Overview, WETR: Weather,
   PORT: Portfolio, HELP: Help, FUNC: Functions, SECF: Finder,
   MOST: Movers, MMAP: Heatmap, NSE: News,
+  GC: Curve, BTMM: Money, WIRP: Wirp,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

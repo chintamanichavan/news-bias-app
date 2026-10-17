@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Query
 
-from . import movers, news
+from . import movers, news, rates
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -20,3 +20,18 @@ async def mmap():
 @router.get("/news")
 def nse(q: str = Query(..., min_length=2, max_length=80), days: int = Query(30, ge=1, le=365)):
     return {"query": q, "days": days, "stories": news.search(q, days)}
+
+
+@router.get("/curve")
+async def gc():
+    return await rates.curve()
+
+
+@router.get("/money")
+async def btmm():
+    return await rates.money()
+
+
+@router.get("/wirp")
+async def wirp():
+    return await rates.wirp()

@@ -93,11 +93,11 @@ export const FUNCTIONS: Fn[] = [
   impossible('BNEF', 'Energy research', 'Markets', OWN_NEWSROOM),
 
   // Rates & FX
-  planned('GC', 'Yield curve', 'Rates & FX', false, 2),
-  planned('BTMM', 'Treasury and money markets', 'Rates & FX', false, 2),
+  live('GC', 'Yield curve', 'Rates & FX', false),
+  live('BTMM', 'Treasury and money markets', 'Rates & FX', false),
   planned('WCRS', 'World currency rates', 'Rates & FX', false, 2),
   planned('FXC', 'Currency cross rates', 'Rates & FX', false, 2),
-  planned('WIRP', 'Rate move probabilities', 'Rates & FX', false, 2),
+  live('WIRP', 'Rate move probabilities', 'Rates & FX', false),
   impossible('WB', 'World bond prices', 'Rates & FX', DEALER),
   impossible('ALLQ', 'All dealer quotes', 'Rates & FX', DEALER),
   impossible('YAS', 'Bond yield analysis', 'Rates & FX', DEALER),

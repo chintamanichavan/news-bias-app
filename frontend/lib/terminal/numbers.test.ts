@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { big, day, pct, price, ratioPct } from './numbers'
 import { argFor, rangeFor } from './ranges'
 import { heat } from '../../components/terminal/views/Heatmap'
+import { movesText } from '../../components/terminal/views/Wirp'
 
 describe('numbers', () => {
   it('shortens large values', () => {
@@ -53,5 +54,14 @@ describe('heat', () => {
     expect(heat(-1)).toContain('0 72% 50%')
     expect(heat(3)).toBe(heat(9))
     expect(heat(1.5)).toBe('hsl(145 63% 38% / 0.51)')
+  })
+})
+
+describe('movesText', () => {
+  it('reads quarter-point moves in words', () => {
+    expect(movesText(0.02)).toBe('none')
+    expect(movesText(0.4)).toBe('0.4 hike')
+    expect(movesText(-1)).toBe('1.0 cut')
+    expect(movesText(-2.3)).toBe('2.3 cuts')
   })
 })
