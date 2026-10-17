@@ -1,9 +1,10 @@
 """HTTP routes for the terminal's market-wide functions, under /terminal."""
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
-from . import (company, econ, filings, futures, fx, ipos, movers, news, options, peers, rates, returns,
-               screener, vol, yahoo)
+from . import (alerts, company, econ, filings, futures, fx, ipos, movers, news, options, peers, quotes,
+               rates, returns, screener, store, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -122,3 +123,91 @@ async def ivol(symbol: str):
         return await vol.surface(symbol.upper())
     except options.NoOptions as e:
         raise HTTPException(404, str(e))
+
+
+
+# ── the terminal's own data: watchlists, notes, alerts ───────────────────────
+
+SYMBOL = Field(..., min_length=1, max_length=24)
+
+
+class Member(BaseModel):
+    symbol: str = SYMBOL
+
+
+class Note(BaseModel):
+    symbol: str | None = Field(None, max_length=24)
+    body: str = Field(..., min_length=1, max_length=4000)
+
+
+class Alert(BaseModel):
+    symbol: str = SYMBOL
+    op: str = Field(..., pattern="^(above|below)$")
+    level: float = Field(..., gt=0)
+    note: str | None = Field(None, max_length=200)
+
+
+@router.get("/quotes")
+async def quote_batch(symbols: str = Query(..., min_length=1, max_length=2000)):
+    return await quotes.quotes(symbols.split(","))
+
+
+@router.get("/watchlists")
+def watchlists():
+    return {"lists": store.lists()}
+
+
+@router.get("/watchlists/{name}")
+async def watchlist(name: str):
+    symbols = store.members(name)
+    got = await quotes.quotes(symbols)
+    return {"name": name, "rows": [got.get(s, {"symbol": s, "missing": True}) for s in symbols]}
+
+
+@router.post("/watchlists/{name}")
+def watchlist_add(name: str, member: Member):
+    store.add_member(name, member.symbol)
+    return {"ok": True}
+
+
+@router.delete("/watchlists/{name}/{symbol}")
+def watchlist_remove(name: str, symbol: str):
+    store.remove_member(name, symbol)
+    return {"ok": True}
+
+
+@router.get("/notes")
+def notes(symbol: str | None = None):
+    return {"notes": store.notes(symbol)}
+
+
+@router.post("/notes")
+def note_add(note: Note):
+    return {"id": store.add_note(note.symbol, note.body)}
+
+
+@router.delete("/notes/{note_id}")
+def note_delete(note_id: int):
+    store.delete_note(note_id)
+    return {"ok": True}
+
+
+@router.get("/alerts")
+def alert_list():
+    return {"alerts": store.alerts()}
+
+
+@router.post("/alerts")
+def alert_add(alert: Alert):
+    return {"id": store.add_alert(alert.symbol, alert.op, alert.level, alert.note)}
+
+
+@router.delete("/alerts/{alert_id}")
+def alert_delete(alert_id: int):
+    store.delete_alert(alert_id)
+    return {"ok": True}
+
+
+@router.post("/alerts/check")
+async def alert_check():
+    return {"fired": await alerts.check()}

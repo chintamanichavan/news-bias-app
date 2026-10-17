@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import Calendar from './Calendar'
+import Alerts from './Alerts'
 import Analysts from './Analysts'
 import Chart from './Chart'
 import Compare from './Compare'
@@ -30,6 +31,7 @@ import Ivol from './Ivol'
 import Money from './Money'
 import Movers from './Movers'
 import News from './News'
+import Notes from './Notes'
 import Omon from './Omon'
 import Ov from './Ov'
 import Ovdv from './Ovdv'
@@ -45,6 +47,7 @@ import ShortInterest from './ShortInterest'
 import Skew from './Skew'
 import type { ViewProps } from './types'
 import Unavailable, { reasonFor } from './Unavailable'
+import Watchlist from './Watchlist'
 import Weather from './Weather'
 import Wirp from './Wirp'
 
@@ -64,6 +67,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   DVD: Dividends, CACS: CorporateActions, TRA: TotalReturn, COMP: Compare, G: Compare,
   CF: Filings, RV: Peers, IPO: Ipos,
   OMON: Omon, OV: Ov, IVOL: Ivol, HIVG: Hivg, SKEW: Skew, OVDV: Ovdv, OSA: Osa,
+  W: Watchlist, NOTE: Notes, ALRT: Alerts,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

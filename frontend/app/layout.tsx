@@ -5,6 +5,7 @@ import './globals.css'
 import { Toaster } from 'sonner'
 import TopNav from '@/components/TopNav'
 import CommandBar from '@/components/terminal/CommandBar'
+import AlertWatcher from '@/components/terminal/AlertWatcher'
 
 // Runs before React hydrates → no flash-of-wrong-theme.
 const themeBootScript = `
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased bg-background text-foreground min-h-screen overflow-x-hidden">
         <TopNav />
         <CommandBar />
+        <AlertWatcher />
         <main>{children}</main>
         <Toaster richColors position="bottom-right" />
       </body>

@@ -139,9 +139,9 @@ export const FUNCTIONS: Fn[] = [
   // Tools
   live('HELP', 'Help', 'Tools', false),
   live('FUNC', 'Function search', 'Tools', false),
-  planned('W', 'Watchlist monitor', 'Tools', false, 5),
-  planned('ALRT', 'Alerts', 'Tools', false, 5),
-  planned('NOTE', 'Notes', 'Tools', true, 5),
+  live('W', 'Watchlist monitor', 'Tools', false),
+  live('ALRT', 'Alerts', 'Tools', false),
+  live('NOTE', 'Notes', 'Tools', false),
   planned('EXPT', 'Export to CSV', 'Tools', false, 5),
   planned('TEAR', 'Tear sheet', 'Tools', true, 5),
   impossible('IB', 'Instant Bloomberg chat', 'Tools', 'A messaging network; the value is everyone else on it.'),
