@@ -59,8 +59,8 @@ available free, so their functions answer with that reason.
 1. **Core** (this commit series): grammar, registry, command bar, panels,
    linking, history, HELP/FUNC/SECF, and the functions the existing
    endpoints already serve.
-2. **Market-wide**: MOST, MMAP, IMAP, yield curve, BTMM, WCRS, FXC, ECO,
-   ECST, WIRP, CTM, EQS.
+2. **Market-wide** (done, 2026-10-16): MOST, MMAP, IMAP, CTM, GC, BTMM,
+   WIRP, WCRS, FXC, ECO, ECST, EQS, NSE. See "Phase 2 sources" below.
 3. **Company depth**: EE, ERN, EVTS, DVD, CACS, HDS, OWN, MGMT, ANR, RV, SI,
    CF, TRA, COMP, multi-security charts, IPO.
 4. **Options**: OMON, OV, OSA, IVOL, HIVG, SKEW, OVDV.
@@ -70,6 +70,30 @@ available free, so their functions answer with that reason.
 
 Each phase: small commits, tests with the code, numbers predicted before
 they are measured.
+
+## Phase 2 sources
+
+The backend for these lives in `ml-service/terminal/`, one module per kind
+of source, served under `/terminal/*`.
+
+| Function | Source |
+|---|---|
+| MOST, MMAP | Yahoo predefined screeners (movers; sector lists by market cap) |
+| CTM, IMAP, WCRS, FXC | Yahoo daily charts (futures by contract month, ETFs, currencies) |
+| GC | US Treasury daily par yield curve |
+| BTMM | New York Fed reference rates, Treasury curve, fed funds futures |
+| WIRP | Fed funds futures by month, FOMC dates from the Fed's calendar page |
+| ECO | BEA release schedule, Census indicator calendar, FOMC dates |
+| ECST | BLS public data API (25 requests a day without a key; cached on disk) |
+| EQS | Artha's point-in-time store; expected return from the Portfolio screen |
+| NSE | Artha's own news corpus |
+
+Gaps, as of 2026-10-16:
+- FRED timed out on every request from this machine, so nothing in phase 2
+  depends on it.
+- bls.gov refuses automated requests, so CPI and jobs-report *dates* are
+  missing from ECO (the numbers themselves come from the BLS API).
+- GDP and consumer spending need a free BEA API key, which needs a sign-up.
 
 ## Impossible on free data
 
