@@ -24,7 +24,7 @@ describe('suggest', () => {
 
   it('puts an exact function code first and offers only live functions', () => {
     expect(suggest('des', apple)[0].label).toBe('DES')
-    expect(suggest('OMON', []).map(x => x.label)).not.toContain('OMON')
+    expect(suggest('TEAR', []).map(x => x.label)).not.toContain('TEAR')
   })
 
   it('never offers more than six', () => {

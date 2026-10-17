@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter, HTTPException, Query
 
-from . import company, econ, filings, futures, fx, ipos, movers, news, peers, rates, returns, screener, yahoo
+from . import (company, econ, filings, futures, fx, ipos, movers, news, options, peers, rates, returns,
+               screener, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -104,3 +105,11 @@ async def rv(symbol: str):
 @router.get("/ipos")
 async def ipo():
     return await ipos.calendar()
+
+
+@router.get("/options/{symbol}")
+async def omon(symbol: str, expiry: int | None = Query(None, ge=0)):
+    try:
+        return await options.chain(symbol.upper(), expiry)
+    except options.NoOptions as e:
+        raise HTTPException(404, str(e))

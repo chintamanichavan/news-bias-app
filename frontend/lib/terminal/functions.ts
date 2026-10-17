@@ -72,8 +72,8 @@ export const FUNCTIONS: Fn[] = [
   impossible('MA', 'Mergers and acquisitions', 'Company', 'A proprietary deal database.'),
 
   // Options
-  planned('OMON', 'Option monitor', 'Options', true, 4),
-  planned('OV', 'Option valuation', 'Options', true, 4),
+  live('OMON', 'Option monitor', 'Options', true),
+  live('OV', 'Option valuation', 'Options', true),
   planned('OSA', 'Option scenario analysis', 'Options', true, 4),
   planned('IVOL', 'Implied volatility', 'Options', true, 4),
   planned('HIVG', 'Historical vs implied volatility', 'Options', true, 4),
