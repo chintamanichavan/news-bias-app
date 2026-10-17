@@ -74,7 +74,7 @@ export const FUNCTIONS: Fn[] = [
   // Options
   live('OMON', 'Option monitor', 'Options', true),
   live('OV', 'Option valuation', 'Options', true),
-  planned('OSA', 'Option scenario analysis', 'Options', true, 4),
+  live('OSA', 'Option scenario analysis', 'Options', true),
   live('IVOL', 'Implied volatility', 'Options', true),
   live('HIVG', 'Historical vs implied volatility', 'Options', true),
   live('SKEW', 'Volatility skew', 'Options', true),

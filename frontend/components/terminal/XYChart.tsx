@@ -9,8 +9,8 @@ export interface XYSeries { label: string; points: { x: number; y: number }[]; c
 const H = 200
 const PAD = { l: 44, r: 12, t: 10, b: 24 }
 
-export default function XYChart({ series, xFmt, yFmt }: {
-  series: XYSeries[]; xFmt: (x: number) => string; yFmt: (y: number) => string
+export default function XYChart({ series, xFmt, yFmt, zeroLine = false }: {
+  series: XYSeries[]; xFmt: (x: number) => string; yFmt: (y: number) => string; zeroLine?: boolean
 }) {
   const { ref, width: W } = useWidth<HTMLDivElement>()
   const all = series.flatMap(s => s.points)
@@ -32,6 +32,9 @@ export default function XYChart({ series, xFmt, yFmt }: {
             <text x={4} y={y(v) + 3} className="fill-muted-foreground text-[10px]">{yFmt(v)}</text>
           </g>
         ))}
+        {zeroLine && lo < 0 && hi > 0 && (
+          <line x1={PAD.l} x2={W - PAD.r} y1={y(0)} y2={y(0)} className="stroke-foreground/50" />
+        )}
         {xTicks.map(v => (
           <text key={v} x={x(v)} y={H - 6} textAnchor="middle" className="fill-muted-foreground text-[10px]">{xFmt(v)}</text>
         ))}
