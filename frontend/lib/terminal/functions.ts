@@ -1,8 +1,8 @@
 // Every terminal function, one entry each. The status says whether it works
-// today, is planned (with its phase in docs/TERMINAL.md), or cannot be built
-// on free data — in which case `why` says what is missing.
+// today or cannot be built on free data — in which case `why` says what is
+// missing.
 
-export type Status = 'live' | 'planned' | 'impossible'
+export type Status = 'live' | 'impossible'
 
 export interface Fn {
   code: string
@@ -11,7 +11,6 @@ export interface Fn {
   /** true when the function needs a security; otherwise it is market-wide */
   security: boolean
   status: Status
-  phase?: number
   why?: string
 }
 
@@ -29,9 +28,6 @@ export type Group =
 
 const live = (code: string, name: string, group: Group, security: boolean): Fn =>
   ({ code, name, group, security, status: 'live' })
-
-const planned = (code: string, name: string, group: Group, security: boolean, phase: number): Fn =>
-  ({ code, name, group, security, status: 'planned', phase })
 
 const impossible = (code: string, name: string, group: Group, why: string): Fn =>
   ({ code, name, group, security: false, status: 'impossible', why })
@@ -130,8 +126,8 @@ export const FUNCTIONS: Fn[] = [
   live('ATTR', 'Performance attribution', 'Portfolio', false),
 
   // Trading
-  planned('EMSX', 'Order ticket (paper)', 'Trading', true, 5),
-  planned('TCA', 'Trade cost analysis (paper)', 'Trading', false, 5),
+  live('EMSX', 'Order ticket (paper)', 'Trading', false),
+  live('TCA', 'Trade cost analysis (paper)', 'Trading', false),
   impossible('TSOX', 'Bond trading', 'Trading', DEALER),
   impossible('FXGO', 'FX trading', 'Trading', DEALER),
   impossible('IOI', 'Indications of interest', 'Trading', 'Broker interest is shared only on Bloomberg\'s network.'),

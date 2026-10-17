@@ -37,7 +37,6 @@ function Detail({ code, run }: { code: string; run: ViewProps['run'] }) {
       {fn.status === 'live' && (
         <button onClick={() => run(fn.security ? `AAPL ${fn.code}` : fn.code)} className="text-[12px] underline">Try it</button>
       )}
-      {fn.status === 'planned' && <Note>Not built yet. Planned for phase {fn.phase} (see docs/TERMINAL.md).</Note>}
       {fn.status === 'impossible' && <Note>Cannot be built on free data. {fn.why}</Note>}
     </div>
   )

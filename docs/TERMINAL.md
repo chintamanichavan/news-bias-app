@@ -5,7 +5,7 @@ the features of the Bloomberg terminal."
 
 So Artha keeps its Apple News look and gains the Bloomberg way of working: a
 command line, function codes, several linked panels, keyboard first. Every
-Bloomberg function on the list below is either built, planned, or marked
+Bloomberg function on the list below is either built or marked
 impossible with the reason. Nothing is dropped silently.
 
 The list is compiled from memory of Bloomberg's public documentation, not
@@ -64,9 +64,15 @@ available free, so their functions answer with that reason.
 3. **Company depth** (done, 2026-10-16): EE, ERN, EVTS, ANR, MGMT, SI, HDS,
    OWN, DVD, CACS, TRA, COMP, G, CF, RV, IPO. ESG turned out impossible.
 4. **Options** (done, 2026-10-16): OMON, OV, OSA, IVOL, HIVG, SKEW, OVDV.
-5. **Tools**: watchlist monitors, ALRT, NOTE, CSV export and upload,
-   tear sheets, the query language, scenario and attribution on PORT,
-   paper order ticket and TCA.
+5. **Tools** (done, 2026-10-16): W, ALRT, NOTE, EXPT and CSV on every
+   panel, TEAR, BQL, PRTU, MARS, ATTR, EMSX (paper) and TCA. Every
+   function is now live or marked impossible: 63 live, 25 impossible.
+
+EMSX fills are deliberately not flattering: a market order crosses the
+spread, a limit order fills only when the far side of the quote reaches
+it, and quotes are about 15 minutes late. TCA measures each fill in basis
+points against the arrival midpoint and against the day's VWAP from
+5-minute bars.
 
 Each phase: small commits, tests with the code, numbers predicted before
 they are measured.

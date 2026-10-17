@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from . import (alerts, book, company, econ, filings, futures, fx, ipos, movers, news, options, peers,
-               quotes, rates, returns, screener, store, vol, yahoo)
+               quotes, rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -261,3 +261,46 @@ async def mars():
 @router.get("/attribution")
 async def attr():
     return await book.attribution()
+
+
+
+# ── paper orders (EMSX) and their cost (TCA) ─────────────────────────────────
+
+class Order(BaseModel):
+    symbol: str = SYMBOL
+    side: str = Field(..., pattern="^(buy|sell)$")
+    quantity: float = Field(..., gt=0, le=1_000_000)
+    type: str = Field("market", pattern="^(market|limit)$")
+    limit_price: float | None = Field(None, gt=0)
+
+
+@router.post("/orders")
+async def order_place(o: Order):
+    if o.type == "limit" and o.limit_price is None:
+        raise HTTPException(422, "A limit order needs a limit price.")
+    try:
+        return await trading.place(o.symbol, o.side, o.quantity, o.type, o.limit_price)
+    except trading.NoQuote as e:
+        raise HTTPException(404, str(e))
+
+
+@router.get("/orders")
+async def order_blotter():
+    return await trading.blotter()
+
+
+@router.delete("/orders/{order_id}")
+def order_cancel(order_id: int):
+    if not store.cancel_order(order_id):
+        raise HTTPException(409, "Only a working order can be cancelled.")
+    return {"ok": True}
+
+
+@router.post("/orders/check")
+async def order_check():
+    return {"filled": await trading.check()}
+
+
+@router.get("/tca")
+async def trade_costs():
+    return await trading.tca()

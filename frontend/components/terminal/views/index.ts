@@ -14,6 +14,7 @@ import Description from './Description'
 import Dividends from './Dividends'
 import Earnings from './Earnings'
 import Economy from './Economy'
+import Emsx from './Emsx'
 import Estimates from './Estimates'
 import Export from './Export'
 import Events from './Events'
@@ -56,6 +57,7 @@ import Unavailable, { reasonFor } from './Unavailable'
 import Watchlist from './Watchlist'
 import Weather from './Weather'
 import Wirp from './Wirp'
+import Tca from './Tca'
 
 /** The screen for each live function code. */
 const VIEWS: Record<string, ComponentType<ViewProps>> = {
@@ -75,6 +77,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   OMON: Omon, OV: Ov, IVOL: Ivol, HIVG: Hivg, SKEW: Skew, OVDV: Ovdv, OSA: Osa,
   W: Watchlist, NOTE: Notes, ALRT: Alerts, EXPT: Export, TEAR: Tear, BQL: Bql,
   PRTU: Holdings, MARS: Mars, ATTR: Attribution,
+  EMSX: Emsx, TCA: Tca,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

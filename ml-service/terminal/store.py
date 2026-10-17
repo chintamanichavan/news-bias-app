@@ -1,5 +1,5 @@
-"""The terminal's own data: watchlists, notes, alerts and holdings (and,
-later, paper orders). One small SQLite file of its own, so it never
+"""The terminal's own data: watchlists, notes, alerts, holdings and paper
+orders. One small SQLite file of its own, so it never
 touches the main database. Every query takes its values as parameters."""
 
 import sqlite3
@@ -20,6 +20,13 @@ CREATE TABLE IF NOT EXISTS notes (
 CREATE TABLE IF NOT EXISTS holdings (
     id INTEGER PRIMARY KEY, symbol TEXT NOT NULL, quantity REAL NOT NULL,
     cost REAL, opened TEXT, added_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY, symbol TEXT NOT NULL, side TEXT NOT NULL CHECK (side IN ('buy', 'sell')),
+    quantity REAL NOT NULL CHECK (quantity > 0), type TEXT NOT NULL CHECK (type IN ('market', 'limit')),
+    limit_price REAL, status TEXT NOT NULL CHECK (status IN ('working', 'filled', 'cancelled')),
+    created_at TEXT NOT NULL, arrival_mid REAL, arrival_bid REAL, arrival_ask REAL,
+    filled_at TEXT, fill_price REAL
 );
 CREATE TABLE IF NOT EXISTS alerts (
     id INTEGER PRIMARY KEY, symbol TEXT NOT NULL, op TEXT NOT NULL CHECK (op IN ('above', 'below')),
@@ -130,3 +137,28 @@ def add_holding(symbol: str, quantity: float, cost: float | None, opened: str | 
 
 def delete_holding(holding_id: int) -> None:
     _run("DELETE FROM holdings WHERE id = ?", (holding_id,))
+
+
+# paper orders (EMSX, TCA)
+
+def orders() -> list[dict]:
+    return _all("SELECT * FROM orders ORDER BY created_at DESC, id DESC")
+
+
+def add_order(o: dict) -> int:
+    return _run(
+        "INSERT INTO orders (symbol, side, quantity, type, limit_price, status, created_at, "
+        "arrival_mid, arrival_bid, arrival_ask, filled_at, fill_price) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        (o["symbol"].upper(), o["side"], o["quantity"], o["type"], o.get("limit_price"), o["status"], now(),
+         o.get("arrival_mid"), o.get("arrival_bid"), o.get("arrival_ask"), o.get("filled_at"), o.get("fill_price")))
+
+
+def fill_order(order_id: int, price: float) -> None:
+    _run("UPDATE orders SET status = 'filled', filled_at = ?, fill_price = ? WHERE id = ? AND status = 'working'",
+         (now(), price, order_id))
+
+
+def cancel_order(order_id: int) -> bool:
+    with closing(connect()) as conn, conn:
+        return conn.execute("UPDATE orders SET status = 'cancelled' WHERE id = ? AND status = 'working'",
+                            (order_id,)).rowcount == 1

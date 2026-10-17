@@ -76,7 +76,6 @@ describe('functions', () => {
     expect(new Set(codes).size).toBe(codes.length)
     for (const f of FUNCTIONS) {
       if (f.status === 'impossible') expect(f.why, f.code).toBeTruthy()
-      if (f.status === 'planned') expect(f.phase, f.code).toBeGreaterThan(1)
     }
   })
 
