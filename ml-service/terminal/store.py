@@ -17,6 +17,10 @@ CREATE TABLE IF NOT EXISTS watchlists (
 CREATE TABLE IF NOT EXISTS notes (
     id INTEGER PRIMARY KEY, symbol TEXT, body TEXT NOT NULL, created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS my_estimates (
+    id INTEGER PRIMARY KEY, symbol TEXT NOT NULL, period TEXT NOT NULL, eps REAL, revenue REAL,
+    note TEXT, created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS holdings (
     id INTEGER PRIMARY KEY, symbol TEXT NOT NULL, quantity REAL NOT NULL,
     cost REAL, opened TEXT, added_at TEXT NOT NULL
@@ -162,3 +166,20 @@ def cancel_order(order_id: int) -> bool:
     with closing(connect()) as conn, conn:
         return conn.execute("UPDATE orders SET status = 'cancelled' WHERE id = ? AND status = 'working'",
                             (order_id,)).rowcount == 1
+
+
+# my estimates (MYE)
+
+def my_estimates(symbol: str | None) -> list[dict]:
+    if symbol:
+        return _all("SELECT * FROM my_estimates WHERE symbol = ? ORDER BY created_at DESC", (symbol.upper(),))
+    return _all("SELECT * FROM my_estimates ORDER BY symbol, created_at DESC")
+
+
+def add_my_estimate(symbol: str, period: str, eps: float | None, revenue: float | None, note: str | None) -> int:
+    return _run("INSERT INTO my_estimates (symbol, period, eps, revenue, note, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (symbol.upper(), period, eps, revenue, note, now()))
+
+
+def delete_my_estimate(estimate_id: int) -> None:
+    _run("DELETE FROM my_estimates WHERE id = ?", (estimate_id,))

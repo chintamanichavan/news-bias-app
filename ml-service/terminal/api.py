@@ -1,10 +1,13 @@
 """HTTP routes for the terminal's market-wide functions, under /terminal."""
 
+from datetime import date
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, book, company, dcf, econ, members, monitors, ownership, filings, futures, fx, govts, indexmove, ipos, movers, news, options, peers,
-               quotes, rates, returns, screener, store, trading, vol, yahoo)
+from . import (alerts, book, calendars, company, dcf, econ, filings, futures, fx, govts, indexmove, ipos,
+               members, monitors, movers, news, options, ownership, peers, quotes, rates, returns, screener,
+               store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -403,3 +406,47 @@ async def monitor(name: str):
     if fn is None:
         raise HTTPException(404, f"No monitor called {name}.")
     return await fn()
+
+
+
+@router.get("/calendar/{kind}")
+async def market_calendar(kind: str, year: int | None = Query(None, ge=1990, le=2100)):
+    """ACDR (earnings), SURP (surprises), EA (season), CACT (actions), CDR (holidays)."""
+    if kind == "earnings":
+        return await calendars.upcoming()
+    if kind == "surprises":
+        return await calendars.surprises()
+    if kind == "season":
+        return await calendars.season()
+    if kind == "actions":
+        return await calendars.actions()
+    if kind == "holidays":
+        y = year or date.today().year
+        return {"year": y, "days": calendars.holidays(y)}
+    raise HTTPException(404, f"No calendar called {kind}.")
+
+
+class MyEstimate(BaseModel):
+    symbol: str = SYMBOL
+    period: str = Field(..., min_length=1, max_length=40)
+    eps: float | None = None
+    revenue: float | None = None
+    note: str | None = Field(None, max_length=500)
+
+
+@router.get("/my-estimates")
+def my_estimates(symbol: str | None = None):
+    return {"estimates": store.my_estimates(symbol)}
+
+
+@router.post("/my-estimates")
+def my_estimate_add(e: MyEstimate):
+    if e.eps is None and e.revenue is None:
+        raise HTTPException(422, "Give an EPS or a revenue estimate.")
+    return {"id": store.add_my_estimate(e.symbol, e.period, e.eps, e.revenue, e.note)}
+
+
+@router.delete("/my-estimates/{estimate_id}")
+def my_estimate_delete(estimate_id: int):
+    store.delete_my_estimate(estimate_id)
+    return {"ok": True}

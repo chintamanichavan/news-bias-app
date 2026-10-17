@@ -62,6 +62,7 @@ import Pairs from './Pairs'
 import { Corr, Hra } from './Relations'
 import Mov from './Mov'
 import Members from './Members'
+import { ActionsCalendar, EarningsCalendar, EstimateMatrix, EstimateTrend, Holidays, MyEstimates, Revisions, Season } from './Earnings2'
 import { Cryp, FxSessions, Fxca, Gmm, Grr, Halts, Irr, Mrv, Weif } from './Monitors'
 import WorldBonds from './WorldBonds'
 import Valuation from './Valuation'
@@ -92,6 +93,8 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   GIPS: Chart, GIPW: Chart, MGR: Compare,
   HRA: Hra, CORR: Corr, MOV: Mov, WB: WorldBonds,
   MEMB: Members, GWGT: Members, MRR: Members, WEIB: Members, LVI: Members,
+  EEG: EstimateTrend, EERM: Revisions, EM: EstimateMatrix, MYE: MyEstimates, ACDR: EarningsCalendar, SURP: EarningsCalendar,
+  EA: Season, CACT: ActionsCalendar, CDR: Holidays,
   WEIF: Weif, GMM: Gmm, IRR: Irr, MRV: Mrv, GRR: Grr, HALT: Halts, CRYP: Cryp, FX24: FxSessions, FXCA: Fxca,
   WACC: Valuation, DCF: Valuation, DDM: Valuation,
   INSD: Insiders, GPTR: Insiders, SIA: ShortHistory, SPOS: UkShorts, FLNG: Thirteenf, PHDC: Thirteenf,

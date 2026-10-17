@@ -13,6 +13,8 @@ export interface Company {
     period: string; end: string; eps_avg: N; eps_low: N; eps_high: N; eps_year_ago: N
     eps_growth_pct: N; analysts: N; revenue_avg: N; revenue_growth_pct: N
     eps_90_days_ago: N; revisions_up_30d: N; revisions_down_30d: N
+    eps_trend?: Record<'90daysAgo' | '60daysAgo' | '30daysAgo' | '7daysAgo' | 'current', N>
+    revisions_up_7d?: N; revisions_down_7d?: N
   }[] | null
   earnings: {
     quarters: { quarter_end: string; actual: N; estimate: N; surprise_pct: N }[]

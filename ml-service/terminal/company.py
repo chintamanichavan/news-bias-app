@@ -46,6 +46,9 @@ def estimates(qs: dict) -> list[dict] | None:
             "revenue_avg": raw(r.get("avg")), "revenue_growth_pct": pct(r.get("growth")),
             "eps_90_days_ago": raw(trend.get("90daysAgo")),
             "revisions_up_30d": raw(rev.get("upLast30days")), "revisions_down_30d": raw(rev.get("downLast30days")),
+            # the consensus as it stood (EEG) and the latest revisions (EERM)
+            "eps_trend": {k: raw(trend.get(k)) for k in ("90daysAgo", "60daysAgo", "30daysAgo", "7daysAgo", "current")},
+            "revisions_up_7d": raw(rev.get("upLast7days")), "revisions_down_7d": raw(rev.get("downLast7Days") or rev.get("downLast7days")),
         })
     return out or None
 

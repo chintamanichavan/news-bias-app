@@ -5,15 +5,6 @@ import type { Fn } from './functions'
 
 export const INVENTORY: Fn[] = [
  {
-  "code": "ACDR",
-  "name": "Earnings calendar with estimates",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "calendars",
-  "why": "Nasdaq earnings calendar API (date, time, consensus EPS, prior-year EPS); Yahoo calendarEvents per ticker"
- },
- {
   "code": "AGGD",
   "name": "Aggregated debt holders (institutional bond holdings)",
   "group": "Credit",
@@ -1207,15 +1198,6 @@ export const INVENTORY: Fn[] = [
   "why": "Survey of forecasters Bloomberg runs"
  },
  {
-  "code": "CACT",
-  "name": "Corporate and municipal actions calendar",
-  "group": "Company",
-  "security": false,
-  "status": "planned",
-  "batch": "calendars",
-  "why": "Market-wide dividend and split calendars from Nasdaq calendar API; no muni actions"
- },
- {
   "code": "CACX",
   "name": "Corporate actions",
   "group": "Company",
@@ -1426,15 +1408,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Tranche quotes come from dealers"
- },
- {
-  "code": "CDR",
-  "name": "Markets calendar: holidays and trading days",
-  "group": "Tools",
-  "security": false,
-  "status": "planned",
-  "batch": "calendars",
-  "why": "Exchange holiday and trading-day calendars from published exchange schedules"
  },
  {
   "code": "CDRA",
@@ -2538,15 +2511,6 @@ export const INVENTORY: Fn[] = [
   "why": "Only useful with licensed MBS models"
  },
  {
-  "code": "EA",
-  "name": "Earnings analysis by sector and season results",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "estimates and earnings",
-  "why": "Beats and misses by sector this season from Yahoo earnings history over index members"
- },
- {
   "code": "EASY",
   "name": "Tips and shortcuts for using the terminal",
   "group": "Tools",
@@ -2724,15 +2688,6 @@ export const INVENTORY: Fn[] = [
   "why": "Per-broker estimates are licensed"
  },
  {
-  "code": "EEG",
-  "name": "Earnings estimates graph",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "estimates and earnings",
-  "why": "EPS estimate trend (now, 7, 30, 60, 90 days ago) from Yahoo earningsTrend"
- },
- {
   "code": "EEM",
   "name": "Earnings estimate matrix",
   "group": "Markets",
@@ -2747,15 +2702,6 @@ export const INVENTORY: Fn[] = [
   "security": true,
   "status": "alias",
   "target": "EE"
- },
- {
-  "code": "EERM",
-  "name": "Earnings estimate revisions",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "estimates and earnings",
-  "why": "Estimate revisions up/down over 7 and 30 days from Yahoo earningsTrend"
  },
  {
   "code": "EET",
@@ -2829,15 +2775,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Economist Intelligence Unit reports are licensed"
- },
- {
-  "code": "EM",
-  "name": "Earnings estimates matrix: annual and quarterly actuals vs estimates",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "estimates and earnings",
-  "why": "Annual and quarterly actuals vs estimates from Yahoo earnings history and trend"
  },
  {
   "code": "EMEC",
@@ -5249,15 +5186,6 @@ export const INVENTORY: Fn[] = [
   "why": "Muni yield curves (MMD, BVAL) are licensed"
  },
  {
-  "code": "MYE",
-  "name": "My earnings estimates",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "estimates and earnings",
-  "why": "User's own estimates saved and compared to Yahoo consensus"
- },
- {
   "code": "MYN",
   "name": "My news",
   "group": "News",
@@ -6854,15 +6782,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "BMAP"
- },
- {
-  "code": "SURP",
-  "name": "Earnings surprises monitor",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "estimates and earnings",
-  "why": "Market-wide earnings surprises from Nasdaq earnings calendar and Yahoo earnings history"
  },
  {
   "code": "SW",
