@@ -95,8 +95,8 @@ export const FUNCTIONS: Fn[] = [
   // Rates & FX
   live('GC', 'Yield curve', 'Rates & FX', false),
   live('BTMM', 'Treasury and money markets', 'Rates & FX', false),
-  planned('WCRS', 'World currency rates', 'Rates & FX', false, 2),
-  planned('FXC', 'Currency cross rates', 'Rates & FX', false, 2),
+  live('WCRS', 'World currency rates', 'Rates & FX', false),
+  live('FXC', 'Currency cross rates', 'Rates & FX', false),
   live('WIRP', 'Rate move probabilities', 'Rates & FX', false),
   impossible('WB', 'World bond prices', 'Rates & FX', DEALER),
   impossible('ALLQ', 'All dealer quotes', 'Rates & FX', DEALER),

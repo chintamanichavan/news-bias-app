@@ -3,6 +3,7 @@ import { big, day, pct, price, ratioPct } from './numbers'
 import { argFor, rangeFor } from './ranges'
 import { heat } from '../../components/terminal/views/Heatmap'
 import { movesText } from '../../components/terminal/views/Wirp'
+import { rateText } from '../../components/terminal/views/fx'
 
 describe('numbers', () => {
   it('shortens large values', () => {
@@ -63,5 +64,13 @@ describe('movesText', () => {
     expect(movesText(0.4)).toBe('0.4 hike')
     expect(movesText(-1)).toBe('1.0 cut')
     expect(movesText(-2.3)).toBe('2.3 cuts')
+  })
+})
+
+describe('rateText', () => {
+  it('uses four places near 1 and two for large rates', () => {
+    expect(rateText(1.12435)).toBe('1.1244')
+    expect(rateText(157.987)).toBe('157.99')
+    expect(rateText(null)).toBe('—')
   })
 })
