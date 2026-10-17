@@ -5,9 +5,9 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, book, calendars, company, dcf, econ, facts, filings, futures, fx, govts, indexmove,
-               ipos, members, monitors, movers, news, options, optools, ownership, peers, quotes, rates,
-               returns, screener, store, trading, vol, yahoo)
+from . import (alerts, book, calendars, company, dcf, econ, facts, filings, funds, futures, fx, govts,
+               indexmove, ipos, members, monitors, movers, news, options, optools, ownership, peers, quotes,
+               rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -504,3 +504,21 @@ async def option_tools(kind: str, symbol: str | None = Query(None, max_length=12
     except options.NoOptions as e:
         raise HTTPException(404, str(e))
     raise HTTPException(404, f"No option tool called {kind}.")
+
+
+
+@router.get("/funds/{kind}")
+async def fund_views(kind: str, symbol: str | None = Query(None, max_length=12), symbols: str | None = Query(None, max_length=400)):
+    """FREP and MIFA (report), FPC (compare), FSTA (style), WETF and CETF (monitors)."""
+    try:
+        if kind == "report" and symbol:
+            return await funds.fund(symbol.upper())
+        if kind == "style" and symbol:
+            return await funds.style(symbol.upper())
+        if kind == "compare" and symbols:
+            return await funds.compare([s.strip().upper() for s in symbols.split(",") if s.strip()][:20])
+        if kind in ("bond", "commodity"):
+            return await funds.etf_monitor(kind)
+    except yahoo.NotFound as e:
+        raise HTTPException(404, str(e))
+    raise HTTPException(422, f"Fund view {kind} needs a security (or a list for compare).")

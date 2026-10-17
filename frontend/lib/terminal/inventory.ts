@@ -1504,15 +1504,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg exams"
  },
  {
-  "code": "CETF",
-  "name": "Commodity ETFs worldwide",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "fund/ETF",
-  "why": "Commodity ETFs worldwide from Yahoo ETF screener and categories"
- },
- {
   "code": "CFAQ",
   "name": "CMBS FAQ",
   "group": "Fixed income",
@@ -3308,15 +3299,6 @@ export const INVENTORY: Fn[] = [
   "target": "BSR"
  },
  {
-  "code": "FPC",
-  "name": "Fund performance comparison: ranked fund returns",
-  "group": "Funds",
-  "security": false,
-  "status": "planned",
-  "batch": "fund/ETF",
-  "why": "Rank a fund list or Yahoo predefined fund screener by return from Yahoo bars"
- },
- {
   "code": "FRD",
   "name": "FX forward rates and broken-date calculator",
   "group": "Rates & FX",
@@ -3334,15 +3316,6 @@ export const INVENTORY: Fn[] = [
   "why": "Roll analysis between Treasury futures contract months on Yahoo"
  },
  {
-  "code": "FREP",
-  "name": "Fund performance reports",
-  "group": "Funds",
-  "security": true,
-  "status": "planned",
-  "batch": "fund/ETF",
-  "why": "Fund report: returns, drawdown, volatility and benchmark comparison from Yahoo bars"
- },
- {
   "code": "FRR",
   "name": "Bond futures ranked returns",
   "group": "Rates & FX",
@@ -3350,15 +3323,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "government bonds and rates",
   "why": "Treasury futures (ZT, ZF, ZN, ZB, UB) ranked returns from Yahoo"
- },
- {
-  "code": "FSTA",
-  "name": "Fund style analysis",
-  "group": "Funds",
-  "security": true,
-  "status": "planned",
-  "batch": "fund/ETF",
-  "why": "Returns-based style analysis: regress fund returns on style index ETFs"
  },
  {
   "code": "FTST",
@@ -4762,15 +4726,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "G"
- },
- {
-  "code": "MIFA",
-  "name": "Fund financial analysis (current and historical fund financials)",
-  "group": "Funds",
-  "security": true,
-  "status": "planned",
-  "batch": "fund/ETF",
-  "why": "Fund financials and holdings from EDGAR N-PORT and N-CSR filings"
  },
  {
   "code": "MINE",
@@ -7340,15 +7295,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "WEI"
- },
- {
-  "code": "WETF",
-  "name": "Fixed income ETF monitor",
-  "group": "Funds",
-  "security": false,
-  "status": "planned",
-  "batch": "fund/ETF",
-  "why": "Fixed income ETF monitor from Yahoo (price, yield, duration from issuer files)"
  },
  {
   "code": "WEU",

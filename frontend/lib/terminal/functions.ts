@@ -253,6 +253,14 @@ const BY_HAND: Fn[] = [
   live('GV', 'Volatility comparison', 'Technical', true),
   live('MGR', 'Relative performance of several securities', 'Technical', false),
 
+  // Funds
+  live('FREP', 'Fund report', 'Funds', true),
+  live('MIFA', 'Fund holdings and terms', 'Funds', true),
+  live('FPC', 'Fund performance comparison', 'Funds', false),
+  live('FSTA', 'Fund style analysis', 'Funds', true),
+  live('WETF', 'Bond ETF monitor', 'Funds', false),
+  live('CETF', 'Commodity ETF monitor', 'Funds', false),
+
   live('SECF', 'Security finder', 'Screening', false),
   live('EQS', 'Equity screener', 'Screening', false),
   live('BQL', 'Query language', 'Screening', false),
