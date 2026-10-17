@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import Bql from './Bql'
 import Calendar from './Calendar'
 import Alerts from './Alerts'
 import Analysts from './Analysts'
@@ -69,7 +70,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   DVD: Dividends, CACS: CorporateActions, TRA: TotalReturn, COMP: Compare, G: Compare,
   CF: Filings, RV: Peers, IPO: Ipos,
   OMON: Omon, OV: Ov, IVOL: Ivol, HIVG: Hivg, SKEW: Skew, OVDV: Ovdv, OSA: Osa,
-  W: Watchlist, NOTE: Notes, ALRT: Alerts, EXPT: Export, TEAR: Tear,
+  W: Watchlist, NOTE: Notes, ALRT: Alerts, EXPT: Export, TEAR: Tear, BQL: Bql,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

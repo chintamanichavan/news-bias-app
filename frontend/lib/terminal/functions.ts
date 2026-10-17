@@ -119,7 +119,7 @@ export const FUNCTIONS: Fn[] = [
   // Screening
   live('SECF', 'Security finder', 'Screening', false),
   live('EQS', 'Equity screener', 'Screening', false),
-  planned('BQL', 'Query language', 'Screening', false, 5),
+  live('BQL', 'Query language', 'Screening', false),
   impossible('SRCH', 'Bond search', 'Screening', DEALER),
   impossible('FSRC', 'Fund screener', 'Screening', 'Fund holdings and terms are a proprietary database.'),
 
