@@ -96,15 +96,6 @@ export const INVENTORY: Fn[] = [
   "why": "Ranking analysts needs each analyst's estimate history, which is licensed (I/B/E/S, Bloomberg)"
  },
  {
-  "code": "ANTN",
-  "name": "Antitrust news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Topic filter (antitrust, competition) over GDELT and Artha's own news corpus"
- },
- {
   "code": "ANY",
   "name": "Bloomberg Anywhere remote access info",
   "group": "Tools",
@@ -252,15 +243,6 @@ export const INVENTORY: Fn[] = [
   "target": "WCRS"
  },
  {
-  "code": "BBEA",
-  "name": "Earnings related news, up and downgrades",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Earnings headlines plus Yahoo upgrade/downgrade history for the market"
- },
- {
   "code": "BBFN",
   "name": "Voice/video conferencing setup",
   "group": "Tools",
@@ -325,15 +307,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg's own loan-level mortgage delinquency dataset"
  },
  {
-  "code": "BBNI",
-  "name": "News by industry",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "News grouped by industry (Yahoo sector of tagged tickers) from the news corpus and GDELT"
- },
- {
   "code": "BBO",
   "name": "Best bids and offers monitor",
   "group": "Trading",
@@ -348,15 +321,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Surveys of equity analysts that Bloomberg runs"
- },
- {
-  "code": "BBSE",
-  "name": "Worldwide economic news menu",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Economy news filter (by country) over GDELT and RSS feeds"
  },
  {
   "code": "BBSQ",
@@ -1012,15 +976,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "PORT"
- },
- {
-  "code": "BSP",
-  "name": "Sports news menu",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Sports news filter over RSS feeds and GDELT"
  },
  {
   "code": "BSR",
@@ -1838,15 +1793,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg video and multimedia"
  },
  {
-  "code": "CNP",
-  "name": "Custom newspaper tours",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Saved news searches arranged as a personal front page"
- },
- {
   "code": "COAL",
   "name": "Coal markets",
   "group": "Commodities",
@@ -2031,15 +1977,6 @@ export const INVENTORY: Fn[] = [
   "why": "Damodaran country risk premium dataset with ratings-free spread method"
  },
  {
-  "code": "CRPT",
-  "name": "Corporate bond news menu",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Corporate bond and credit news filter"
- },
- {
   "code": "CRR",
   "name": "Commodity ranked returns",
   "group": "Commodities",
@@ -2131,15 +2068,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Muni prices come from dealers"
- },
- {
-  "code": "CTOP",
-  "name": "Commodities top news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Commodities news filter"
  },
  {
   "code": "CTRB",
@@ -2384,15 +2312,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "EQS"
- },
- {
-  "code": "DTOP",
-  "name": "Top deals / corporate finance news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Deals and corporate finance news filter"
  },
  {
   "code": "DURA",
@@ -2776,15 +2695,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "BloombergNEF content"
- },
- {
-  "code": "ENRG",
-  "name": "Energy news search by subject",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Energy news search by subject over GDELT and the news corpus"
  },
  {
   "code": "ENST",
@@ -3628,15 +3538,6 @@ export const INVENTORY: Fn[] = [
   "security": true,
   "status": "impossible",
   "why": "Intraday bid/ask history needs licensed exchange feeds"
- },
- {
-  "code": "GN",
-  "name": "News sentiment chart",
-  "group": "News",
-  "security": true,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "News volume and tone over time for a ticker from the news corpus"
  },
  {
   "code": "GOVS",
@@ -4758,15 +4659,6 @@ export const INVENTORY: Fn[] = [
   "why": "Money market curve: T-bills, SOFR, EFFR and NY Fed term averages, interpolated"
  },
  {
-  "code": "MMN",
-  "name": "Market moving news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Headlines tied to the day's biggest movers"
- },
- {
   "code": "MMR",
   "name": "Money market rates monitors",
   "group": "Rates & FX",
@@ -4781,15 +4673,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Needs readership across many users"
- },
- {
-  "code": "MNPL",
-  "name": "Municipal key news",
-  "group": "Fixed income",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Municipal finance news filter"
  },
  {
   "code": "MOBILE",
@@ -4953,15 +4836,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Twitter/X data is licensed"
- },
- {
-  "code": "MUSE",
-  "name": "Arts and culture news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Arts and culture news filter"
  },
  {
   "code": "MVP",
@@ -5141,15 +5015,6 @@ export const INVENTORY: Fn[] = [
   "why": "New bond issue database is proprietary"
  },
  {
-  "code": "NL",
-  "name": "News on a ticker list",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "News for every ticker on a watchlist from the news corpus"
- },
- {
   "code": "NLRT",
   "name": "News alerts and saved news searches",
   "group": "News",
@@ -5164,15 +5029,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Commodity flow data (AIS, port data) is licensed"
- },
- {
-  "code": "NRC",
-  "name": "News providers and language preferences",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Choose news sources and languages for N, TOP and CN"
  },
  {
   "code": "NRG",
@@ -5246,15 +5102,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "CNP"
- },
- {
-  "code": "NYT",
-  "name": "New York Times news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Source filter: New York Times RSS headlines"
  },
  {
   "code": "NZPD",
@@ -6134,15 +5981,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg terminal remote control"
  },
  {
-  "code": "RNS",
-  "name": "Regulatory news service",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Regulatory announcements from the EDGAR 8-K live feed; UK RNS itself is licensed"
- },
- {
   "code": "RPP",
   "name": "Repo pricing",
   "group": "Fixed income",
@@ -6190,15 +6028,6 @@ export const INVENTORY: Fn[] = [
   "security": true,
   "status": "impossible",
   "why": "Bloomberg's company risk dataset"
- },
- {
-  "code": "RTOP",
-  "name": "Top retail news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Retail sector news filter"
  },
  {
   "code": "RUNA",
@@ -6679,30 +6508,12 @@ export const INVENTORY: Fn[] = [
   "why": "TRACE prints are licensed for redistribution"
  },
  {
-  "code": "TECO",
-  "name": "Top economic news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Top economic news from the news corpus and GDELT"
- },
- {
   "code": "TED",
   "name": "TED spread / Eurodollar futures strip hedge calculator",
   "group": "Rates & FX",
   "security": true,
   "status": "impossible",
   "why": "LIBOR and Eurodollar futures were retired"
- },
- {
-  "code": "TEL",
-  "name": "Daily Telegraph news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Source filter: Daily Telegraph RSS headlines"
  },
  {
   "code": "TKC",
@@ -6777,33 +6588,6 @@ export const INVENTORY: Fn[] = [
   "why": "Order management wired to brokers"
  },
  {
-  "code": "TOPCA",
-  "name": "Top news stories for Canada",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Top stories for Canada from the news corpus"
- },
- {
-  "code": "TOPE",
-  "name": "Top European news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Top stories for Europe from the news corpus"
- },
- {
-  "code": "TOPR",
-  "name": "Top real estate news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Top real estate stories from the news corpus"
- },
- {
   "code": "TRAIN",
   "name": "Training materials, events and seminars",
   "group": "Tools",
@@ -6818,15 +6602,6 @@ export const INVENTORY: Fn[] = [
   "security": true,
   "status": "alias",
   "target": "TRA"
- },
- {
-  "code": "TREN",
-  "name": "News trends: unusual sentiment and coverage",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Unusual coverage and tone vs baseline from GDELT and the news corpus"
  },
  {
   "code": "TREND",
@@ -7350,15 +7125,6 @@ export const INVENTORY: Fn[] = [
   "target": "MRV"
  },
  {
-  "code": "WPT",
-  "name": "Washington Post news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Source filter: Washington Post RSS headlines"
- },
- {
   "code": "WRAP",
   "name": "What's new on Bloomberg",
   "group": "Tools",
@@ -7381,15 +7147,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Swap rates come from dealers"
- },
- {
-  "code": "WSJ",
-  "name": "Wall Street Journal news",
-  "group": "News",
-  "security": false,
-  "status": "planned",
-  "batch": "news filters",
-  "why": "Source filter: Wall Street Journal RSS headlines"
  },
  {
   "code": "WT",

@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from . import (alerts, analytics, book, calendars, company, dcf, econ, facts, filings, funds, futures, fx,
-               govts, indexmove, ipos, members, monitors, movers, news, options, optools, ownership, peers,
-               quotes, rates, returns, screener, store, trading, vol, yahoo)
+               govts, indexmove, ipos, members, monitors, movers, news, newsfilters, options, optools,
+               ownership, peers, quotes, rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -581,3 +581,32 @@ def tag_delete(symbol: str, tag: str):
 @router.get("/analytics/factors")
 async def factor_record(symbol: str | None = Query(None, max_length=12), years: int = Query(10, ge=3, le=60)):
     return await analytics.factor_view(symbol.upper() if symbol else None, years)
+
+
+# ── news filters ─────────────────────────────────────────────────────────────
+
+@router.get("/newsfilter/{code}")
+async def news_filter(code: str, subject: str | None = Query(None, max_length=60), symbol: str | None = Query(None, max_length=12),
+                      name: str | None = Query(None, max_length=60)):
+    c = code.upper()
+    if c in newsfilters.TOPICS:
+        return newsfilters.topic(c, subject)
+    if c in newsfilters.SOURCES:
+        return newsfilters.source(c)
+    if c == "GN":
+        if not symbol:
+            raise HTTPException(422, "GN needs a security.")
+        return await newsfilters.company_coverage(symbol.upper())
+    if c == "MMN":
+        return await newsfilters.movers_news()
+    if c == "NL":
+        return await newsfilters.watchlist_news(name)
+    if c == "TREN":
+        return newsfilters.news_trends()
+    if c == "NRC":
+        return newsfilters.outlets()
+    if c == "RNS":
+        return await newsfilters.regulatory()
+    if c == "TEL":
+        return await newsfilters.telegraph()
+    raise HTTPException(404, f"No news filter called {code}.")
