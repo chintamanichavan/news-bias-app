@@ -272,6 +272,12 @@ const BY_HAND: Fn[] = [
   live('PRTU', 'Portfolio upload', 'Portfolio', false),
   live('MARS', 'Scenario and risk', 'Portfolio', false),
   live('ATTR', 'Performance attribution', 'Portfolio', false),
+  live('LRSK', 'Liquidity risk', 'Portfolio', false),
+  live('PSD', 'Portfolio fundamentals', 'Portfolio', false),
+  live('PSH', 'Trade impact (what if)', 'Portfolio', false),
+  live('HEFF', 'Hedge effectiveness', 'Portfolio', true),
+  live('UNCL', 'Custom classifications', 'Portfolio', false),
+  live('FTST', 'Factor returns and loadings', 'Portfolio', false),
 
   // Trading
   live('EMSX', 'Order ticket (paper)', 'Trading', false),

@@ -5,9 +5,9 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, book, calendars, company, dcf, econ, facts, filings, funds, futures, fx, govts,
-               indexmove, ipos, members, monitors, movers, news, options, optools, ownership, peers, quotes,
-               rates, returns, screener, store, trading, vol, yahoo)
+from . import (alerts, analytics, book, calendars, company, dcf, econ, facts, filings, funds, futures, fx,
+               govts, indexmove, ipos, members, monitors, movers, news, options, optools, ownership, peers,
+               quotes, rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -522,3 +522,62 @@ async def fund_views(kind: str, symbol: str | None = Query(None, max_length=12),
     except yahoo.NotFound as e:
         raise HTTPException(404, str(e))
     raise HTTPException(422, f"Fund view {kind} needs a security (or a list for compare).")
+
+
+# ── portfolio analytics: LRSK, PSD, PSH, HEFF, UNCL, FTST ───────────────────
+
+@router.get("/analytics/liquidity")
+async def liquidity_risk(participation: float = Query(0.2, gt=0, le=1)):
+    return await analytics.liquidity(participation)
+
+
+@router.get("/analytics/fundamentals")
+async def book_fundamentals():
+    return await analytics.book_fundamentals()
+
+
+class Trade(BaseModel):
+    symbol: str = SYMBOL
+    quantity: float = Field(..., ne=0)
+
+
+class WhatIf(BaseModel):
+    trades: list[Trade] = Field(..., min_length=1, max_length=20)
+
+
+@router.post("/analytics/what-if")
+async def what_if(w: WhatIf):
+    return await analytics.what_if([t.model_dump() for t in w.trades])
+
+
+@router.get("/analytics/hedge")
+async def hedge_effectiveness(symbol: str = Query(..., max_length=12), hedge: str = Query(..., max_length=12),
+                              quantity: float = Query(100, gt=0), hedge_quantity: float | None = None):
+    return await analytics.hedge(symbol.upper(), hedge.upper(), quantity, hedge_quantity)
+
+
+class Tag(BaseModel):
+    symbol: str = SYMBOL
+    tag: str = Field(..., min_length=1, max_length=40)
+
+
+@router.get("/analytics/tags")
+async def tag_groups():
+    return await analytics.by_tag()
+
+
+@router.post("/analytics/tags")
+def tag_add(t: Tag):
+    store.add_tag(t.symbol, t.tag)
+    return {"ok": True}
+
+
+@router.delete("/analytics/tags/{symbol}/{tag}")
+def tag_delete(symbol: str, tag: str):
+    store.delete_tag(symbol, tag)
+    return {"ok": True}
+
+
+@router.get("/analytics/factors")
+async def factor_record(symbol: str | None = Query(None, max_length=12), years: int = Query(10, ge=3, le=60)):
+    return await analytics.factor_view(symbol.upper() if symbol else None, years)

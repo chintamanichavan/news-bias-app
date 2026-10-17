@@ -62,6 +62,7 @@ import Pairs from './Pairs'
 import { Corr, Hra } from './Relations'
 import Mov from './Mov'
 import Members from './Members'
+import { BookFundamentals, Classifications, FactorView, HedgeEffect, Liquidity, TradeImpact } from './Analytics'
 import { EtfMonitor, FundCompare, FundReport, FundStyle } from './Funds'
 import { CommodityVol, CoveredCalls, EarningsMoves, OptionActivity, OptionSearch, VarianceSwap, VolMonitor } from './Options2'
 import { AltmanZ, AsReported, CapitalStructure, DefaultMonitor, DefaultRisk, GraphFundamentals, Maturities, PeHistory } from './Facts'
@@ -103,6 +104,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   VM: VolMonitor, OVI: OptionActivity, MOSO: OptionActivity, CWS: CoveredCalls, OSCH: OptionSearch, VSV: VarianceSwap,
   VCAL: EarningsMoves, CDVM: CommodityVol,
   FREP: FundReport, MIFA: FundReport, FPC: FundCompare, FSTA: FundStyle, WETF: EtfMonitor, CETF: EtfMonitor,
+  LRSK: Liquidity, PSD: BookFundamentals, PSH: TradeImpact, HEFF: HedgeEffect, UNCL: Classifications, FTST: FactorView,
   WEIF: Weif, GMM: Gmm, IRR: Irr, MRV: Mrv, GRR: Grr, HALT: Halts, CRYP: Cryp, FX24: FxSessions, FXCA: Fxca,
   WACC: Valuation, DCF: Valuation, DDM: Valuation,
   INSD: Insiders, GPTR: Insiders, SIA: ShortHistory, SPOS: UkShorts, FLNG: Thirteenf, PHDC: Thirteenf,

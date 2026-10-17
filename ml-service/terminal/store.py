@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS my_estimates (
     id INTEGER PRIMARY KEY, symbol TEXT NOT NULL, period TEXT NOT NULL, eps REAL, revenue REAL,
     note TEXT, created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS tags (
+    symbol TEXT NOT NULL, tag TEXT NOT NULL, PRIMARY KEY (symbol, tag)
+);
 CREATE TABLE IF NOT EXISTS holdings (
     id INTEGER PRIMARY KEY, symbol TEXT NOT NULL, quantity REAL NOT NULL,
     cost REAL, opened TEXT, added_at TEXT NOT NULL
@@ -183,3 +186,20 @@ def add_my_estimate(symbol: str, period: str, eps: float | None, revenue: float 
 
 def delete_my_estimate(estimate_id: int) -> None:
     _run("DELETE FROM my_estimates WHERE id = ?", (estimate_id,))
+
+
+# tags (UNCL)
+
+def tags() -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for r in _all("SELECT symbol, tag FROM tags ORDER BY symbol, tag"):
+        out.setdefault(r["symbol"], []).append(r["tag"])
+    return out
+
+
+def add_tag(symbol: str, tag: str) -> None:
+    _run("INSERT OR IGNORE INTO tags (symbol, tag) VALUES (?, ?)", (symbol.upper(), tag.strip()))
+
+
+def delete_tag(symbol: str, tag: str) -> None:
+    _run("DELETE FROM tags WHERE symbol = ? AND tag = ?", (symbol.upper(), tag))

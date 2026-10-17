@@ -3325,15 +3325,6 @@ export const INVENTORY: Fn[] = [
   "why": "Treasury futures (ZT, ZF, ZN, ZB, UB) ranked returns from Yahoo"
  },
  {
-  "code": "FTST",
-  "name": "Factor backtesting",
-  "group": "Screening",
-  "security": false,
-  "status": "planned",
-  "batch": "portfolio analytics",
-  "why": "Factor backtests on Artha's point-in-time store and Ken French factor library"
- },
- {
   "code": "FUND",
   "name": "Fund search (mutual funds)",
   "group": "Funds",
@@ -3778,15 +3769,6 @@ export const INVENTORY: Fn[] = [
   "security": true,
   "status": "alias",
   "target": "FYH"
- },
- {
-  "code": "HEFF",
-  "name": "Hedge effectiveness testing",
-  "group": "Portfolio",
-  "security": false,
-  "status": "planned",
-  "batch": "portfolio analytics",
-  "why": "Hedge effectiveness (regression and dollar offset) for a hedge pair from Yahoo bars"
  },
  {
   "code": "HFA",
@@ -4515,15 +4497,6 @@ export const INVENTORY: Fn[] = [
   "security": true,
   "status": "impossible",
   "why": "Liquidity models need dealer quotes"
- },
- {
-  "code": "LRSK",
-  "name": "Liquidity risk assessment",
-  "group": "Portfolio",
-  "security": false,
-  "status": "planned",
-  "batch": "portfolio analytics",
-  "why": "Days to liquidate each position from Yahoo average daily volume"
  },
  {
   "code": "LSRC",
@@ -5820,30 +5793,12 @@ export const INVENTORY: Fn[] = [
   "why": "Private company databases are proprietary"
  },
  {
-  "code": "PSD",
-  "name": "Portfolio fundamentals analysis",
-  "group": "Portfolio",
-  "security": false,
-  "status": "planned",
-  "batch": "portfolio analytics",
-  "why": "Holdings-weighted fundamentals (P/E, yield, growth) from the EQS store"
- },
- {
   "code": "PSET",
   "name": "Print settings/defaults",
   "group": "Tools",
   "security": false,
   "status": "impossible",
   "why": "Bloomberg print settings"
- },
- {
-  "code": "PSH",
-  "name": "Proposed trade impact on portfolio",
-  "group": "Portfolio",
-  "security": false,
-  "status": "planned",
-  "batch": "portfolio analytics",
-  "why": "What-if trade: effect on weights, beta, volatility and scenario P&L"
  },
  {
   "code": "PSRT",
@@ -6953,15 +6908,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "government and law",
   "why": "legislation.gov.uk public API for UK legislation"
- },
- {
-  "code": "UNCL",
-  "name": "Custom classifications",
-  "group": "Portfolio",
-  "security": false,
-  "status": "planned",
-  "batch": "portfolio analytics",
-  "why": "User-defined tags for grouping holdings"
  },
  {
   "code": "UNTC",
