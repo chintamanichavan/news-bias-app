@@ -63,7 +63,7 @@ available free, so their functions answer with that reason.
    WIRP, WCRS, FXC, ECO, ECST, EQS, NSE. See "Phase 2 sources" below.
 3. **Company depth** (done, 2026-10-16): EE, ERN, EVTS, ANR, MGMT, SI, HDS,
    OWN, DVD, CACS, TRA, COMP, G, CF, RV, IPO. ESG turned out impossible.
-4. **Options**: OMON, OV, OSA, IVOL, HIVG, SKEW, OVDV.
+4. **Options** (done, 2026-10-16): OMON, OV, OSA, IVOL, HIVG, SKEW, OVDV.
 5. **Tools**: watchlist monitors, ALRT, NOTE, CSV export and upload,
    tear sheets, the query language, scenario and attribution on PORT,
    paper order ticket and TCA.
@@ -92,6 +92,8 @@ of source, served under `/terminal/*`.
 | CF | SEC EDGAR submissions |
 | RV | Yahoo's "similar" list, measured on the EQS table |
 | IPO | Nasdaq IPO calendar |
+| OMON, OV, IVOL, HIVG, SKEW, OVDV | Yahoo option chains; volatility and greeks solved here with Black-Scholes-Merton |
+| OSA | The same chains, priced in the browser |
 
 Gaps, as of 2026-10-16:
 - FRED timed out on every request from this machine, so nothing in phase 2
@@ -99,6 +101,12 @@ Gaps, as of 2026-10-16:
 - bls.gov refuses automated requests, so CPI and jobs-report *dates* are
   missing from ECO (the numbers themselves come from the BLS API).
 - GDP and consumer spending need a free BEA API key, which needs a sign-up.
+- Option volatility is solved from bid/ask midpoints with European
+  Black-Scholes-Merton, the Treasury rate and the trailing dividend yield.
+  US stock options are American, so deep in-the-money puts are approximate.
+  Yahoo's own volatilities assume roughly zero interest and are not used.
+- No free source keeps implied-volatility history; HIVG records one 30-day
+  reading per security per day, starting the first time it is asked.
 - Yahoo's full-history price reply drops most dividends; DVD reads the
   10-year reply, which has every payment, so dividend history is 10 years.
 
