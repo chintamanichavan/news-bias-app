@@ -1,9 +1,11 @@
 import type { ComponentType } from 'react'
+import Calendar from './Calendar'
 import Chart from './Chart'
 import Crosses from './Crosses'
 import Currencies from './Currencies'
 import Curve from './Curve'
 import Description from './Description'
+import Economy from './Economy'
 import Finder from './Finder'
 import Financials from './Financials'
 import Functions from './Functions'
@@ -32,6 +34,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   GC: Curve, BTMM: Money, WIRP: Wirp,
   WCRS: Currencies, FXC: Crosses,
   CTM: Futures, IMAP: Industries,
+  ECO: Calendar, ECST: Economy,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

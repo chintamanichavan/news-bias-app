@@ -104,8 +104,8 @@ export const FUNCTIONS: Fn[] = [
   impossible('FXFC', 'FX forecasts', 'Rates & FX', 'Bloomberg surveys forecasters itself.'),
 
   // Economy
-  planned('ECO', 'Economic calendar', 'Economy', false, 2),
-  planned('ECST', 'Economic statistics', 'Economy', false, 2),
+  live('ECO', 'Economic calendar', 'Economy', false),
+  live('ECST', 'Economic statistics', 'Economy', false),
   impossible('ECFC', "Economists' forecasts", 'Economy', 'Bloomberg surveys economists itself.'),
 
   // News

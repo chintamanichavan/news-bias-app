@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Query
 
-from . import futures, fx, movers, news, rates
+from . import econ, futures, fx, movers, news, rates
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -50,3 +50,13 @@ async def ctm():
 @router.get("/industries")
 async def imap():
     return await futures.industries()
+
+
+@router.get("/calendar")
+async def eco(days: int = Query(45, ge=1, le=120)):
+    return await econ.calendar(days)
+
+
+@router.get("/econ")
+async def ecst():
+    return await econ.statistics()
