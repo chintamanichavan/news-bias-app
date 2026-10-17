@@ -5,6 +5,8 @@
 // tabular numerals. Every expanded card draws with these instead of naked
 // polylines.
 
+import { useWidth } from '@/lib/terminal/useWidth'
+
 interface Pt { t: string | number; v: number }
 export interface Series {
   label: string
@@ -37,18 +39,35 @@ function fmtVal(v: number): string {
   return v.toFixed(3)
 }
 
-function fmtDate(t: string | number): string {
+const LONG_SPAN_MS = 300 * 86_400_000
+
+/** "Oct 17" on a short chart, "Oct 2021" once it spans most of a year or more. */
+export function fmtDate(t: string | number, longSpan = false): string {
   const d = new Date(t)
   if (isNaN(d.getTime())) return String(t).slice(5, 10)
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  return d.toLocaleDateString([], longSpan ? { month: 'short', year: 'numeric' } : { month: 'short', day: 'numeric' })
+}
+
+function spanMs(points: Pt[]): number {
+  if (points.length < 2) return 0
+  return Math.abs(new Date(points[points.length - 1].t).getTime() - new Date(points[0].t).getTime()) || 0
 }
 
 /** Time-series chart with gridlines, y ticks, date ticks, optional zero line
- *  and end-point emphasis on the first series. */
-export function TimeSeriesChart({
-  series, W = 760, H = 220, zeroLine = false, yFmt = fmtVal, unit = '',
+ *  and end-point emphasis on the first series. It draws at its container's
+ *  width, one unit per pixel, so text stays the same size in any layout. */
+export function TimeSeriesChart(props: {
+  series: Series[]; H?: number; zeroLine?: boolean
+  yFmt?: (v: number) => string; unit?: string
+}) {
+  const { ref, width } = useWidth<HTMLDivElement>(760)
+  return <div ref={ref}><Chart {...props} W={width} /></div>
+}
+
+function Chart({
+  series, W, H = 220, zeroLine = false, yFmt = fmtVal, unit = '',
 }: {
-  series: Series[]; W?: number; H?: number; zeroLine?: boolean
+  series: Series[]; W: number; H?: number; zeroLine?: boolean
   yFmt?: (v: number) => string; unit?: string
 }) {
   const PL = 46, PR = 14, PT = 10, PB = 22
@@ -65,9 +84,10 @@ export function TimeSeriesChart({
   const ticks = niceTicks(lo, hi)
   const first = series[0]
   const dateIdx = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round((first.points.length - 1) * f))
+  const longSpan = spanMs(first.points) > LONG_SPAN_MS
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={series.map(s => s.label).join(' vs ')}>
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={series.map(s => s.label).join(' vs ')}>
       {ticks.map(tv => (
         <g key={tv}>
           <line x1={PL} x2={W - PR} y1={y(tv)} y2={y(tv)} className="stroke-border/70" strokeWidth={0.75} />
@@ -82,7 +102,7 @@ export function TimeSeriesChart({
         <text key={i} x={x(i, first.points.length)} y={H - 6}
           textAnchor={i === 0 ? 'start' : i === first.points.length - 1 ? 'end' : 'middle'}
           fontSize={9.5} className="fill-muted-foreground tabular-nums">
-          {fmtDate(first.points[i].t)}
+          {fmtDate(first.points[i].t, longSpan)}
         </text>
       ))}
       {series.map((s, si) => {

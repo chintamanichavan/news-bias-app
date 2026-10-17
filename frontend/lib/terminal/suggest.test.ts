@@ -17,7 +17,8 @@ describe('suggest', () => {
 
   it('completes the function after a security, keeping the security', () => {
     const s = suggest('AAPL g', [])
-    expect(s[0]).toEqual({ text: 'AAPL GP', label: 'GP', detail: 'Price chart' })
+    expect(s[0].label).toBe('G')                     // the exact code comes first
+    expect(s).toContainEqual({ text: 'AAPL GP', label: 'GP', detail: 'Price chart' })
     expect(s.every(x => x.text.startsWith('AAPL '))).toBe(true)
   })
 

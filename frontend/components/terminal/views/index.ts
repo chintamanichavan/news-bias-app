@@ -2,10 +2,13 @@ import type { ComponentType } from 'react'
 import Calendar from './Calendar'
 import Analysts from './Analysts'
 import Chart from './Chart'
+import Compare from './Compare'
+import CorporateActions from './CorporateActions'
 import Crosses from './Crosses'
 import Currencies from './Currencies'
 import Curve from './Curve'
 import Description from './Description'
+import Dividends from './Dividends'
 import Earnings from './Earnings'
 import Economy from './Economy'
 import Estimates from './Estimates'
@@ -27,6 +30,7 @@ import Overview from './Overview'
 import Ownership from './Ownership'
 import Portfolio from './Portfolio'
 import Risk from './Risk'
+import TotalReturn from './TotalReturn'
 import Screener from './Screener'
 import ShortInterest from './ShortInterest'
 import type { ViewProps } from './types'
@@ -47,6 +51,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   EQS: Screener,
   EE: Estimates, ERN: Earnings, EVTS: Events, ANR: Analysts,
   MGMT: Management, SI: ShortInterest, HDS: Holders, OWN: Ownership,
+  DVD: Dividends, CACS: CorporateActions, TRA: TotalReturn, COMP: Compare, G: Compare,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

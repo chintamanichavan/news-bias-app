@@ -75,3 +75,11 @@ describe('rateText', () => {
     expect(rateText(null)).toBe('—')
   })
 })
+
+describe('chart dates', () => {
+  it('add the year once a chart spans most of a year', async () => {
+    const { fmtDate } = await import('../../components/quantviz')
+    expect(fmtDate('2026-10-15T12:00:00', false)).toMatch(/Oct\D*15|15\D*Oct/)
+    expect(fmtDate('2021-10-15T12:00:00', true)).toMatch(/2021/)
+  })
+})

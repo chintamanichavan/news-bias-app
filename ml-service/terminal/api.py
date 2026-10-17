@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Query
 
-from . import company, econ, futures, fx, movers, news, rates, screener, yahoo
+from . import company, econ, futures, fx, movers, news, rates, returns, screener, yahoo
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -74,3 +74,15 @@ async def company_sections(symbol: str):
         return await company.company(symbol.upper())
     except yahoo.NotFound as e:
         raise HTTPException(404, str(e))
+
+
+@router.get("/dividends/{symbol}")
+async def dvd(symbol: str):
+    return await returns.dividends(symbol.upper())
+
+
+@router.get("/returns")
+async def tra(symbols: str = Query(..., min_length=1, max_length=120),
+              span: str = Query("5y", pattern="^(1y|3y|5y|10y)$")):
+    wanted = [s.strip().upper() for s in symbols.split(",") if s.strip()][:8]
+    return await returns.compare(wanted, span)
