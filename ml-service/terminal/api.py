@@ -1,8 +1,8 @@
 """HTTP routes for the terminal's market-wide functions, under /terminal."""
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
-from . import econ, futures, fx, movers, news, rates, screener
+from . import company, econ, futures, fx, movers, news, rates, screener, yahoo
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -65,3 +65,12 @@ async def ecst():
 @router.get("/screen")
 async def eqs():
     return await screener.table()
+
+
+@router.get("/company/{symbol}")
+async def company_sections(symbol: str):
+    """EE, ERN, EVTS, ANR, MGMT, SI, HDS and OWN read sections of this."""
+    try:
+        return await company.company(symbol.upper())
+    except yahoo.NotFound as e:
+        raise HTTPException(404, str(e))
