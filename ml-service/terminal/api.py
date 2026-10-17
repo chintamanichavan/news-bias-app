@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Query
 
-from . import econ, futures, fx, movers, news, rates
+from . import econ, futures, fx, movers, news, rates, screener
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -60,3 +60,8 @@ async def eco(days: int = Query(45, ge=1, le=120)):
 @router.get("/econ")
 async def ecst():
     return await econ.statistics()
+
+
+@router.get("/screen")
+async def eqs():
+    return await screener.table()

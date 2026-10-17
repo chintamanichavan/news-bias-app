@@ -10,6 +10,9 @@ const EXAMPLES = [
   ['SPX INDEX GP 1M', 'S&P 500, one month'],
   ['CL1 COMDTY GP', 'front-month crude oil'],
   ['GP 1Y', 'chart of whatever this panel is on'],
+  ['EQS RETURN>=15 PE<20', 'screen companies by any measure'],
+  ['MMAP', 'market heat map by sector'],
+  ['WIRP', 'what futures price for the next Fed meetings'],
   ['FUNC dividend', 'find a function by name'],
   ['HELP DES', 'what a function does'],
 ]

@@ -69,7 +69,9 @@ const TerminalPanel = forwardRef<HTMLInputElement, Props>(function TerminalPanel
         {error && <p className="text-[11.5px] text-red-600 dark:text-red-400">{error}</p>}
       </header>
       <div className="p-3 flex-1 min-h-0 overflow-auto">
-        {cmd && View ? <View command={cmd} run={onRun} /> : (
+        {/* keyed by the command, so a screen's own state (typed filters, a
+            search box) starts fresh for each command instead of carrying over */}
+        {cmd && View ? <View key={`${panel.at}:${format(cmd)}`} command={cmd} run={onRun} /> : (
           <p className="text-[12px] text-muted-foreground">Empty panel. Type HELP to start.</p>
         )}
       </div>

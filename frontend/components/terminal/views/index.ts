@@ -20,6 +20,7 @@ import News from './News'
 import Overview from './Overview'
 import Portfolio from './Portfolio'
 import Risk from './Risk'
+import Screener from './Screener'
 import type { ViewProps } from './types'
 import Unavailable, { reasonFor } from './Unavailable'
 import Weather from './Weather'
@@ -35,6 +36,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   WCRS: Currencies, FXC: Crosses,
   CTM: Futures, IMAP: Industries,
   ECO: Calendar, ECST: Economy,
+  EQS: Screener,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {
