@@ -174,14 +174,17 @@ const FORMS = /^FORM=(.+)$/i
 
 export function FilingSearch({ command }: ViewProps) {
   const formArg = command.args.find(a => FORMS.test(a))
-  const words = command.args.filter(a => a !== formArg).join(' ')
+  // BNKF and CL are preset searches: bankruptcy items in 8-Ks, legal proceedings in reports
+  const preset = command.fn === 'BNKF' ? '"Item 1.03" bankruptcy' : command.fn === 'CL' ? '"legal proceedings" litigation' : ''
+  const words = command.args.filter(a => a !== formArg).join(' ') || preset
   const [q, setQ] = useState(words)
-  const [forms, setForms] = useState(formArg ? formArg.replace(FORMS, '$1').toUpperCase() : command.fn === 'DSCO' ? 'DEF 14A,ARS,10-K' : '')
+  const [forms, setForms] = useState(formArg ? formArg.replace(FORMS, '$1').toUpperCase() : command.fn === 'DSCO' ? 'DEF 14A,ARS,10-K' : command.fn === 'BNKF' ? '8-K' : command.fn === 'CL' ? '10-K,10-Q' : '')
   const [submitted, setSubmitted] = useState({ q: words, forms })
   const sym = command.security?.symbol
   const params = new URLSearchParams({ q: submitted.q })
   if (submitted.forms) params.set('forms', submitted.forms)
   if (sym) params.set('symbol', sym)
+  if (command.fn === 'BNKF') params.set('start', new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10))
   const { data, error, loading } = useResource<{ total: number; more: boolean; hits: Hit[] }>(submitted.q.length >= 2 ? `/api/terminal/filing-search?${params}` : null)
   const input = 'font-mono text-[12.5px] bg-muted/40 border border-border rounded-md px-2 py-1.5 outline-none focus:border-foreground/40'
   return (

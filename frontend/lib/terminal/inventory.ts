@@ -153,15 +153,6 @@ export const INVENTORY: Fn[] = [
   "why": "Trade-by-trade recaps need licensed exchange tick data"
  },
  {
-  "code": "ARD",
-  "name": "As-reported financial data",
-  "group": "Company",
-  "security": true,
-  "status": "planned",
-  "batch": "company filings and fundamentals",
-  "why": "SEC XBRL companyfacts: statements exactly as filed, with filing dates and restatements"
- },
- {
   "code": "ASW",
   "name": "Asset swap calculator: relative value of asset swaps",
   "group": "Credit",
@@ -210,15 +201,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Dealer axes are private dealer inventory messages"
- },
- {
-  "code": "AZS",
-  "name": "Altman Z-score / default probability for a company",
-  "group": "Credit",
-  "security": true,
-  "status": "planned",
-  "batch": "credit from filings",
-  "why": "Altman Z-score from SEC XBRL statements plus Yahoo market cap; Z-score zones over time"
  },
  {
   "code": "BALR",
@@ -876,15 +858,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bond indices and their members are licensed (Bloomberg, ICE)"
  },
  {
-  "code": "BNKF",
-  "name": "Bankruptcy-related corporate actions for a list",
-  "group": "Credit",
-  "security": false,
-  "status": "planned",
-  "batch": "credit from filings",
-  "why": "Bankruptcy events (8-K item 1.03) for a list of companies via EDGAR full-text search"
- },
- {
   "code": "BNKS",
   "name": "Banker settings",
   "group": "Deals",
@@ -1238,15 +1211,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "commodity monitors",
   "why": "EEX EU carbon auction results (public CSV) and carbon ETFs; no OTC carbon prices"
- },
- {
-  "code": "CAST",
-  "name": "Capital structure of a company (debt and equity)",
-  "group": "Credit",
-  "security": true,
-  "status": "planned",
-  "batch": "credit from filings",
-  "why": "Capital structure from XBRL (debt, leases, equity) plus Yahoo market cap and EV"
  },
  {
   "code": "CBMU",
@@ -1695,15 +1659,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "CIX"
- },
- {
-  "code": "CL",
-  "name": "Company litigation",
-  "group": "Company",
-  "security": true,
-  "status": "planned",
-  "batch": "company filings and fundamentals",
-  "why": "10-K Item 3 Legal Proceedings and 8-K litigation mentions via EDGAR full-text search"
  },
  {
   "code": "CLAS",
@@ -2376,15 +2331,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg documentation"
  },
  {
-  "code": "DLIS",
-  "name": "Debt maturity profile",
-  "group": "Credit",
-  "security": true,
-  "status": "planned",
-  "batch": "credit from filings",
-  "why": "Debt maturity schedule (next 5 years and after) from XBRL maturity facts"
- },
- {
   "code": "DLV",
   "name": "Cheapest-to-deliver analysis for bond futures",
   "group": "Rates & FX",
@@ -2435,30 +2381,12 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg terminal settings"
  },
  {
-  "code": "DRAM",
-  "name": "Default risk monitor",
-  "group": "Credit",
-  "security": false,
-  "status": "planned",
-  "batch": "credit from filings",
-  "why": "Merton distance-to-default across a list, from Yahoo prices and XBRL liabilities"
- },
- {
   "code": "DRIV",
   "name": "Company drivers (key performance drivers)",
   "group": "Company",
   "security": true,
   "status": "impossible",
   "why": "Company KPI datasets are licensed; filings hold them only as free text"
- },
- {
-  "code": "DRSK",
-  "name": "Bloomberg default risk model for a company",
-  "group": "Credit",
-  "security": true,
-  "status": "planned",
-  "batch": "credit from filings",
-  "why": "Merton distance-to-default for one company (Artha's model, not Bloomberg's)"
  },
  {
   "code": "DRVD",
@@ -3015,15 +2943,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "LNG swap prices come from dealers"
- },
- {
-  "code": "EV",
-  "name": "Enterprise value breakdown",
-  "group": "Company",
-  "security": true,
-  "status": "planned",
-  "batch": "company filings and fundamentals",
-  "why": "Enterprise value bridge: Yahoo market cap plus XBRL debt, leases, preferred, minority interest, less cash"
  },
  {
   "code": "EVNT",
@@ -3734,15 +3653,6 @@ export const INVENTORY: Fn[] = [
   "target": "ECOW"
  },
  {
-  "code": "GF",
-  "name": "Graph fundamentals: chart company fundamentals vs peers",
-  "group": "Company",
-  "security": true,
-  "status": "planned",
-  "batch": "company filings and fundamentals",
-  "why": "Chart XBRL and Yahoo fundamentals over time against peers"
- },
- {
   "code": "GFV",
   "name": "Graph fundamentals, estimates and ratios",
   "group": "Company",
@@ -3831,15 +3741,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "FUNC chart"
- },
- {
-  "code": "GRET",
-  "name": "Historical P/E ratio graph",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "company filings and fundamentals",
-  "why": "Historical P/E from Yahoo prices and trailing XBRL EPS"
  },
  {
   "code": "GRM",
@@ -5748,15 +5649,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Private equity databases are proprietary"
- },
- {
-  "code": "PEBD",
-  "name": "P/E band chart overlay",
-  "group": "Markets",
-  "security": true,
-  "status": "planned",
-  "batch": "company filings and fundamentals",
-  "why": "Price chart with P/E bands from trailing XBRL EPS"
  },
  {
   "code": "PEFP",

@@ -5,9 +5,9 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, book, calendars, company, dcf, econ, filings, futures, fx, govts, indexmove, ipos,
-               members, monitors, movers, news, options, ownership, peers, quotes, rates, returns, screener,
-               store, trading, vol, yahoo)
+from . import (alerts, book, calendars, company, dcf, econ, facts, filings, futures, fx, govts, indexmove,
+               ipos, members, monitors, movers, news, options, ownership, peers, quotes, rates, returns,
+               screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -450,3 +450,24 @@ def my_estimate_add(e: MyEstimate):
 def my_estimate_delete(estimate_id: int):
     store.delete_my_estimate(estimate_id)
     return {"ok": True}
+
+
+
+@router.get("/facts/{kind}/{symbol}")
+async def company_facts(kind: str, symbol: str):
+    """ARD, CAST and EV, DLIS, AZS, DRSK, GF, GRET and PEBD from XBRL filings."""
+    fn = {"reported": facts.as_reported, "structure": facts.structure, "maturities": facts.maturities,
+          "zscore": facts.zscores, "default": facts.default_risk, "fundamentals": facts.fundamentals,
+          "pe": facts.pe_history}.get(kind)
+    if fn is None:
+        raise HTTPException(404, f"No facts view called {kind}.")
+    try:
+        return await fn(symbol.upper())
+    except facts.NoFacts as e:
+        raise HTTPException(404, str(e))
+
+
+@router.get("/default-risk")
+async def default_risk_list(symbols: str = Query(..., min_length=1, max_length=400)):
+    names = [s.strip().upper() for s in symbols.split(",") if s.strip()][:30]
+    return await facts.default_risks(names)
