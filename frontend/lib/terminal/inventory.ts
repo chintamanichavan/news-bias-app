@@ -1463,15 +1463,6 @@ export const INVENTORY: Fn[] = [
   "why": "CDS tickers need dealer data"
  },
  {
-  "code": "CDVM",
-  "name": "Commodity historical and implied volatilities",
-  "group": "Commodities",
-  "security": true,
-  "status": "planned",
-  "batch": "options tools",
-  "why": "Historical vol from Yahoo futures bars; implied vol from commodity ETF chains (USO, GLD, UNG), labelled as ETFs"
- },
- {
   "code": "CDX",
   "name": "CDS index monitor",
   "group": "Credit",
@@ -2215,15 +2206,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "fixed income calculators (Treasuries)",
   "why": "Convexity and duration for Treasuries from FedInvest prices"
- },
- {
-  "code": "CWS",
-  "name": "Covered call calculator",
-  "group": "Options",
-  "security": true,
-  "status": "planned",
-  "batch": "options tools",
-  "why": "Covered call returns from Yahoo option chains"
  },
  {
   "code": "CWSG",
@@ -4914,15 +4896,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bond activity needs dealer and TRACE data"
  },
  {
-  "code": "MOSO",
-  "name": "Most active options of the day",
-  "group": "Options",
-  "security": false,
-  "status": "planned",
-  "batch": "options tools",
-  "why": "Cboe daily most-active options list (public page)"
- },
- {
   "code": "MRA",
   "name": "Multiple regression matrices",
   "group": "Technical",
@@ -5445,15 +5418,6 @@ export const INVENTORY: Fn[] = [
   "why": "OPIS prices are licensed"
  },
  {
-  "code": "OSCH",
-  "name": "Options search",
-  "group": "Options",
-  "security": false,
-  "status": "planned",
-  "batch": "options tools",
-  "why": "Search listed options across Yahoo chains by expiry, strike, delta, volume"
- },
- {
   "code": "OUTL",
   "name": "Economic surveys and outlooks",
   "group": "Economy",
@@ -5469,15 +5433,6 @@ export const INVENTORY: Fn[] = [
   "security": true,
   "status": "impossible",
   "why": "Convertible prices come from dealers"
- },
- {
-  "code": "OVI",
-  "name": "Stocks with abnormal option volume",
-  "group": "Options",
-  "security": false,
-  "status": "planned",
-  "batch": "options tools",
-  "why": "Unusual option volume vs open interest across a watch universe from Yahoo chains"
  },
  {
   "code": "OVL",
@@ -7136,15 +7091,6 @@ export const INVENTORY: Fn[] = [
   "target": "CORR"
  },
  {
-  "code": "VCAL",
-  "name": "Custom volatility calendars",
-  "group": "Options",
-  "security": true,
-  "status": "planned",
-  "batch": "options tools",
-  "why": "Event-day volatility calendar (earnings, FOMC) for implied vol from Yahoo chains"
- },
- {
   "code": "VCCY",
   "name": "Virtual currency monitor",
   "group": "Rates & FX",
@@ -7193,15 +7139,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg Opinion content"
  },
  {
-  "code": "VM",
-  "name": "Volatility monitors",
-  "group": "Options",
-  "security": false,
-  "status": "planned",
-  "batch": "options tools",
-  "why": "Volatility monitor: VIX family indices from Yahoo and ATM implied vol of a watchlist"
- },
- {
   "code": "VOLC",
   "name": "Implied vs realized volatility comparison",
   "group": "Options",
@@ -7232,15 +7169,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Vessel data needs licensed AIS"
- },
- {
-  "code": "VSV",
-  "name": "Variance swap valuation",
-  "group": "Options",
-  "security": true,
-  "status": "planned",
-  "batch": "options tools",
-  "why": "Variance swap fair strike by replication from Yahoo option chains"
  },
  {
   "code": "WALG",

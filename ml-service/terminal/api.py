@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from . import (alerts, book, calendars, company, dcf, econ, facts, filings, futures, fx, govts, indexmove,
-               ipos, members, monitors, movers, news, options, ownership, peers, quotes, rates, returns,
-               screener, store, trading, vol, yahoo)
+               ipos, members, monitors, movers, news, options, optools, ownership, peers, quotes, rates,
+               returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -471,3 +471,36 @@ async def company_facts(kind: str, symbol: str):
 async def default_risk_list(symbols: str = Query(..., min_length=1, max_length=400)):
     names = [s.strip().upper() for s in symbols.split(",") if s.strip()][:30]
     return await facts.default_risks(names)
+
+
+
+@router.get("/optools/{kind}")
+async def option_tools(kind: str, symbol: str | None = Query(None, max_length=12), days: int = Query(30, ge=7, le=365),
+                       symbols: str | None = Query(None, max_length=400), min_days: int = Query(0, ge=0), max_days: int = Query(400, ge=0),
+                       min_delta: float = Query(0, ge=0, le=1), max_delta: float = Query(1, ge=0, le=1),
+                       side: str | None = Query(None, pattern="^(C|P)$"), min_volume: float = Query(0, ge=0)):
+    """VM, OVI and MOSO, CWS, OSCH, VSV, VCAL and CDVM."""
+    try:
+        if kind == "activity":
+            return await optools.market_activity()
+        if kind == "cdvm":
+            return await optools.commodity_vol()
+        if kind == "vm":
+            watch = [x.strip().upper() for x in (symbols or "SPY,QQQ,IWM,AAPL,MSFT,NVDA,AMZN,META,TSLA").split(",") if x.strip()][:25]
+            return await optools.vol_monitor(watch)
+        if kind == "vcal":
+            names = [x.strip().upper() for x in (symbols or symbol or "").split(",") if x.strip()][:20]
+            if not names:
+                raise HTTPException(422, "Name at least one security.")
+            return await optools.implied_moves(names)
+        if not symbol:
+            raise HTTPException(422, "This tool needs a security.")
+        if kind == "cws":
+            return await optools.covered_calls(symbol.upper())
+        if kind == "vsv":
+            return await optools.variance_swap(symbol.upper(), days)
+        if kind == "search":
+            return await optools.search(symbol.upper(), min_days, max_days, min_delta, max_delta, side, min_volume)
+    except options.NoOptions as e:
+        raise HTTPException(404, str(e))
+    raise HTTPException(404, f"No option tool called {kind}.")
