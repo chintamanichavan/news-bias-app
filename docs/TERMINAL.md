@@ -61,8 +61,8 @@ available free, so their functions answer with that reason.
    endpoints already serve.
 2. **Market-wide** (done, 2026-10-16): MOST, MMAP, IMAP, CTM, GC, BTMM,
    WIRP, WCRS, FXC, ECO, ECST, EQS, NSE. See "Phase 2 sources" below.
-3. **Company depth**: EE, ERN, EVTS, DVD, CACS, HDS, OWN, MGMT, ANR, RV, SI,
-   CF, TRA, COMP, multi-security charts, IPO.
+3. **Company depth** (done, 2026-10-16): EE, ERN, EVTS, ANR, MGMT, SI, HDS,
+   OWN, DVD, CACS, TRA, COMP, G, CF, RV, IPO. ESG turned out impossible.
 4. **Options**: OMON, OV, OSA, IVOL, HIVG, SKEW, OVDV.
 5. **Tools**: watchlist monitors, ALRT, NOTE, CSV export and upload,
    tear sheets, the query language, scenario and attribution on PORT,
@@ -87,6 +87,11 @@ of source, served under `/terminal/*`.
 | ECST | BLS public data API (25 requests a day without a key; cached on disk) |
 | EQS | Artha's point-in-time store; expected return from the Portfolio screen |
 | NSE | Artha's own news corpus |
+| EE, ERN, EVTS, ANR, MGMT, SI, HDS, OWN | Yahoo quoteSummary (session cookie and token) |
+| DVD, CACS, TRA, COMP, G | Yahoo price history with adjusted closes, dividends and splits |
+| CF | SEC EDGAR submissions |
+| RV | Yahoo's "similar" list, measured on the EQS table |
+| IPO | Nasdaq IPO calendar |
 
 Gaps, as of 2026-10-16:
 - FRED timed out on every request from this machine, so nothing in phase 2
@@ -94,6 +99,8 @@ Gaps, as of 2026-10-16:
 - bls.gov refuses automated requests, so CPI and jobs-report *dates* are
   missing from ECO (the numbers themselves come from the BLS API).
 - GDP and consumer spending need a free BEA API key, which needs a sign-up.
+- Yahoo's full-history price reply drops most dividends; DVD reads the
+  10-year reply, which has every payment, so dividend history is 10 years.
 
 ## Impossible on free data
 
@@ -106,6 +113,7 @@ Gaps, as of 2026-10-16:
 | ECFC, FXFC | Surveys of forecasters that Bloomberg runs |
 | CRPR, DDIS | Ratings are licensed by the agencies; bond holdings data is private |
 | SPLC, MA, BPS, FSRC | Proprietary supply-chain, deal, people and fund databases |
+| ESG | Yahoo stopped publishing scores; the rating firms license them |
 | READ | Needs readership across many users |
 | Bloomberg TV and radio | Licensed broadcast |
 | Live order routing (EMSX to a broker) | Needs your broker account; paper only until then |
