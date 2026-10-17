@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { big, day, pct, price, ratioPct } from './numbers'
 import { argFor, rangeFor } from './ranges'
+import { heat } from '../../components/terminal/views/Heatmap'
 
 describe('numbers', () => {
   it('shortens large values', () => {
@@ -41,5 +42,16 @@ describe('ranges', () => {
     const bad = rangeFor(['10Y'], '1y')
     expect('error' in bad && bad.error).toMatch(/10Y is not available/)
     expect(argFor('6mo')).toBe('6M')
+  })
+})
+
+
+describe('heat', () => {
+  it('scales strength with the size of the move and caps at 3%', () => {
+    expect(heat(null)).toContain('0.15')
+    expect(heat(0)).toContain('145')
+    expect(heat(-1)).toContain('0 72% 50%')
+    expect(heat(3)).toBe(heat(9))
+    expect(heat(1.5)).toBe('hsl(145 63% 38% / 0.51)')
   })
 })

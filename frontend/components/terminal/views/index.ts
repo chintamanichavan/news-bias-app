@@ -4,8 +4,10 @@ import Description from './Description'
 import Finder from './Finder'
 import Financials from './Financials'
 import Functions from './Functions'
+import Heatmap from './Heatmap'
 import Help from './Help'
 import History from './History'
+import Movers from './Movers'
 import News from './News'
 import Overview from './Overview'
 import Portfolio from './Portfolio'
@@ -19,6 +21,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   DES: Description, GP: Chart, GIP: Chart, HP: History, FA: Financials, BETA: Risk,
   CN: News, N: News, TOP: News, WEI: Overview, GLCO: Overview, WETR: Weather,
   PORT: Portfolio, HELP: Help, FUNC: Functions, SECF: Finder,
+  MOST: Movers, MMAP: Heatmap, NSE: News,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

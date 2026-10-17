@@ -12,8 +12,9 @@ interface Story {
 }
 
 // CN: stories naming the company. N: the last day's market news. TOP: the
-// stories the most outlets carried. All three come from Artha's own corpus.
-function urlFor(fn: string, symbol: string): string {
+// stories the most outlets carried. NSE: a search. All from Artha's own corpus.
+function urlFor(fn: string, symbol: string, query: string): string | null {
+  if (fn === 'NSE') return query ? `/api/terminal/news?q=${encodeURIComponent(query)}` : null
   if (fn === 'CN') return `/api/markets/${encodeURIComponent(symbol)}/news?limit=30`
   if (fn === 'TOP') return '/api/top?limit=25'
   return '/api/articles?per_page=40&lookback_hours=24'
@@ -28,13 +29,15 @@ function ago(iso: string | null): string {
 }
 
 export default function News({ command }: ViewProps) {
-  const url = urlFor(command.fn, command.security?.symbol ?? '')
+  const query = command.args.join(' ')
+  const url = urlFor(command.fn, command.security?.symbol ?? '', query)
   const { data, error, loading } = useResource<{ articles?: Story[]; stories?: Story[] }>(url)
+  if (!url) return <Note>Type words after NSE, for example NSE fed rates.</Note>
   return (
     <Fetched data={data} error={error} loading={loading}>
       {d => {
         const stories = d.articles ?? d.stories ?? []
-        if (stories.length === 0) return <Note>No stories in the corpus for this yet.</Note>
+        if (stories.length === 0) return <Note>No stories in the corpus for this{query ? ` in the last 30 days` : ' yet'}.</Note>
         return (
           <ol className="divide-y divide-border/50">
             {stories.map(s => (
