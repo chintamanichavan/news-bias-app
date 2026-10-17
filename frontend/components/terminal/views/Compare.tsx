@@ -10,7 +10,7 @@ import { SPANS, splitArgs } from '@/lib/terminal/compare'
  * named). G: any securities' price on one chart, each starting at 100.
  */
 export default function Compare({ command, run }: ViewProps) {
-  const isG = command.fn === 'G'
+  const isG = command.fn === 'G' || command.fn === 'MGR'
   const { symbols, span } = splitArgs(command.security?.symbol ?? null, command.args, isG ? [] : ['SPY', 'QQQ'])
   const { data, error, loading } = useReturns(symbols, span)
   if (symbols.length === 0) return <Note>Name the securities: G AAPL MSFT NVDA, with a period such as 1Y.</Note>

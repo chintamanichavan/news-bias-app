@@ -339,3 +339,9 @@ async def valuation(symbol: str, growth: float | None = Query(None, ge=-50, le=5
         return await dcf.valuation(symbol.upper(), overrides)
     except dcf.NoInputs as e:
         raise HTTPException(404, str(e))
+
+
+
+@router.get("/intraday/{symbol}")
+async def intraday_bars(symbol: str, span: str = Query("5d", pattern="^(1d|5d|1mo)$")):
+    return {"symbol": symbol.upper(), "span": span, "bars": await returns.intraday(symbol.upper(), span)}

@@ -57,7 +57,8 @@ import Unavailable, { reasonFor } from './Unavailable'
 import Watchlist from './Watchlist'
 import Weather from './Weather'
 import Wirp from './Wirp'
-import { PriceBars, Study } from './Technical'
+import Technical, { TECHNICAL_CODES } from './Technical'
+import Pairs from './Pairs'
 import { Corr, Hra } from './Relations'
 import Mov from './Mov'
 import WorldBonds from './WorldBonds'
@@ -83,7 +84,9 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   W: Watchlist, NOTE: Notes, ALRT: Alerts, EXPT: Export, TEAR: Tear, BQL: Bql,
   PRTU: Holdings, MARS: Mars, ATTR: Attribution,
   EMSX: Emsx, TCA: Tca,
-  GPC: PriceBars, GPO: PriceBars, TECH: Study, RSI: Study, MACD: Study, BOLL: Study,
+  ...Object.fromEntries(TECHNICAL_CODES.map(c => [c, Technical])),
+  HS: Pairs, HSP: Pairs, HSE: Pairs, HSN: Pairs, SGP: Pairs, GR: Pairs, SGIP: Pairs, ISGP: Pairs, GV: Pairs,
+  GIPS: Chart, GIPW: Chart, MGR: Compare,
   HRA: Hra, CORR: Corr, MOV: Mov, WB: WorldBonds,
   WACC: Valuation, DCF: Valuation, DDM: Valuation,
 }

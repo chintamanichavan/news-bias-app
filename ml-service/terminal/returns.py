@@ -140,6 +140,36 @@ async def bars(symbol: str, span: str = "5y") -> list[dict]:
     return await web.cached(f"bars:{symbol}:{span}", 1800, make)
 
 
+INTRADAY = {"1d": "2m", "5d": "5m", "1mo": "30m"}
+
+
+def parse_intraday(payload: dict) -> list[dict]:
+    """Intraday bars stamped in the exchange's local time, regular session
+    and any extended hours Yahoo includes, without empty bars."""
+    res = payload["chart"]["result"][0]
+    offset = res["meta"].get("gmtoffset", 0)
+    q = res["indicators"]["quote"][0]
+    rows = []
+    for i, t in enumerate(res.get("timestamp") or []):
+        if q["close"][i] is None or q["high"][i] is None:
+            continue
+        local = datetime.fromtimestamp(t + offset, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M")
+        rows.append({"date": local, "open": q["open"][i], "high": q["high"][i], "low": q["low"][i],
+                     "close": q["close"][i], "volume": q["volume"][i]})
+    return rows
+
+
+async def intraday(symbol: str, span: str = "5d") -> list[dict]:
+    """Bars for the intraday studies: 2-minute over a day, 5-minute over
+    five days, 30-minute over a month."""
+    async def make():
+        async with web.client() as c:
+            r = await c.get(CHART.format(symbol=symbol), params={"range": span, "interval": INTRADAY[span]})
+            r.raise_for_status()
+            return parse_intraday(r.json())
+    return await web.cached(f"intra:{symbol}:{span}", 120, make)
+
+
 async def history(symbol: str, span: str = "1y", interval: str = "1d") -> dict:
     """Daily history for other screens (HIVG's realized volatility), cached."""
     async def make():

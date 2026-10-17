@@ -65,7 +65,7 @@ export function TimeSeriesChart(props: {
 }
 
 function Chart({
-  series, W, H = 220, zeroLine = false, yFmt = fmtVal, unit = '',
+  series, W, H = 220, zeroLine = false, yFmt, unit = '',
 }: {
   series: Series[]; W: number; H?: number; zeroLine?: boolean
   yFmt?: (v: number) => string; unit?: string
@@ -82,6 +82,12 @@ function Chart({
   const y = (v: number) => PT + (1 - (v - lo) / (hi - lo)) * (H - PT - PB)
 
   const ticks = niceTicks(lo, hi)
+  // ticks show only the decimals their spacing needs (40, 60, 80, not
+  // 40.00), which also keeps small labels legible; the end label keeps more
+  const step = ticks.length > 1 ? ticks[1] - ticks[0] : 1
+  const places = [0, 1, 2, 3, 4].find(d => Math.abs(step * 10 ** d - Math.round(step * 10 ** d)) < 1e-6) ?? 4
+  const tickFmt = yFmt ?? ((v: number) => (Math.abs(v) >= 1e4 ? fmtVal(v) : v.toFixed(places)))
+  const endFmt = yFmt ?? fmtVal
   const first = series[0]
   const dateIdx = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round((first.points.length - 1) * f))
   const longSpan = spanMs(first.points) > LONG_SPAN_MS
@@ -92,7 +98,7 @@ function Chart({
         <g key={tv}>
           <line x1={PL} x2={W - PR} y1={y(tv)} y2={y(tv)} className="stroke-border/70" strokeWidth={0.75} />
           <text x={PL - 5} y={y(tv) + 3} textAnchor="end" fontSize={9.5}
-            className="fill-muted-foreground tabular-nums">{yFmt(tv)}{unit}</text>
+            className="fill-muted-foreground tabular-nums">{tickFmt(tv)}{unit}</text>
         </g>
       ))}
       {zeroLine && lo < 0 && hi > 0 && (
@@ -123,7 +129,7 @@ function Chart({
                   className={s.cls.replace('stroke-', 'fill-')} />
                 <text x={Math.min(x(s.points.length - 1, s.points.length) + 5, W - PR)} y={y(last.v) - 5}
                   textAnchor="end" fontSize={10} fontWeight={600}
-                  className="fill-foreground tabular-nums">{yFmt(last.v)}{unit}</text>
+                  className="fill-foreground tabular-nums">{endFmt(last.v)}{unit}</text>
               </>
             )}
           </g>

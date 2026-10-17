@@ -20,7 +20,7 @@ export function usePrices(symbol: string, range: Range) {
 
 export default function Chart({ command, run }: ViewProps) {
   const sec = command.security!
-  const fallback: Range = command.fn === 'GIP' ? '1d' : '1y'
+  const fallback: Range = ['GIP', 'GIPS', 'GIPW'].includes(command.fn) ? '1d' : '1y'
   const picked = rangeFor(command.args, fallback)
   const range = 'range' in picked ? picked.range : fallback
   const { data, error, loading } = usePrices(sec.symbol, range)

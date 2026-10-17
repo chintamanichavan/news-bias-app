@@ -91,3 +91,11 @@ def test_parse_bars_keeps_every_daily_field():
     }]}}
     rows = returns.parse_bars(payload)
     assert rows == [{"date": "2023-11-14", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5, "adj_close": 1.4, "volume": 10}]
+
+
+def test_intraday_bars_are_in_exchange_time_and_skip_gaps():
+    payload = {"chart": {"result": [{"meta": {"gmtoffset": -14400}, "timestamp": [1760621400, 1760621700],
+               "indicators": {"quote": [{"open": [1, None], "high": [2, None], "low": [0.5, None],
+                                         "close": [1.5, None], "volume": [10, None]}]}}]}}
+    rows = returns.parse_intraday(payload)
+    assert rows == [{"date": "2025-10-16T09:30", "open": 1, "high": 2, "low": 0.5, "close": 1.5, "volume": 10}]
