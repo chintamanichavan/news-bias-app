@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, book, company, econ, filings, futures, fx, indexmove, ipos, movers, news, options, peers,
+from . import (alerts, book, company, econ, filings, futures, fx, govts, indexmove, ipos, movers, news, options, peers,
                quotes, rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
@@ -313,3 +313,9 @@ async def index_movers(index: str):
     if code not in indexmove.INDICES:
         raise HTTPException(404, f"MOV covers {', '.join(indexmove.INDICES)}.")
     return await indexmove.movers(code)
+
+
+
+@router.get("/wb")
+async def world_bonds():
+    return await govts.world()
