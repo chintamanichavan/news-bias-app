@@ -62,6 +62,7 @@ import Pairs from './Pairs'
 import { Corr, Hra } from './Relations'
 import Mov from './Mov'
 import Members from './Members'
+import { BANK_OF, CentralBank, CountryRisk, CountryView, EconomyMatrix, HousePrices, LeadingIndicators, PolicyRates, Reserves, WorldBankData } from './Macro'
 import { CompanyCoverage, CustomPaper, IndustryNews, MoversNews, NewsTrends, Outlets, RegulatoryNews, TopicNews } from './NewsFilters'
 import { BookFundamentals, Classifications, FactorView, HedgeEffect, Liquidity, TradeImpact } from './Analytics'
 import { EtfMonitor, FundCompare, FundReport, FundStyle } from './Funds'
@@ -108,6 +109,9 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   LRSK: Liquidity, PSD: BookFundamentals, PSH: TradeImpact, HEFF: HedgeEffect, UNCL: Classifications, FTST: FactorView,
   ...Object.fromEntries(['ANTN', 'BBEA', 'BBSE', 'TECO', 'BSP', 'CRPT', 'CTOP', 'DTOP', 'ENRG', 'MNPL', 'MUSE', 'RTOP', 'TOPCA', 'TOPE', 'TOPR', 'NYT', 'WSJ', 'WPT', 'TEL'].map(c => [c, TopicNews])),
   GN: CompanyCoverage, MMN: MoversNews, NL: MoversNews, TREN: NewsTrends, NRC: Outlets, RNS: RegulatoryNews, BBNI: IndustryNews, CNP: CustomPaper,
+  COUN: CountryView, ECMX: EconomyMatrix, EMEC: EconomyMatrix, GDP: EconomyMatrix, WBGR: WorldBankData, IMF: WorldBankData, LEAD: LeadingIndicators, OECD: LeadingIndicators,
+  HOIN: HousePrices, WGO: Reserves, WIRA: Reserves, CRP: CountryRisk, EQRP: CountryRisk, CBRT: PolicyRates, EMMR: PolicyRates, CENB: PolicyRates,
+  ...Object.fromEntries(Object.keys(BANK_OF).map(c => [c, CentralBank])),
   WEIF: Weif, GMM: Gmm, IRR: Irr, MRV: Mrv, GRR: Grr, HALT: Halts, CRYP: Cryp, FX24: FxSessions, FXCA: Fxca,
   WACC: Valuation, DCF: Valuation, DDM: Valuation,
   INSD: Insiders, GPTR: Insiders, SIA: ShortHistory, SPOS: UkShorts, FLNG: Thirteenf, PHDC: Thirteenf,

@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from . import (alerts, analytics, book, calendars, company, dcf, econ, facts, filings, funds, futures, fx,
-               govts, indexmove, ipos, members, monitors, movers, news, newsfilters, options, optools,
+               govts, indexmove, ipos, macro, members, monitors, movers, news, newsfilters, options, optools,
                ownership, peers, quotes, rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
@@ -610,3 +610,44 @@ async def news_filter(code: str, subject: str | None = Query(None, max_length=60
     if c == "TEL":
         return await newsfilters.telegraph()
     raise HTTPException(404, f"No news filter called {code}.")
+
+
+# ── world economy: COUN, ECMX, GDP, EMEC, CBRT, LEAD, HOIN, WGO, WIRA, CRP ───
+
+@router.get("/macro/{kind}")
+async def world_economy(kind: str, country: str | None = Query(None, max_length=3), indicator: str | None = Query(None, max_length=40),
+                        countries: str | None = Query(None, max_length=200)):
+    if kind == "country":
+        code = (country or "US").upper()
+        if code not in macro.BY_ISO2:
+            raise HTTPException(404, f"No country {code}. Use one of {', '.join(macro.BY_ISO2)}.")
+        return await macro.country(code)
+    if kind == "matrix":
+        return await macro.matrix()
+    if kind == "emerging":
+        return await macro.matrix(emerging=True)
+    if kind == "policy":
+        return {"rows": (await macro.policy_rates())["rows"]}
+    if kind == "policy-history":
+        areas = "+".join(a.strip().upper() for a in (countries or "US").split(",") if a.strip())[:60]
+        return {"series": await macro.policy_history(areas, 3000)}
+    if kind == "cli":
+        iso3s = [c[1] for c in macro.COUNTRIES if c[0] not in ("XM", "AR", "SA", "PH", "MY", "TH", "CO", "PL")]
+        data = await macro.oecd_cli(iso3s)
+        names = {c[1]: c[2] for c in macro.COUNTRIES}
+        return {"rows": [{"iso3": k, "country": names.get(k, k), **(macro.cli_reading(v) or {}), "path": v} for k, v in data.items()]}
+    if kind == "property":
+        iso2s = [c[0] for c in macro.COUNTRIES if c[0] not in ("XM",)]
+        data = await macro.property_prices(iso2s)
+        names = {c[0]: c[2] for c in macro.COUNTRIES}
+        return {"rows": [{"iso2": k, "country": names.get(k, k), "latest": v[-1], "path": v} for k, v in data.items() if v]}
+    if kind == "reserves":
+        return await macro.reserves()
+    if kind == "risk":
+        return await macro.country_risk()
+    if kind == "indicator":
+        if not indicator or indicator not in macro.INDICATORS:
+            raise HTTPException(422, f"Pick an indicator: {', '.join(macro.INDICATORS)}.")
+        iso3s = [macro._wb_iso3(x.strip().upper()) for x in (countries or "US,CN,DE,JP,IN,GB").split(",") if x.strip()][:12]
+        return {"indicator": indicator, "name": macro.INDICATORS[indicator], "series": await macro.wb(indicator, iso3s, 30)}
+    raise HTTPException(404, f"No macro view called {kind}.")

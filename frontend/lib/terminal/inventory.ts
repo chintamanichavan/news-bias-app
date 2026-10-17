@@ -373,15 +373,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg's in-terminal personal calendar"
  },
  {
-  "code": "BCB",
-  "name": "Central Bank of Brazil portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "Central Bank of Brazil SGS API: Selic, IPCA, FX, credit series"
- },
- {
   "code": "BCER",
   "name": "Bloomberg certificates (BMC and others)",
   "group": "Tools",
@@ -830,24 +821,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg banker settings"
  },
  {
-  "code": "BOC",
-  "name": "Bank of Canada portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "Bank of Canada Valet API: policy rate, yields, FX, key series"
- },
- {
-  "code": "BOE",
-  "name": "Bank of England portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "Bank of England database: Bank Rate, gilt curves, SONIA, money and credit"
- },
- {
   "code": "BOIL",
   "name": "Spot oil and bunker fuel prices",
   "group": "Commodities",
@@ -855,15 +828,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "energy data (EIA and others)",
   "why": "EIA daily spot crude and product prices; bunker fuel prices are licensed and missing"
- },
- {
-  "code": "BOJ",
-  "name": "Bank of Japan portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "Bank of Japan time-series downloads: policy rate, JGB holdings, money stock"
  },
  {
   "code": "BOLT",
@@ -1184,24 +1148,6 @@ export const INVENTORY: Fn[] = [
   "target": "COUN"
  },
  {
-  "code": "CBR",
-  "name": "Central Bank of Russia portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "Bank of Russia public XML: key rate, official FX rates"
- },
- {
-  "code": "CBRT",
-  "name": "Central bank policy rates",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "BIS central bank policy rates dataset (keyless API) for about 40 countries"
- },
- {
   "code": "CBS",
   "name": "Comparable bonds list",
   "group": "Fixed income",
@@ -1440,15 +1386,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "CTM"
- },
- {
-  "code": "CENB",
-  "name": "Central banks portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "One page of free central bank sources: policy rates, balance sheets, next meeting"
  },
  {
   "code": "CERT",
@@ -1844,15 +1781,6 @@ export const INVENTORY: Fn[] = [
   "target": "CFTC"
  },
  {
-  "code": "COUN",
-  "name": "Country snapshot: indices, rates, economy for a country",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Country page: main index, 10-year yield, FX, policy rate, GDP, CPI, unemployment from IMF/World Bank/central banks"
- },
- {
   "code": "COV",
   "name": "Covenant and default profile of a bond",
   "group": "Credit",
@@ -1966,15 +1894,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "commodity monitors",
   "why": "US regional cracks from EIA spot product prices (NY Harbor, Gulf Coast, LA); Europe/Asia are licensed"
- },
- {
-  "code": "CRP",
-  "name": "Country risk premium",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Damodaran country risk premium dataset with ratings-free spread method"
  },
  {
   "code": "CRR",
@@ -2339,15 +2258,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg tips"
  },
  {
-  "code": "ECB",
-  "name": "European Central Bank portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "ECB data API: policy rates, euro curve, balance sheet, money"
- },
- {
   "code": "ECBB",
   "name": "ECB QE program monitor",
   "group": "Economy",
@@ -2381,15 +2291,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "economy by country",
   "why": "Market moves (SPX, 10-year, dollar) around past release dates from ECO and Yahoo bars"
- },
- {
-  "code": "ECMX",
-  "name": "World economic matrix: compare indicators across countries",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Compare indicators across countries from IMF, World Bank and OECD APIs"
  },
  {
   "code": "ECOC",
@@ -2597,15 +2498,6 @@ export const INVENTORY: Fn[] = [
   "why": "Economist Intelligence Unit reports are licensed"
  },
  {
-  "code": "EMEC",
-  "name": "Emerging markets economic statistics",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Emerging market indicators from IMF and World Bank APIs"
- },
- {
   "code": "EMEQ",
   "name": "Emerging markets equity indices",
   "group": "Markets",
@@ -2661,15 +2553,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "FUNC emerging"
- },
- {
-  "code": "EMMR",
-  "name": "Emerging markets money market rates",
-  "group": "Rates & FX",
-  "security": false,
-  "status": "planned",
-  "batch": "government bonds and rates",
-  "why": "Emerging market policy and interbank rates from BIS and central bank APIs where public"
  },
  {
   "code": "EMMV",
@@ -2728,15 +2611,6 @@ export const INVENTORY: Fn[] = [
   "security": true,
   "status": "alias",
   "target": "TEAR"
- },
- {
-  "code": "EQRP",
-  "name": "Equity risk premium by country",
-  "group": "Markets",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Damodaran equity risk premium by country dataset"
  },
  {
   "code": "EQRV",
@@ -3443,15 +3317,6 @@ export const INVENTORY: Fn[] = [
   "why": "Public commodity indices on Yahoo (BCOM, S&P GSCI) with returns"
  },
  {
-  "code": "GDP",
-  "name": "GDP by country",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "GDP by country from IMF WEO and World Bank APIs"
- },
- {
   "code": "GDPP",
   "name": "GDP per capita by country",
   "group": "Economy",
@@ -3752,15 +3617,6 @@ export const INVENTORY: Fn[] = [
   "target": "G"
  },
  {
-  "code": "HOIN",
-  "name": "Global housing and construction data",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "BIS residential property prices (keyless) and Census construction data"
- },
- {
   "code": "HSA",
   "name": "Historical spread analysis / custom strategies monitor",
   "group": "Fixed income",
@@ -3990,15 +3846,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "WEI"
- },
- {
-  "code": "IMF",
-  "name": "IMF statistics",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "IMF SDMX API: IFS, WEO, balance of payments"
  },
  {
   "code": "IMGR",
@@ -4268,15 +4115,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "energy data (EIA and others)",
   "why": "NREL Annual Technology Baseline levelized cost by technology (free CSV)"
- },
- {
-  "code": "LEAD",
-  "name": "Leading economic indicators",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "OECD composite leading indicators by country (Conference Board LEI is licensed)"
  },
  {
   "code": "LEAG",
@@ -5128,15 +4966,6 @@ export const INVENTORY: Fn[] = [
   "why": "OAS needs dealer bond prices and vol"
  },
  {
-  "code": "OECD",
-  "name": "OECD data",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "OECD SDMX API (keyless): main economic indicators, outlook, CLI"
- },
- {
   "code": "OIL",
   "name": "Oil markets menu",
   "group": "Commodities",
@@ -5266,15 +5095,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "ownership filings (SEC and regulators)",
   "why": "Executive pay from DEF 14A summary compensation tables and XBRL pay-versus-performance tags"
- },
- {
-  "code": "PBOC",
-  "name": "People's Bank of China portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "People's Bank of China public releases: LPR, reserve ratio, CNY fixing"
  },
  {
   "code": "PBSK",
@@ -5801,24 +5621,6 @@ export const INVENTORY: Fn[] = [
   "why": "Ratings are licensed by the agencies"
  },
  {
-  "code": "RBA",
-  "name": "Reserve Bank of Australia portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "Reserve Bank of Australia statistical tables (CSV)"
- },
- {
-  "code": "RBOI",
-  "name": "Reserve Bank of India portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "Reserve Bank of India DBIE and press releases"
- },
- {
   "code": "RCA",
   "name": "Real Capital Analytics transaction data",
   "group": "Tools",
@@ -6214,15 +6016,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "ISDA documentation portal on the terminal"
- },
- {
-  "code": "SNB",
-  "name": "Swiss National Bank portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "Swiss National Bank data portal API (keyless)"
  },
  {
   "code": "SND",
@@ -6896,15 +6689,6 @@ export const INVENTORY: Fn[] = [
   "why": "The Economist's Big Mac index data (public GitHub CSV)"
  },
  {
-  "code": "WBGR",
-  "name": "World Bank data",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "World Bank indicators API (keyless)"
- },
- {
   "code": "WBI",
   "name": "World bond indices",
   "group": "Fixed income",
@@ -7059,15 +6843,6 @@ export const INVENTORY: Fn[] = [
   "target": "WCRS"
  },
  {
-  "code": "WGO",
-  "name": "Gold reserves of major countries",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Official gold reserves by country from IMF IFS"
- },
- {
   "code": "WGT",
   "name": "Member weightings",
   "group": "Markets",
@@ -7090,15 +6865,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "CTM"
- },
- {
-  "code": "WIRA",
-  "name": "International reserve assets",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "International reserves by country from IMF reserves template (IRFCL)"
  },
  {
   "code": "WLA",
