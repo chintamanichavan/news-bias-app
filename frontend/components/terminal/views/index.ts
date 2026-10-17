@@ -63,6 +63,7 @@ import { Corr, Hra } from './Relations'
 import Mov from './Mov'
 import WorldBonds from './WorldBonds'
 import Valuation from './Valuation'
+import { FilingSearch, Insiders, ShortHistory, Thirteenf, UkShorts } from './Owners'
 import Tca from './Tca'
 
 /** The screen for each live function code. */
@@ -89,6 +90,8 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   GIPS: Chart, GIPW: Chart, MGR: Compare,
   HRA: Hra, CORR: Corr, MOV: Mov, WB: WorldBonds,
   WACC: Valuation, DCF: Valuation, DDM: Valuation,
+  INSD: Insiders, GPTR: Insiders, SIA: ShortHistory, SPOS: UkShorts, FLNG: Thirteenf, PHDC: Thirteenf,
+  CFS: FilingSearch, EDGS: FilingSearch, ACF: FilingSearch, CFA: FilingSearch, DSCO: FilingSearch,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

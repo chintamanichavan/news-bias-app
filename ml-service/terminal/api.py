@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, book, company, dcf, econ, filings, futures, fx, govts, indexmove, ipos, movers, news, options, peers,
+from . import (alerts, book, company, dcf, econ, ownership, filings, futures, fx, govts, indexmove, ipos, movers, news, options, peers,
                quotes, rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
@@ -345,3 +345,41 @@ async def valuation(symbol: str, growth: float | None = Query(None, ge=-50, le=5
 @router.get("/intraday/{symbol}")
 async def intraday_bars(symbol: str, span: str = Query("5d", pattern="^(1d|5d|1mo)$")):
     return {"symbol": symbol.upper(), "span": span, "bars": await returns.intraday(symbol.upper(), span)}
+
+
+
+@router.get("/insiders/{symbol}")
+async def insider_trades(symbol: str):
+    try:
+        return await ownership.insider_view(symbol.upper())
+    except yahoo.NotFound as e:
+        raise HTTPException(404, str(e))
+
+
+@router.get("/13f")
+async def thirteen_f(manager: str = Query(..., min_length=2, max_length=80)):
+    try:
+        return await ownership.manager(manager.strip())
+    except ownership.NoFilings as e:
+        raise HTTPException(404, str(e))
+
+
+@router.get("/shorts/{symbol}")
+async def short_interest_history(symbol: str):
+    return await ownership.short_history(symbol.upper())
+
+
+@router.get("/uk-shorts")
+async def uk_short_positions(issuer: str | None = Query(None, max_length=80)):
+    return await ownership.uk_shorts(issuer)
+
+
+@router.get("/filing-search")
+async def filing_search(q: str = Query(..., min_length=2, max_length=200), forms: str | None = Query(None, max_length=80),
+                        start: str | None = Query(None, pattern=r"^\d{4}-\d\d-\d\d$"),
+                        end: str | None = Query(None, pattern=r"^\d{4}-\d\d-\d\d$"),
+                        symbol: str | None = Query(None, max_length=12)):
+    cik = await filings.cik_for(symbol.upper()) if symbol else None
+    if symbol and cik is None:
+        raise HTTPException(404, f"{symbol.upper()} is not an SEC filer.")
+    return await ownership.search(q, forms, start, end, cik)
