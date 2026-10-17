@@ -19,17 +19,20 @@ import Financials from './Financials'
 import Functions from './Functions'
 import Futures from './Futures'
 import Heatmap from './Heatmap'
+import Hivg from './Hivg'
 import Holders from './Holders'
 import Help from './Help'
 import History from './History'
 import Management from './Management'
 import Industries from './Industries'
 import Ipos from './Ipos'
+import Ivol from './Ivol'
 import Money from './Money'
 import Movers from './Movers'
 import News from './News'
 import Omon from './Omon'
 import Ov from './Ov'
+import Ovdv from './Ovdv'
 import Overview from './Overview'
 import Peers from './Peers'
 import Ownership from './Ownership'
@@ -38,6 +41,7 @@ import Risk from './Risk'
 import TotalReturn from './TotalReturn'
 import Screener from './Screener'
 import ShortInterest from './ShortInterest'
+import Skew from './Skew'
 import type { ViewProps } from './types'
 import Unavailable, { reasonFor } from './Unavailable'
 import Weather from './Weather'
@@ -58,7 +62,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   MGMT: Management, SI: ShortInterest, HDS: Holders, OWN: Ownership,
   DVD: Dividends, CACS: CorporateActions, TRA: TotalReturn, COMP: Compare, G: Compare,
   CF: Filings, RV: Peers, IPO: Ipos,
-  OMON: Omon, OV: Ov,
+  OMON: Omon, OV: Ov, IVOL: Ivol, HIVG: Hivg, SKEW: Skew, OVDV: Ovdv,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

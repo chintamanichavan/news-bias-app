@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Query
 
 from . import (company, econ, filings, futures, fx, ipos, movers, news, options, peers, rates, returns,
-               screener, yahoo)
+               screener, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -111,5 +111,14 @@ async def ipo():
 async def omon(symbol: str, expiry: int | None = Query(None, ge=0)):
     try:
         return await options.chain(symbol.upper(), expiry)
+    except options.NoOptions as e:
+        raise HTTPException(404, str(e))
+
+
+@router.get("/vol/{symbol}")
+async def ivol(symbol: str):
+    """IVOL, HIVG, SKEW and OVDV read sections of this."""
+    try:
+        return await vol.surface(symbol.upper())
     except options.NoOptions as e:
         raise HTTPException(404, str(e))

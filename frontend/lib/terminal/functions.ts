@@ -75,10 +75,10 @@ export const FUNCTIONS: Fn[] = [
   live('OMON', 'Option monitor', 'Options', true),
   live('OV', 'Option valuation', 'Options', true),
   planned('OSA', 'Option scenario analysis', 'Options', true, 4),
-  planned('IVOL', 'Implied volatility', 'Options', true, 4),
-  planned('HIVG', 'Historical vs implied volatility', 'Options', true, 4),
-  planned('SKEW', 'Volatility skew', 'Options', true, 4),
-  planned('OVDV', 'Volatility surface', 'Options', true, 4),
+  live('IVOL', 'Implied volatility', 'Options', true),
+  live('HIVG', 'Historical vs implied volatility', 'Options', true),
+  live('SKEW', 'Volatility skew', 'Options', true),
+  live('OVDV', 'Volatility surface', 'Options', true),
 
   // Markets
   live('WEI', 'World equity indices', 'Markets', false),

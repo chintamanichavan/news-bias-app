@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { greeks, parseContract, price } from './bs'
 import { around, expiryAtLeast, expiryDate } from '../../components/terminal/views/options'
+import { shade } from '../../components/terminal/views/Ovdv'
 
 const hull = { s: 42, k: 40, t: 0.5, r: 0.1, q: 0, vol: 0.2 }
 
@@ -43,5 +44,14 @@ describe('chain helpers', () => {
     expect(expiryAtLeast([now + 5 * 86400, now + 30 * 86400, now + 60 * 86400], 25, now)).toBe(now + 30 * 86400)
     expect(expiryAtLeast([now + 5 * 86400], 25, now)).toBe(now + 5 * 86400)
     expect(expiryDate(1797552000)).toBe('2026-12-18')
+  })
+})
+
+describe('surface shading', () => {
+  it('runs from light to dark across the surface', () => {
+    expect(shade(null, 0.2, 0.4)).toBe('transparent')
+    expect(shade(0.2, 0.2, 0.4)).toBe('hsl(205 85% 50% / 0.08)')
+    expect(shade(0.4, 0.2, 0.4)).toBe('hsl(205 85% 50% / 0.70)')
+    expect(shade(0.3, 0.3, 0.3)).toBe('hsl(205 85% 50% / 0.39)')
   })
 })

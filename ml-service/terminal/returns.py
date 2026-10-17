@@ -115,6 +115,14 @@ async def _history(c, symbol: str, span: str, interval: str) -> dict:
     return parse_history(r.json())
 
 
+async def history(symbol: str, span: str = "1y", interval: str = "1d") -> dict:
+    """Daily history for other screens (HIVG's realized volatility), cached."""
+    async def make():
+        async with web.client() as c:
+            return await _history(c, symbol, span, interval)
+    return await web.cached(f"hist:{symbol}:{span}:{interval}", 1800, make)
+
+
 async def dividends(symbol: str) -> dict:
     """Yahoo's full-history reply drops most dividends (for KO: 169 events
     with a 20-year hole), while a 10-year reply has every one. So payments
