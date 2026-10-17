@@ -6,10 +6,10 @@ import { useResource } from '@/lib/useResource'
 interface Name { symbol: string; name: string; change_pct: number | null; market_cap: number | null }
 interface Sector { name: string; change_pct: number | null; market_cap: number; names: Name[] }
 
-/** Green for up, red for down; a 3% move is full strength. */
-export function heat(change: number | null): string {
+/** Green for up, red for down; a move of `full` percent is full strength. */
+export function heat(change: number | null, full = 3): string {
   if (change == null) return 'hsl(0 0% 50% / 0.15)'
-  const strength = Math.min(Math.abs(change) / 3, 1)
+  const strength = Math.min(Math.abs(change) / full, 1)
   const hue = change >= 0 ? '145 63% 38%' : '0 72% 50%'
   return `hsl(${hue} / ${(0.12 + 0.78 * strength).toFixed(2)})`
 }

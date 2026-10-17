@@ -5,12 +5,10 @@ Every rate is fetched one way, as units of the currency per US dollar
 the arithmetic never mixes the two directions.
 """
 
-import asyncio
-from datetime import date, datetime, timezone
+from datetime import date
 
 from . import web
-
-CHART = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+from .history import close_on_or_before, fetch_many
 
 CURRENCIES = {
     "EUR": "Euro", "JPY": "Japanese yen", "GBP": "British pound", "CHF": "Swiss franc",
@@ -48,15 +46,6 @@ def cross_matrix(per_usd: dict[str, float], codes: list[str]) -> list[list[float
     return [[(rates[b] / rates[a]) if a in rates and b in rates else None for b in codes] for a in codes]
 
 
-def close_on_or_before(series: list[tuple[date, float]], day: date) -> float | None:
-    best = None
-    for d, c in series:
-        if d > day:
-            break
-        best = c
-    return best
-
-
 def currency_row(code: str, series: list[tuple[date, float]]) -> dict | None:
     """One WCRS line from a currency's daily units-per-dollar closes."""
     if len(series) < 2:
@@ -76,30 +65,10 @@ def currency_row(code: str, series: list[tuple[date, float]]) -> dict | None:
     return row
 
 
-def parse_chart(payload: dict) -> list[tuple[date, float]]:
-    res = payload["chart"]["result"][0]
-    out = []
-    for t, c in zip(res.get("timestamp") or [], res["indicators"]["quote"][0].get("close") or []):
-        if c:
-            out.append((datetime.fromtimestamp(t, tz=timezone.utc).date(), float(c)))
-    return out
-
-
 async def rates() -> dict:
     async def make():
-        gate = asyncio.Semaphore(6)
-
-        async def one(c, code):
-            async with gate:
-                try:
-                    r = await c.get(CHART.format(symbol=f"{code}=X"), params={"range": "2y", "interval": "1d"})
-                    r.raise_for_status()
-                    return code, parse_chart(r.json())
-                except Exception:
-                    return code, []
-
-        async with web.client() as c:
-            got = dict(await asyncio.gather(*(one(c, code) for code in CURRENCIES)))
+        fetched = await fetch_many([f"{code}=X" for code in CURRENCIES])
+        got = {code: fetched[f"{code}=X"] for code in CURRENCIES}
         rows = [row for code in CURRENCIES if (row := currency_row(code, got[code]))]
         per_usd = {code: s[-1][1] for code, s in got.items() if s}
         return {

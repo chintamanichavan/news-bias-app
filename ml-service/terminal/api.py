@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Query
 
-from . import fx, movers, news, rates
+from . import futures, fx, movers, news, rates
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -40,3 +40,13 @@ async def wirp():
 @router.get("/fx")
 async def wcrs():
     return await fx.rates()
+
+
+@router.get("/futures")
+async def ctm():
+    return await futures.tables()
+
+
+@router.get("/industries")
+async def imap():
+    return await futures.industries()

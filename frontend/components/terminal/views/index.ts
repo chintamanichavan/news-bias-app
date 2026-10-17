@@ -7,9 +7,11 @@ import Description from './Description'
 import Finder from './Finder'
 import Financials from './Financials'
 import Functions from './Functions'
+import Futures from './Futures'
 import Heatmap from './Heatmap'
 import Help from './Help'
 import History from './History'
+import Industries from './Industries'
 import Money from './Money'
 import Movers from './Movers'
 import News from './News'
@@ -29,6 +31,7 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   MOST: Movers, MMAP: Heatmap, NSE: News,
   GC: Curve, BTMM: Money, WIRP: Wirp,
   WCRS: Currencies, FXC: Crosses,
+  CTM: Futures, IMAP: Industries,
 }
 
 export function viewFor(fn: string, yellowKey: string | null): ComponentType<ViewProps> {

@@ -55,6 +55,7 @@ describe('heat', () => {
     expect(heat(-1)).toContain('0 72% 50%')
     expect(heat(3)).toBe(heat(9))
     expect(heat(1.5)).toBe('hsl(145 63% 38% / 0.51)')
+    expect(heat(15, 30)).toBe(heat(1.5))   // half of a wider full scale
   })
 })
 
