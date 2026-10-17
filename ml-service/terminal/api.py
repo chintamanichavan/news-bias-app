@@ -5,9 +5,10 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, analytics, book, calendars, company, dcf, econ, facts, filings, funds, futures, fx,
-               govts, indexmove, ipos, macro, members, monitors, movers, news, newsfilters, options, optools,
-               ownership, peers, quotes, rates, returns, screener, store, trading, usmacro, vol, yahoo)
+from . import (alerts, analytics, book, calendars, commodities, company, dcf, econ, facts, filings, funds,
+               futures, fx, govts, indexmove, ipos, macro, members, monitors, movers, news, newsfilters,
+               options, optools, ownership, peers, quotes, rates, returns, screener, store, trading, usmacro,
+               vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -664,3 +665,15 @@ async def us_economy(kind: str):
         raise HTTPException(404, f"No US view called {kind}.")
     result = await fn()
     return {"rows": result} if isinstance(result, list) else result
+
+
+# ── commodities and energy: CFTC, CCRV, CRR, GCIN, CPH, CRKS, BOIL, NATG, CRUD
+
+@router.get("/commodities/{kind}")
+async def commodity_views(kind: str, code: str | None = Query(None, max_length=10)):
+    fn = {"cot": lambda: commodities.cot(code), "curves": commodities.curves, "futures": lambda: commodities.ranked("futures"),
+          "indices": lambda: commodities.ranked("indices"), "spot": commodities.spot_prices, "storage": commodities.gas_storage,
+          "petroleum": commodities.petroleum, "pink": commodities.pink_sheet}.get(kind)
+    if fn is None:
+        raise HTTPException(404, f"No commodity view called {kind}.")
+    return await fn()

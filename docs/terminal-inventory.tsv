@@ -59,7 +59,7 @@ BCAL	Bloomberg calendar	Tools	no	impossible				terminal-only	Bloomberg's in-term
 BCB	Central Bank of Brazil portal	Economy	no	build		central bank data	Central Bank of Brazil SGS API: Selic, IPCA, FX, credit series		Free public data covers it
 BCER	Bloomberg certificates (BMC and others)	Tools	no	impossible				terminal-only	Bloomberg certificates
 BCLS	Company legal search	Other	no	alias	CL				Same screen as CL
-BCOM	Bloomberg Commodity Index	Commodities	no	build		commodity monitors	Bloomberg Commodity Index level and history from Yahoo (^BCOM); published annual weights		Free public data covers it
+BCOM	Bloomberg Commodity Index	Commodities	no	impossible			Bloomberg Commodity Index level and history from Yahoo (^BCOM); published annual weights	proprietary-dataset	The Bloomberg Commodity Index is Bloomberg's licensed index; S&P GSCI and the Dow Jones index are in GCIN.
 BDEB	Debentures portal (Brazil)	Fixed income	no	impossible				dealer-prices	Brazilian debenture prices come from dealers and ANBIMA's licensed feed
 BDRV	Derivatives homepage	Rates & FX	no	alias	FUNC derivative				Same screen as FUNC
 BDVD	Bloomberg dividend forecasts	Equity	yes	impossible				bloomberg-content	Bloomberg's own dividend forecasts
@@ -258,7 +258,7 @@ COAL	Coal markets	Commodities	no	build		energy data (EIA and others)	Coal future
 COC	Cost of carry analysis for a bond	Fixed income	yes	build		fixed income calculators (Treasuries)	Treasury cost of carry from FedInvest price, coupon and SOFR repo		Free public data covers it
 COMB	Comparable bonds analysis for an issuer	Credit	yes	impossible				dealer-prices	Needs dealer bond prices
 COMP	Comparative total return vs peers and benchmark	Equity	yes	live					Already live in Artha
-COMX	COMEX inventories	Commodities	no	build		commodity monitors	CME daily COMEX warehouse stocks reports (public XLS)		Free public data covers it
+COMX	COMEX inventories	Commodities	no	impossible			CME daily COMEX warehouse stocks reports (public XLS)	proprietary-dataset	CME blocks this server's address as a scraper; warehouse stock files are CME's own.
 CORR	Correlation calculator	Equity	yes	live					Already live in Artha
 COSY	Commodity studies and chart analysis	Commodities	no	alias	TECH				Same screen as TECH
 COT	Commitments of Traders futures positions	Commodities	no	alias	CFTC				Same screen as CFTC
@@ -457,7 +457,7 @@ FLY	Flight information worldwide	Other	no	impossible				retired	Off-topic travel
 FMC	Fair market sector curves	Fixed income	no	impossible				proprietary-dataset	Bloomberg's evaluated curves
 FMCI	Fair market curve indices	Fixed income	no	impossible				proprietary-dataset	Bloomberg's evaluated curve indices
 FMPS	Select security pricing providers	Tools	no	impossible				terminal-only	Bloomberg pricing source settings
-FMV	Commodity index movers	Commodities	yes	build		commodity monitors	Commodity contributions to BCOM move: published weights times Yahoo futures returns		Free public data covers it
+FMV	Commodity index movers	Commodities	yes	impossible			Commodity contributions to BCOM move: published weights times Yahoo futures returns	proprietary-dataset	Index movers need the Bloomberg Commodity Index weights and levels, which are licensed.
 FOIA	FOIA requests (Bloomberg Government)	Other	no	impossible				bloomberg-content	Bloomberg Government content
 FOMC	FOMC results, statements and minutes	Economy	no	build		central bank data	FOMC statements, minutes and implementation notes from the Fed's press release pages		Free public data covers it
 FOMS	FOMC statements and minutes	Economy	no	alias	FOMC				Same screen as FOMC
@@ -657,7 +657,7 @@ LALT	Legal adviser league rankings	Deals	no	impossible				proprietary-dataset	Le
 LANG	Change interface language	Tools	no	impossible				terminal-only	Bloomberg interface setting
 LAST	Last screens visited (recent functions history)	Tools	no	build		terminal tools	Recent commands across panels		Free public data covers it
 LBIZ	Business leads research (Bloomberg Law)	Other	no	impossible				bloomberg-content	Bloomberg Law content
-LBMA	LBMA precious metals prices	Commodities	no	build		commodity monitors	LBMA gold, silver, platinum, palladium prices as published on its site with delay		Free public data covers it
+LBMA	LBMA precious metals prices	Commodities	no	impossible			LBMA gold, silver, platinum, palladium prices as published on its site with delay	proprietary-dataset	LBMA prices are licensed through IBA, and the LBMA site refuses requests from this server.
 LCOE	Levelized cost of energy comparison	Commodities	no	build		energy data (EIA and others)	NREL Annual Technology Baseline levelized cost by technology (free CSV)		Free public data covers it
 LEAD	Leading economic indicators	Economy	no	build		economy by country	OECD composite leading indicators by country (Conference Board LEI is licensed)		Free public data covers it
 LEAG	League tables: investment bank underwriter and advisor rankings	Deals	no	impossible				proprietary-dataset	League table data is proprietary
@@ -910,7 +910,7 @@ RESL	US real estate leads	Other	no	impossible				proprietary-dataset	Real estate
 RFQ	Interest rate swap multi-dealer RFQ	Trading	no	impossible				dealer-prices	Dealer quotes sent privately to Bloomberg
 RG	Total return comparison graph	Equity	yes	alias	COMP				Same screen as COMP
 RICH	World's highest-net-worth individuals	Other	no	impossible				bloomberg-content	Bloomberg Billionaires is Bloomberg's own research
-RIG	Rig counts	Commodities	no	build		energy data (EIA and others)	Baker Hughes weekly rig counts (public spreadsheet)		Free public data covers it
+RIG	Rig counts	Commodities	no	impossible			Baker Hughes weekly rig counts (public spreadsheet)	proprietary-dataset	Baker Hughes refuses requests from this server; no other free source publishes rig counts.
 RMAP	Relationship map: company industry and market relationships	Company	yes	impossible				proprietary-dataset	Relationship data is proprietary (same as SPLC)
 RMCR	Message mining for CDS	Credit	no	impossible				network	Mining messages on Bloomberg's network
 RMGR	Runs manager: incoming run lists	Fixed income	no	impossible				network	Dealer runs over Bloomberg messaging

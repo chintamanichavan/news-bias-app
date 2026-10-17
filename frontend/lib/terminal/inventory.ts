@@ -393,9 +393,8 @@ export const INVENTORY: Fn[] = [
   "name": "Bloomberg Commodity Index",
   "group": "Commodities",
   "security": false,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "Bloomberg Commodity Index level and history from Yahoo (^BCOM); published annual weights"
+  "status": "impossible",
+  "why": "The Bloomberg Commodity Index is Bloomberg's licensed index; S&P GSCI and the Dow Jones index are in GCIN."
  },
  {
   "code": "BDEB",
@@ -517,15 +516,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Baltic Exchange freight indices are licensed"
- },
- {
-  "code": "BGAS",
-  "name": "Spot natural gas pricing (North America)",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "energy data (EIA and others)",
-  "why": "Henry Hub daily spot from EIA history files plus NG futures; other hubs are licensed (Platts/NGI)"
  },
  {
   "code": "BGNE",
@@ -810,15 +800,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Bloomberg banker settings"
- },
- {
-  "code": "BOIL",
-  "name": "Spot oil and bunker fuel prices",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "energy data (EIA and others)",
-  "why": "EIA daily spot crude and product prices; bunker fuel prices are licensed and missing"
  },
  {
   "code": "BOLT",
@@ -1181,15 +1162,6 @@ export const INVENTORY: Fn[] = [
   "why": "Credit card master trust 10-D monthly performance from EDGAR (charge-offs, delinquencies, payment rate)"
  },
  {
-  "code": "CCRV",
-  "name": "Commodity futures curve analysis",
-  "group": "Commodities",
-  "security": true,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "Futures curve shape, roll yield and calendar spreads over time from Yahoo contract months"
- },
- {
   "code": "CDAT",
   "name": "Commodity data contributors",
   "group": "Commodities",
@@ -1393,15 +1365,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "fixed income calculators (Treasuries)",
   "why": "Cash-flow schedule for a Treasury from TreasuryDirect security terms; user terms for others"
- },
- {
-  "code": "CFTC",
-  "name": "CFTC Commitments of Traders reports",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "CFTC Commitments of Traders via publicreporting.cftc.gov (keyless): positions by trader type over time"
  },
  {
   "code": "CFVL",
@@ -1621,15 +1584,6 @@ export const INVENTORY: Fn[] = [
   "target": "GLCO"
  },
  {
-  "code": "CMDX",
-  "name": "Commodity prices and data by country",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "World Bank Pink Sheet and IMF primary commodity prices; production by country from USGS/EIA"
- },
- {
   "code": "CMET",
   "name": "Commodities electronic trading",
   "group": "Trading",
@@ -1742,9 +1696,8 @@ export const INVENTORY: Fn[] = [
   "name": "COMEX inventories",
   "group": "Commodities",
   "security": false,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "CME daily COMEX warehouse stocks reports (public XLS)"
+  "status": "impossible",
+  "why": "CME blocks this server's address as a scraper; warehouse stock files are CME's own."
  },
  {
   "code": "COSY",
@@ -1786,15 +1739,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Survey of analysts Bloomberg runs"
- },
- {
-  "code": "CPH",
-  "name": "Generic monthly commodity price history table",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "Monthly price table from Yahoo continuous futures and the World Bank Pink Sheet"
  },
  {
   "code": "CPLY",
@@ -1867,33 +1811,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Bloomberg's own monitor"
- },
- {
-  "code": "CRKS",
-  "name": "Crack spreads by region",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "US regional cracks from EIA spot product prices (NY Harbor, Gulf Coast, LA); Europe/Asia are licensed"
- },
- {
-  "code": "CRR",
-  "name": "Commodity ranked returns",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "Commodity futures ranked by return over chosen periods from Yahoo"
- },
- {
-  "code": "CRUD",
-  "name": "Crude oil price monitors menu",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "energy data (EIA and others)",
-  "why": "Crude monitor: WTI and Brent futures from Yahoo, EIA spot prices and weekly inventories"
  },
  {
   "code": "CRV",
@@ -2991,9 +2908,8 @@ export const INVENTORY: Fn[] = [
   "name": "Commodity index movers",
   "group": "Commodities",
   "security": true,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "Commodity contributions to BCOM move: published weights times Yahoo futures returns"
+  "status": "impossible",
+  "why": "Index movers need the Bloomberg Commodity Index weights and levels, which are licensed."
  },
  {
   "code": "FOIA",
@@ -3243,15 +3159,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "CDS quotes come from dealers"
- },
- {
-  "code": "GCIN",
-  "name": "Global commodity indices",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "Public commodity indices on Yahoo (BCOM, S&P GSCI) with returns"
  },
  {
   "code": "GDPP",
@@ -4022,9 +3929,8 @@ export const INVENTORY: Fn[] = [
   "name": "LBMA precious metals prices",
   "group": "Commodities",
   "security": false,
-  "status": "planned",
-  "batch": "commodity monitors",
-  "why": "LBMA gold, silver, platinum, palladium prices as published on its site with delay"
+  "status": "impossible",
+  "why": "LBMA prices are licensed through IBA, and the LBMA site refuses requests from this server."
  },
  {
   "code": "LCOE",
@@ -4641,15 +4547,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Mysteel data is licensed"
- },
- {
-  "code": "NATG",
-  "name": "Natural gas markets menu",
-  "group": "Commodities",
-  "security": false,
-  "status": "planned",
-  "batch": "energy data (EIA and others)",
-  "why": "Nat gas monitor: NG futures, Henry Hub spot, EIA weekly storage report (ir.eia.gov)"
  },
  {
   "code": "NEFW",
@@ -5640,9 +5537,8 @@ export const INVENTORY: Fn[] = [
   "name": "Rig counts",
   "group": "Commodities",
   "security": false,
-  "status": "planned",
-  "batch": "energy data (EIA and others)",
-  "why": "Baker Hughes weekly rig counts (public spreadsheet)"
+  "status": "impossible",
+  "why": "Baker Hughes refuses requests from this server; no other free source publishes rig counts."
  },
  {
   "code": "RMAP",
