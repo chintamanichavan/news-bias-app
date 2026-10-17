@@ -62,6 +62,7 @@ import Pairs from './Pairs'
 import { Corr, Hra } from './Relations'
 import Mov from './Mov'
 import Members from './Members'
+import { Conditions, DotPlot, FedPage, FederalBudget, FomcDocs, ForeignHolders, Inflation, OecdOutlook, TaylorRule, UsHousing } from './UsMacro'
 import { BANK_OF, CentralBank, CountryRisk, CountryView, EconomyMatrix, HousePrices, LeadingIndicators, PolicyRates, Reserves, WorldBankData } from './Macro'
 import { CompanyCoverage, CustomPaper, IndustryNews, MoversNews, NewsTrends, Outlets, RegulatoryNews, TopicNews } from './NewsFilters'
 import { BookFundamentals, Classifications, FactorView, HedgeEffect, Liquidity, TradeImpact } from './Analytics'
@@ -112,6 +113,8 @@ const VIEWS: Record<string, ComponentType<ViewProps>> = {
   COUN: CountryView, ECMX: EconomyMatrix, EMEC: EconomyMatrix, GDP: EconomyMatrix, WBGR: WorldBankData, IMF: WorldBankData, LEAD: LeadingIndicators, OECD: LeadingIndicators,
   HOIN: HousePrices, WGO: Reserves, WIRA: Reserves, CRP: CountryRisk, EQRP: CountryRisk, CBRT: PolicyRates, EMMR: PolicyRates, CENB: PolicyRates,
   ...Object.fromEntries(Object.keys(BANK_OF).map(c => [c, CentralBank])),
+  BLSE: Economy, FED: FedPage, DOTS: DotPlot, FOMC: FomcDocs, FCON: Conditions, BUDG: FederalBudget, DEBT: ForeignHolders, TAYL: TaylorRule,
+  IFMO: Inflation, HSST: UsHousing, OUTL: OecdOutlook,
   WEIF: Weif, GMM: Gmm, IRR: Irr, MRV: Mrv, GRR: Grr, HALT: Halts, CRYP: Cryp, FX24: FxSessions, FXCA: Fxca,
   WACC: Valuation, DCF: Valuation, DDM: Valuation,
   INSD: Insiders, GPTR: Insiders, SIA: ShortHistory, SPOS: UkShorts, FLNG: Thirteenf, PHDC: Thirteenf,

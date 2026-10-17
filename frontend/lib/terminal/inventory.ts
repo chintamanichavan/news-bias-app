@@ -747,15 +747,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg Law content"
  },
  {
-  "code": "BLSE",
-  "name": "US employment statistics",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "US employment dashboard from BLS API (payrolls, unemployment, wages; cached under 25/day)"
- },
- {
   "code": "BMAIL",
   "name": "Messaging options menu",
   "group": "Tools",
@@ -1023,15 +1014,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Bloomberg training"
- },
- {
-  "code": "BUDG",
-  "name": "US federal budget data and analytics (BGOV)",
-  "group": "Tools",
-  "security": false,
-  "status": "planned",
-  "batch": "US government data",
-  "why": "Treasury Fiscal Data API: Monthly Treasury Statement receipts, outlays, deficit, debt to the penny"
  },
  {
   "code": "BURN",
@@ -2094,15 +2076,6 @@ export const INVENTORY: Fn[] = [
   "why": "Bloomberg's deal communication network"
  },
  {
-  "code": "DEBT",
-  "name": "Sovereign debt holdings",
-  "group": "Fixed income",
-  "security": false,
-  "status": "planned",
-  "batch": "US government data",
-  "why": "Treasury International Capital (TIC) major foreign holders of US Treasuries"
- },
- {
   "code": "DINE",
   "name": "Restaurant reviews by city",
   "group": "Tools",
@@ -2182,15 +2155,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Bloomberg documentation"
- },
- {
-  "code": "DOTS",
-  "name": "FOMC dot plot",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "FOMC dot plot from the Fed's Summary of Economic Projections tables"
  },
  {
   "code": "DPDF",
@@ -2760,15 +2724,6 @@ export const INVENTORY: Fn[] = [
   "why": "Favourite functions list saved in the browser"
  },
  {
-  "code": "FCON",
-  "name": "Financial conditions monitor",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Chicago Fed National Financial Conditions Index (public CSV) with components"
- },
- {
   "code": "FCW",
   "name": "Financial conditions periodical",
   "group": "Economy",
@@ -2800,15 +2755,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "alias",
   "target": "FXCA"
- },
- {
-  "code": "FED",
-  "name": "Federal Reserve portal",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "Federal Reserve portal: rates, H.4.1 balance sheet (data download program), FOMC calendar and statements"
  },
  {
   "code": "FEDL",
@@ -3056,15 +3002,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Bloomberg Government content"
- },
- {
-  "code": "FOMC",
-  "name": "FOMC results, statements and minutes",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "central bank data",
-  "why": "FOMC statements, minutes and implementation notes from the Fed's press release pages"
  },
  {
   "code": "FOMS",
@@ -3625,15 +3562,6 @@ export const INVENTORY: Fn[] = [
   "target": "HS"
  },
  {
-  "code": "HSST",
-  "name": "US housing statistics",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Census new residential construction and sales, FHFA house price index CSV"
- },
- {
   "code": "HWIZ",
   "name": "Hedge wizard: compare and analyze hedges",
   "group": "Fixed income",
@@ -3753,15 +3681,6 @@ export const INVENTORY: Fn[] = [
   "security": false,
   "status": "impossible",
   "why": "Ideas contributed on Bloomberg's network"
- },
- {
-  "code": "IFMO",
-  "name": "Inflation monitor",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Inflation monitor: CPI by country (BLS, ECB HICP, IMF) and US breakevens from Treasury real curve"
  },
  {
   "code": "IFS",
@@ -5022,15 +4941,6 @@ export const INVENTORY: Fn[] = [
   "why": "OPIS prices are licensed"
  },
  {
-  "code": "OUTL",
-  "name": "Economic surveys and outlooks",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Official outlooks only: IMF WEO and OECD Economic Outlook projections"
- },
- {
   "code": "OVCV",
   "name": "Convertible bond valuation",
   "group": "Fixed income",
@@ -6266,15 +6176,6 @@ export const INVENTORY: Fn[] = [
   "status": "planned",
   "batch": "US government data",
   "why": "Treasury TARP reports (public): disbursements, repayments, outstanding"
- },
- {
-  "code": "TAYL",
-  "name": "Taylor rule analysis",
-  "group": "Economy",
-  "security": false,
-  "status": "planned",
-  "batch": "economy by country",
-  "why": "Taylor rule rate from BLS inflation and unemployment gap (CBO NAIRU) vs actual fed funds"
  },
  {
   "code": "TBA",

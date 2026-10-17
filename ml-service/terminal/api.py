@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from . import (alerts, analytics, book, calendars, company, dcf, econ, facts, filings, funds, futures, fx,
                govts, indexmove, ipos, macro, members, monitors, movers, news, newsfilters, options, optools,
-               ownership, peers, quotes, rates, returns, screener, store, trading, vol, yahoo)
+               ownership, peers, quotes, rates, returns, screener, store, trading, usmacro, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
 
@@ -651,3 +651,16 @@ async def world_economy(kind: str, country: str | None = Query(None, max_length=
         iso3s = [macro._wb_iso3(x.strip().upper()) for x in (countries or "US,CN,DE,JP,IN,GB").split(",") if x.strip()][:12]
         return {"indicator": indicator, "name": macro.INDICATORS[indicator], "series": await macro.wb(indicator, iso3s, 30)}
     raise HTTPException(404, f"No macro view called {kind}.")
+
+
+# ── the US and the Fed: FED, DOTS, FOMC, FCON, BUDG, DEBT, TAYL, IFMO, HSST, OUTL
+
+@router.get("/us/{kind}")
+async def us_economy(kind: str):
+    fn = {"fed": usmacro.fed, "dots": usmacro.projections, "fomc": usmacro.fomc_documents, "conditions": usmacro.conditions,
+          "budget": usmacro.budget, "holders": usmacro.foreign_holders, "taylor": usmacro.taylor_rule,
+          "breakevens": usmacro.breakevens, "housing": usmacro.housing, "outlook": usmacro.outlook}.get(kind)
+    if fn is None:
+        raise HTTPException(404, f"No US view called {kind}.")
+    result = await fn()
+    return {"rows": result} if isinstance(result, list) else result
