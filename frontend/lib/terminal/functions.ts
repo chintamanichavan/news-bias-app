@@ -1,8 +1,12 @@
-// Every terminal function, one entry each. The status says whether it works
-// today or cannot be built on free data — in which case `why` says what is
-// missing.
+// Every terminal function, one entry each. The ones written here by hand
+// are live or impossible; inventory.ts, generated from the public list of
+// Bloomberg codes in docs/terminal-inventory.tsv, adds the rest: codes that
+// are the same as another (alias), codes still to build (planned, with a
+// plan in `why`), and codes that cannot be built on free data (with why).
 
-export type Status = 'live' | 'impossible'
+import { INVENTORY } from './inventory'
+
+export type Status = 'live' | 'alias' | 'planned' | 'impossible'
 
 export interface Fn {
   code: string
@@ -12,6 +16,10 @@ export interface Fn {
   security: boolean
   status: Status
   why?: string
+  /** for an alias, the code it stands for, with any arguments (NRG is "FUNC energy") */
+  target?: string
+  /** for a planned code, the batch it will be built with */
+  batch?: string
 }
 
 export type Group =
@@ -23,6 +31,11 @@ export type Group =
   | 'News'
   | 'Screening'
   | 'Technical'
+  | 'Fixed income'
+  | 'Credit'
+  | 'Commodities'
+  | 'Funds'
+  | 'Deals'
   | 'Portfolio'
   | 'Trading'
   | 'Tools'
@@ -36,7 +49,7 @@ const impossible = (code: string, name: string, group: Group, why: string): Fn =
 const DEALER = 'Dealer quotes are sent privately to Bloomberg; there is no free source.'
 const OWN_NEWSROOM = "Bloomberg's own reporters and analysts write it."
 
-export const FUNCTIONS: Fn[] = [
+const BY_HAND: Fn[] = [
   // Company
   live('DES', 'Description', 'Company', true),
   live('GP', 'Price chart', 'Company', true),
@@ -224,10 +237,29 @@ export const FUNCTIONS: Fn[] = [
   impossible('BPS', 'People search', 'Tools', 'A proprietary people database.'),
 ]
 
+export const FUNCTIONS: Fn[] = [...BY_HAND, ...INVENTORY]
+
 const BY_CODE = new Map(FUNCTIONS.map(f => [f.code, f]))
 
 export function lookup(code: string): Fn | undefined {
   return BY_CODE.get(code.toUpperCase())
+}
+
+/** The function a code finally means, following aliases (CURV is GC). */
+export function resolve(code: string): Fn | undefined {
+  return resolveWithArgs(code).fn
+}
+
+/** As resolve, plus the arguments the alias carries. */
+export function resolveWithArgs(code: string): { fn: Fn | undefined; args: string[] } {
+  let f = lookup(code)
+  let args: string[] = []
+  for (let hops = 0; f?.status === 'alias' && hops < 4; hops++) {
+    const [target, ...rest] = f.target!.split(' ')
+    if (rest.length) args = rest
+    f = lookup(target)
+  }
+  return { fn: f, args }
 }
 
 /** Functions whose code or name contains the query, codes first. */

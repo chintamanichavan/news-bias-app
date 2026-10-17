@@ -36,6 +36,12 @@ describe('workspace', () => {
     expect(shown(ws, 0)).toBe('AAPL GP 5Y')
   })
 
+  it('runs the function an alias stands for, keeping its arguments', () => {
+    expect(shown(exec(emptyWorkspace(), 0, 'CURV'), 0)).toBe('GC')
+    expect(shown(exec(emptyWorkspace(), 0, 'NRG'), 0)).toBe('FUNC energy')       // a menu opens the list filtered
+    expect(shown(exec(emptyWorkspace(), 0, 'AAPL CHKO 1Y'), 0)).toBe('AAPL CHKO 1Y')
+  })
+
   it('refuses a security function when the panel has no security', () => {
     const r = run(emptyWorkspace(), 0, cmd('GP'))
     expect(r.ok).toBe(false)

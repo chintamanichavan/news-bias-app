@@ -77,6 +77,25 @@ points against the arrival midpoint and against the day's VWAP from
 Each phase: small commits, tests with the code, numbers predicted before
 they are measured.
 
+## Beyond the first list: every public code (from 2026-10-17)
+
+The first 88 codes were the well-known core. Bloomberg publishes no full
+list, so `docs/terminal-inventory.tsv` gathers every code named on public
+cheat sheets (105 sources, listed in `docs/terminal-inventory-sources.txt`):
+1,125 codes, each classified as
+
+- **live**: built,
+- **alias**: the same screen as another code (CURV is GC; a menu such as
+  NRG opens FUNC filtered to its topic),
+- **build**: buildable on free data, with a plan and a batch,
+- **impossible**: needs dealer prices, a licensed database, Bloomberg's own
+  content or network, or is about the Bloomberg terminal itself.
+
+`python3 ops/terminal/inventory.py` turns the TSV into
+`frontend/lib/terminal/inventory.ts`; codes `functions.ts` defines by hand
+win. Building a code is: its view, its line in `functions.ts`, regenerate.
+FUNC shows the running totals. Batches are built largest first.
+
 ## Phase 2 sources
 
 The backend for these lives in `ml-service/terminal/`, one module per kind

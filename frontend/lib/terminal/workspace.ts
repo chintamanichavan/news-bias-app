@@ -1,7 +1,7 @@
 // The terminal's state: panels, each with its own history, joined in link
 // groups. Pure functions only; the page holds the state and persists it.
 
-import { lookup } from './functions'
+import { lookup, resolveWithArgs } from './functions'
 import { format, parse, type Command, type Security } from './parse'
 
 export type LinkGroup = 'A' | 'B' | null
@@ -66,10 +66,12 @@ export type RunResult = { ok: true; ws: Workspace } | { ok: false; error: string
  * panels in the same link group, each keeping its own function.
  */
 export function run(ws: Workspace, index: number, command: Command): RunResult {
-  const fn = lookup(command.fn)
+  // an alias runs the function it stands for (CURV is GC)
+  const { fn, args } = resolveWithArgs(command.fn)
   if (!fn) return { ok: false, error: `Unknown function ${command.fn}.` }
 
-  let cmd = command
+  let cmd = fn.code === command.fn.toUpperCase() ? command
+    : { ...command, fn: fn.code, args: command.args.length ? command.args : args }
   if (fn.security && !cmd.security) {
     const sec = securityOf(ws.panels[index])
     if (!sec) return { ok: false, error: `${fn.code} needs a security first, for example "AAPL ${fn.code}".` }

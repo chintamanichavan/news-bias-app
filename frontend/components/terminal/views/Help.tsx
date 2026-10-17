@@ -37,6 +37,10 @@ function Detail({ code, run }: { code: string; run: ViewProps['run'] }) {
       {fn.status === 'live' && (
         <button onClick={() => run(fn.security ? `AAPL ${fn.code}` : fn.code)} className="text-[12px] underline">Try it</button>
       )}
+      {fn.status === 'alias' && (
+        <Note>The same as <button className="underline" onClick={() => run(fn.code)}>{fn.target}</button>.</Note>
+      )}
+      {fn.status === 'planned' && <Note>Not built yet ({fn.batch}). Plan: {fn.why}</Note>}
       {fn.status === 'impossible' && <Note>Cannot be built on free data. {fn.why}</Note>}
     </div>
   )
