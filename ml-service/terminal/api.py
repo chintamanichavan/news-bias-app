@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import (alerts, book, company, econ, filings, futures, fx, ipos, movers, news, options, peers,
+from . import (alerts, book, company, econ, filings, futures, fx, indexmove, ipos, movers, news, options, peers,
                quotes, rates, returns, screener, store, trading, vol, yahoo)
 
 router = APIRouter(prefix="/terminal", tags=["terminal"])
@@ -304,3 +304,12 @@ async def order_check():
 @router.get("/tca")
 async def trade_costs():
     return await trading.tca()
+
+
+
+@router.get("/mov/{index}")
+async def index_movers(index: str):
+    code = index.upper()
+    if code not in indexmove.INDICES:
+        raise HTTPException(404, f"MOV covers {', '.join(indexmove.INDICES)}.")
+    return await indexmove.movers(code)

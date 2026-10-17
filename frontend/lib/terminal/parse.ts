@@ -120,3 +120,11 @@ export function parse(input: string): Parsed {
 export function format(c: Command): string {
   return [c.security?.label, c.fn, ...c.args].filter(Boolean).join(' ')
 }
+
+/** A security named in a function's arguments ("AAPL HRA SPX", "CORR AAPL
+ *  KO"): an index code, a generic future or a crypto pair becomes the
+ *  provider's symbol; anything else is taken as the provider's own. */
+export function argSymbol(token: string): string {
+  const t = token.toUpperCase()
+  return INDEX_SYMBOL[t] ?? COMDTY_SYMBOL[t] ?? CRYPTO_SYMBOL[t] ?? t
+}

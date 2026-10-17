@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FUNCTIONS, lookup, searchFunctions } from './functions'
-import { format, parse } from './parse'
+import { argSymbol, format, parse } from './parse'
 
 function ok(input: string) {
   const p = parse(input)
@@ -84,5 +84,14 @@ describe('functions', () => {
     expect(searchFunctions('GP')[0].code).toBe('GP')
     expect(searchFunctions('dividend').map(f => f.code)).toContain('DVD')
     expect(searchFunctions('').length).toBe(FUNCTIONS.length)
+  })
+})
+
+describe('argSymbol', () => {
+  it('maps index, future and crypto codes and passes the rest through', () => {
+    expect(argSymbol('spx')).toBe('^GSPC')
+    expect(argSymbol('CL1')).toBe('CL=F')
+    expect(argSymbol('XBTUSD')).toBe('BTC-USD')
+    expect(argSymbol('ko')).toBe('KO')
   })
 })

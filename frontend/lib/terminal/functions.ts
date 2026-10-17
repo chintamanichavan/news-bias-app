@@ -22,6 +22,7 @@ export type Group =
   | 'Economy'
   | 'News'
   | 'Screening'
+  | 'Technical'
   | 'Portfolio'
   | 'Trading'
   | 'Tools'
@@ -58,6 +59,7 @@ export const FUNCTIONS: Fn[] = [
   live('CF', 'Company filings', 'Company', true),
   live('TRA', 'Total return', 'Company', true),
   live('COMP', 'Comparative returns', 'Company', true),
+  live('HRA', 'Historical regression', 'Company', true),
   live('G', 'Multi-security chart', 'Company', false),
   impossible('ESG', 'ESG scores', 'Company', 'Yahoo stopped publishing them; the rating firms license their scores.'),
   impossible('SPLC', 'Supply chain', 'Company', 'A proprietary supply-chain database.'),
@@ -113,6 +115,17 @@ export const FUNCTIONS: Fn[] = [
   impossible('TV', 'Bloomberg TV', 'News', 'A licensed broadcast.'),
 
   // Screening
+  live('CORR', 'Correlation matrix', 'Markets', false),
+  live('MOV', 'Index movers', 'Markets', false),
+
+  // Technical
+  live('GPC', 'Candlestick chart', 'Technical', true),
+  live('GPO', 'Bar chart (open, high, low, close)', 'Technical', true),
+  live('TECH', 'Technical summary', 'Technical', true),
+  live('RSI', 'Relative strength index', 'Technical', true),
+  live('MACD', 'Moving average convergence/divergence', 'Technical', true),
+  live('BOLL', 'Bollinger bands', 'Technical', true),
+
   live('SECF', 'Security finder', 'Screening', false),
   live('EQS', 'Equity screener', 'Screening', false),
   live('BQL', 'Query language', 'Screening', false),
