@@ -12,6 +12,7 @@ interface SearchHit { symbol: string; name: string; asset_class: string; region:
 
 interface Dossier {
   error?: string
+  resolved_from?: string
   symbol: string; name: string | null; asset_class: string | null
   observations: number; span: { from: string; to: string }
   price: { last: number; vs_52w_high_pct: number; vs_52w_low_pct: number; trend: string }
@@ -89,7 +90,7 @@ export default function LabPage() {
     } catch {}
   }, [])
 
-  const { data: d, loading } = useResource<Dossier>(`/api/lab/${encodeURIComponent(symbol)}`)
+  const { data: d, loading, error } = useResource<Dossier>(`/api/lab/${encodeURIComponent(symbol)}`)
 
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current)
@@ -148,6 +149,10 @@ export default function LabPage() {
 
       {loading && !d && <div className="mt-8 skeleton h-96 rounded-2xl" />}
       {d?.error && <p className="mt-8 text-sm text-muted-foreground">{d.error}</p>}
+      {error && !d && <p className="mt-8 text-sm text-muted-foreground">Could not load {symbol}: {error}</p>}
+      {d?.resolved_from && !d.error && (
+        <p className="mt-8 text-[12px] text-muted-foreground">No ticker {d.resolved_from}; showing {d.symbol}, the closest name in the registry.</p>
+      )}
 
       {d && !d.error && (
         <>

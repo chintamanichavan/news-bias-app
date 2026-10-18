@@ -307,8 +307,19 @@ def search(q: str, limit: int = 12) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-async def dossier(symbol: str, days: int = 500) -> dict:
-    closes_pairs = await _daily_closes(symbol, days)
+async def dossier(symbol: str, days: int = 500, resolve: bool = True) -> dict:
+    try:
+        closes_pairs = await _daily_closes(symbol, days)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code != 404:
+            raise
+        # Not a ticker Yahoo knows: perhaps a name ("rivian"). Use the
+        # registry's best match, one hop only, else say so.
+        hits = [h for h in search(symbol, 1) if h["symbol"].upper() != symbol.upper()] if resolve else []
+        if hits:
+            out = await dossier(hits[0]["symbol"], days, resolve=False)
+            return {**out, "resolved_from": symbol}
+        return {"error": f"No prices found for {symbol}. Search by name and pick from the list, or enter its ticker."}
     if len(closes_pairs) < 40:
         return {"error": f"not enough price history for {symbol}"}
     dates = [d for d, _ in closes_pairs]
