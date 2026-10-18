@@ -57,3 +57,34 @@ def test_an_unknown_sleeve_is_refused(monkeypatch):
         {"asset_class": "equity", "region": "mars", "factor": "value", "weight": 100}]})
     with pytest.raises(ValueError, match="mars"):
         odds.sleeves()
+
+
+def _fake_history(monkeypatch):
+    rng = np.random.default_rng(1)
+    S = {odds.key(*k): rng.normal(0.008, 0.04, 120) for k in odds.PROXIES}
+    b = {k: rng.normal(0.008, 0.04, 120) for k in odds.BENCHMARKS}
+    monkeypatch.setattr(odds, "history", lambda: ([f"{2000 + i // 12}{i % 12 + 1:02d}" for i in range(120)], S, b))
+    monkeypatch.setattr(odds.portfolio, "targets", lambda: {"allocations": [
+        {"region": "us-developed", "factor": "small-value", "weight": 60},
+        {"region": "emerging", "factor": "value", "weight": 40}]})
+
+
+def test_a_what_if_with_the_plans_weights_is_the_plan(monkeypatch):
+    _fake_history(monkeypatch)
+    plan = odds.odds()
+    same = odds.odds({"us-developed/small-value": 3, "emerging/value": 2, "global/quality": 0})
+    assert same["plan"]["horizons"] == plan["plan"]["horizons"]
+    assert [s["key"] for s in same["sleeves"]] == ["us-developed/small-value", "emerging/value"]
+
+
+def test_a_single_sleeve_carries_all_the_risk(monkeypatch):
+    _fake_history(monkeypatch)
+    one = odds.odds({"global/quality": 100})
+    assert one["sleeves"][0]["risk_share"] == pytest.approx(1.0)
+
+
+def test_what_ifs_that_cannot_be_priced_are_refused(monkeypatch):
+    _fake_history(monkeypatch)
+    for bad in ({"global/quality": -5}, {"global/quality": 0}, {"moon/value": 10}):
+        with pytest.raises(ValueError):
+            odds.odds(bad)

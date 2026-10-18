@@ -1063,6 +1063,20 @@ def odds_on_plan():
     return out
 
 
+class WhatIf(BaseModel):
+    weights: dict[str, float]
+
+
+@app.post("/odds/whatif")
+def odds_what_if(body: WhatIf):
+    """The same pricing for any mix of the Core sleeves, {"region/factor":
+    percent}; weights are scaled to add up to 100."""
+    try:
+        return odds.odds(body.weights)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.get("/health/pipeline")
 def health_pipeline():
     """Freshness per component, corpus counts, signal outliers."""

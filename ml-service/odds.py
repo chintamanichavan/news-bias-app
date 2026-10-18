@@ -86,34 +86,45 @@ def french(name: str) -> dict[str, dict[str, float]]:
     return parse_french(z.read(z.namelist()[0]).decode("latin-1"))
 
 
-def sleeves() -> list[dict]:
-    """The Core allocation as weights summing to 1, each with its proxy."""
-    rows = portfolio.targets()["allocations"]
-    total = sum(r["weight"] for r in rows)
+def key(region: str, factor: str) -> str:
+    return f"{region}/{factor}"
+
+
+def sleeves(weights: dict[str, float] | None = None) -> list[dict]:
+    """The Core allocation — or a what-if, {"region/factor": percent} — as
+    weights summing to 1, each with its proxy. Zero-weight sleeves are left out."""
+    if weights is None:
+        rows = [(r.get("region"), r.get("factor"), r["weight"])
+                for r in portfolio.targets()["allocations"]]
+    else:
+        rows = [(*k.split("/", 1), w) for k, w in weights.items()]
+    if any(w < 0 for *_, w in rows):
+        raise ValueError("weights cannot be negative")
+    total = sum(w for *_, w in rows)
+    if total <= 0:
+        raise ValueError("weights must add up to more than zero")
     out = []
-    for r in rows:
-        key = (r.get("region"), r.get("factor"))
-        if key not in PROXIES:
-            raise ValueError(f"no proxy for sleeve {key}")
-        out.append({"region": key[0], "factor": key[1], "weight": r["weight"] / total,
-                    "proxy": PROXIES[key]})
+    for region, factor, w in rows:
+        if (region, factor) not in PROXIES:
+            raise ValueError(f"no proxy for sleeve {(region, factor)}")
+        if w > 0:
+            out.append({"region": region, "factor": factor, "weight": w / total,
+                        "proxy": PROXIES[(region, factor)]})
     return out
 
 
-def history(books: list[dict]) -> tuple[list[str], np.ndarray, dict[str, np.ndarray]]:
-    """Months every sleeve and benchmark has, the sleeves' monthly returns
-    (months x sleeves), and each benchmark's."""
+def history() -> tuple[list[str], dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """Every sleeve's and benchmark's monthly returns over the months they all
+    have — one window, so a what-if is priced on the same months as the plan."""
     files = {name: french(name) for name, _ in PROXIES.values()}
     benches = {k: french(name) for k, (name, _) in BENCHMARKS.items()}
-    series = []
-    for s in books:
-        name, cols = s["proxy"]
-        series.append({m: sum(v[c] for c in cols) / len(cols)
-                       for m, v in files[name].items() if all(c in v for c in cols)})
-    months = sorted(set.intersection(*map(set, series), *map(set, benches.values())))
-    R = np.array([[ser[m] for ser in series] for m in months])
+    series = {key(*k): {m: sum(v[c] for c in cols) / len(cols)
+                        for m, v in files[name].items() if all(c in v for c in cols)}
+              for k, (name, cols) in PROXIES.items()}
+    months = sorted(set.intersection(*map(set, series.values()), *map(set, benches.values())))
+    S = {k: np.array([ser[m] for m in months]) for k, ser in series.items()}
     b = {k: np.array([f[m]["Mkt-RF"] + f[m]["RF"] for m in months]) for k, f in benches.items()}
-    return months, R, b
+    return months, S, b
 
 
 def block_bootstrap(n_months: int, length: int, rng) -> np.ndarray:
@@ -153,12 +164,14 @@ def distribution(r: np.ndarray, rng) -> dict:
            "horizons": []}
     for years in HORIZONS:
         g = cagr(paths[:, :years * 12])
+        real = rolling(r, years * 12) if len(r) >= years * 12 else np.array([])
         out["horizons"].append({
             "years": years,
             "percentiles": {str(p): float(np.percentile(g, p)) for p in (5, 25, 50, 75, 95)},
             "p_goal": {f"{goal:.2f}": float((g >= goal).mean()) for goal in GOALS},
             "p_loss": float((g < 0).mean()),
-            "history_share": {f"{goal:.2f}": float((rolling(r, years * 12) >= goal).mean())
+            # None when the record is shorter than the horizon.
+            "history_share": {f"{goal:.2f}": float((real >= goal).mean()) if len(real) else None
                               for goal in GOALS},
         })
     year = cagr(paths[:, :12])
@@ -171,14 +184,16 @@ def distribution(r: np.ndarray, rng) -> dict:
     return out
 
 
-def odds() -> dict:
-    books = sleeves()
-    months, R, benches = history(books)
+def odds(weights: dict[str, float] | None = None) -> dict:
+    """The plan priced; with `weights`, a what-if priced the same way."""
+    books = sleeves(weights)
+    months, S, benches = history()
+    R = np.column_stack([S[key(s["region"], s["factor"])] for s in books])
     w = np.array([s["weight"] for s in books])
     plan = R @ w - FEES / 12
 
     # Each sleeve's share of the plan's variance: w_i (Cov w)_i / w' Cov w.
-    cov = np.cov(R, rowvar=False)
+    cov = np.atleast_2d(np.cov(R, rowvar=False))
     risk_share = w * (cov @ w) / (w @ cov @ w)
 
     def priced(r: np.ndarray, label: str) -> dict:
@@ -194,9 +209,11 @@ def odds() -> dict:
         "months": len(months),
         "fees": FEES,
         "goals": list(GOALS),
-        "plan": priced(plan, "Your plan"),
+        "plan": priced(plan, "Your plan" if weights is None else "What if"),
         "benchmarks": [priced(b, BENCHMARKS[k][1]) for k, b in benches.items()],
-        "sleeves": [{"region": s["region"], "factor": s["factor"], "weight": s["weight"],
+        "choices": [key(*k) for k in PROXIES],
+        "sleeves": [{"key": key(s["region"], s["factor"]), "region": s["region"],
+                     "factor": s["factor"], "weight": s["weight"],
                      "proxy": f"{s['proxy'][0]}: {' + '.join(s['proxy'][1])}",
                      "cagr": float(cagr(R[:, i])),
                      "vol": float(R[:, i].std(ddof=1) * np.sqrt(12)),

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import LoadError from '@/components/LoadError'
 import { useResource } from '@/lib/useResource'
 
@@ -9,7 +9,7 @@ interface Horizon {
   percentiles: Record<'5' | '25' | '50' | '75' | '95', number>
   p_goal: Record<string, number>
   p_loss: number
-  history_share: Record<string, number>
+  history_share: Record<string, number | null>
 }
 
 interface Priced {
@@ -28,7 +28,8 @@ interface Odds {
   goals: number[]
   plan: Priced
   benchmarks: Priced[]
-  sleeves: { region: string; factor: string; weight: number; proxy: string; cagr: number; vol: number; risk_share: number }[]
+  choices: string[]
+  sleeves: { key: string; region: string; factor: string; weight: number; proxy: string; cagr: number; vol: number; risk_share: number }[]
 }
 
 const REGION: Record<string, string> = {
@@ -41,6 +42,11 @@ const REGION: Record<string, string> = {
 const pct = (x: number, digits = 0) => `${(x * 100).toFixed(digits)}%`
 const signed = (x: number, digits = 0) => `${x > 0 ? '+' : ''}${(x * 100).toFixed(digits)}%`
 const odds = (p: number) => (p < 0.005 ? 'under 1%' : pct(p))
+const share = (p: number | null) => (p === null ? '—' : pct(p))
+const sleeveName = (key: string) => {
+  const [region, factor] = key.split('/')
+  return `${REGION[region] ?? region} ${factor.replace('-', ' ')}`
+}
 
 /** The range of yearly growth: whiskers 5–95, box 25–75, a tick at the middle. */
 function RangeBar({ h, lo, hi, goals }: { h: Horizon; lo: number; hi: number; goals: number[] }) {
@@ -70,6 +76,129 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   )
 }
 
+/** Percent per sleeve, whole numbers, for every sleeve the backend can price. */
+function planWeights(data: Odds): Record<string, number> {
+  const w = Object.fromEntries(data.choices.map(k => [k, 0]))
+  for (const s of data.sleeves) w[s.key] = Math.round(s.weight * 100)
+  return w
+}
+
+function WhatIf({ data, years }: { data: Odds; years: number }) {
+  const plan = planWeights(data)
+  const [weights, setWeights] = useState(plan)
+  const [result, setResult] = useState<Odds | null>(null)
+  const [failed, setFailed] = useState<string | null>(null)
+  const total = Object.values(weights).reduce((a, b) => a + b, 0)
+  const changed = data.choices.some(k => weights[k] !== plan[k])
+  const body = JSON.stringify({ weights })
+
+  useEffect(() => {
+    if (!changed || total === 0) return
+    const ctl = new AbortController()
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/odds/whatif', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: ctl.signal,
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.detail ?? `HTTP ${res.status}`)
+        setResult(json)
+        setFailed(null)
+      } catch (e) {
+        if (!ctl.signal.aborted) setFailed(e instanceof Error ? e.message : String(e))
+      }
+    }, 300)
+    return () => { clearTimeout(t); ctl.abort() }
+  }, [body, changed, total])
+
+  const shown = changed && total > 0 ? result : null
+  const [floor, target] = data.goals.map(g => g.toFixed(2))
+  const base = data.plan
+  const alt = shown?.plan
+  const h0 = base.horizons.find(h => h.years === years)!
+  const h1 = alt?.horizons.find(h => h.years === years)
+  // [label, plan, what if, higher is better, format]
+  const lines: [string, number | null, number | null | undefined, boolean, (x: number) => string][] = [
+    ['Middle outcome a year', h0.percentiles['50'], h1?.percentiles['50'], true, x => pct(x, 1)],
+    [`Odds of ${pct(data.goals[0])}+ a year`, h0.p_goal[floor], h1?.p_goal[floor], true, odds],
+    [`Odds of ${pct(data.goals[1])}+ a year`, h0.p_goal[target], h1?.p_goal[target], true, odds],
+    ['Odds of losing money', h0.p_loss, h1?.p_loss, false, odds],
+    [`Real ${years}-year stretches at ${pct(data.goals[0])}+`, h0.history_share[floor], h1?.history_share[floor], true, pct],
+    ['A 1-in-20 year', base.bad_year.one_in_20, alt?.bad_year.one_in_20, true, x => signed(x)],
+    ['Chance of a fall past 50%', base.drawdown.p_beyond_50, alt?.drawdown.p_beyond_50, false, odds],
+    ['Deepest real fall', base.record.max_drawdown, alt?.record.max_drawdown, true, x => signed(x)],
+    [`Grew a year since ${data.since.slice(0, 4)}`, base.record.cagr, alt?.record.cagr, true, x => pct(x, 1)],
+  ]
+
+  return (
+    <section className="mb-10">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3 px-1">
+        <h2 className="news-section-label">What if</h2>
+        <button onClick={() => { setWeights(plan); setResult(null) }} disabled={!changed}
+          className="text-[13px] px-3 py-1 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground disabled:opacity-40">
+          Back to the plan
+        </button>
+      </div>
+      <div className="grid lg:grid-cols-2 gap-3">
+        <div className="news-card p-4">
+          <div className="space-y-2.5">
+            {data.choices.map(k => (
+              <label key={k} className="grid grid-cols-[1fr_auto] gap-x-3 items-center text-[13px]">
+                <span className="flex justify-between">
+                  <span>{sleeveName(k)}</span>
+                  <span className="tabular-nums text-muted-foreground text-[11px]">plan {plan[k]}%</span>
+                </span>
+                <span className={`tabular-nums w-10 text-right ${weights[k] !== plan[k] ? 'font-semibold' : ''}`}>{weights[k]}%</span>
+                <input type="range" min={0} max={50} step={1} value={weights[k]}
+                  onChange={e => setWeights({ ...weights, [k]: Number(e.target.value) })}
+                  className="col-span-2 w-full accent-foreground h-4" />
+              </label>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-3 tabular-nums">
+            Adds up to {total}%.{total !== 100 && total > 0 && ' Priced as if scaled to 100%.'}
+            {total === 0 && ' Give at least one sleeve some money.'}
+          </p>
+        </div>
+        <div className="news-card p-4 self-start">
+          <table className="w-full text-[13px] tabular-nums">
+            <thead>
+              <tr className="text-[11px] text-muted-foreground text-left">
+                <th className="font-normal pb-2">Over {years} years</th>
+                <th className="font-normal pb-2 text-right">Plan</th>
+                <th className="font-normal pb-2 text-right">What if</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map(([label, a, b, up, fmt]) => {
+                // Colour only a difference that shows once rounded.
+                const moved = a !== null && b != null && fmt(a) !== fmt(b)
+                const better = moved && (b > a) === up
+                const worse = moved && (b > a) !== up
+                return (
+                  <tr key={label} className="border-t border-border/60">
+                    <td className="py-2 pr-3">{label}</td>
+                    <td className="py-2 text-right">{a === null ? '—' : fmt(a)}</td>
+                    <td className={`py-2 text-right font-semibold ${better ? 'text-emerald-600 dark:text-emerald-400' : worse ? 'text-red-600 dark:text-red-400' : ''}`}>
+                      {b == null ? '—' : fmt(b)}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          <p className="text-[11px] text-muted-foreground mt-3">
+            {failed ? `Could not price this mix: ${failed}`
+              : !changed ? 'Move a slider to price a different mix on the same 10,000 futures.'
+              : !shown ? 'Pricing…'
+              : 'Green is better than the plan, red is worse. Same months, same draws, same fees.'}
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function OddsPage() {
   const { data, loading, refreshing, error, reload } = useResource<Odds>('/api/odds')
   const [years, setYears] = useState(10)
@@ -95,7 +224,7 @@ export default function OddsPage() {
           Over {years} years your plan has a <b>{odds(plan.p_goal[floor])}</b> chance of growing {pct(data.goals[0])} a
           year, and <b>{odds(plan.p_goal[target])}</b> of {pct(data.goals[1])}. The middle outcome
           is <b>{pct(plan.percentiles['50'], 1)}</b> a year. In the real record since {firstYear},{' '}
-          {pct(plan.history_share[floor])} of {years}-year stretches reached {pct(data.goals[0])}.
+          {share(plan.history_share[floor])} of {years}-year stretches reached {pct(data.goals[0])}.
         </p>
       </header>
 
@@ -135,7 +264,7 @@ export default function OddsPage() {
                     <td className="py-2.5 text-right">{odds(h.p_goal[floor])}</td>
                     <td className="py-2.5 text-right">{odds(h.p_goal[target])}</td>
                     <td className="py-2.5 text-right">{odds(h.p_loss)}</td>
-                    <td className="py-2.5 text-right">{pct(h.history_share[floor])}</td>
+                    <td className="py-2.5 text-right">{share(h.history_share[floor])}</td>
                   </tr>
                 )
               })}
@@ -148,6 +277,8 @@ export default function OddsPage() {
           </p>
         </div>
       </section>
+
+      <WhatIf data={data} years={years} />
 
       <section className="mb-10">
         <h2 className="news-section-label mb-3 px-1">The bad year and the deep fall</h2>
@@ -202,7 +333,7 @@ export default function OddsPage() {
             <tbody>
               {data.sleeves.map(s => (
                 <tr key={`${s.region}-${s.factor}`} className="border-t border-border/60" title={`Stand-in: ${s.proxy}`}>
-                  <td className="py-2 pr-3">{REGION[s.region] ?? s.region} {s.factor.replace('-', ' ')}</td>
+                  <td className="py-2 pr-3">{sleeveName(s.key)}</td>
                   <td className="py-2 pr-4">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 space-y-1">
