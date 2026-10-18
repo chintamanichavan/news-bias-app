@@ -57,6 +57,9 @@ def load(rebuild: bool = False) -> pd.DataFrame:
     df["filed"] = pd.to_datetime(df["FILING_DATE"], format="%d-%b-%Y", errors="coerce")
     df["value"] = pd.to_numeric(df["shares"], errors="coerce") * pd.to_numeric(df["price"], errors="coerce")
     df = df.dropna(subset=["trade_date", "filed", "cik", "owner"])
+    # Typed dates (the year 13, the year 2033): a trade is reported within
+    # days, so one dated after its filing or two years before it is a slip.
+    df = df[(df["trade_date"] <= df["filed"]) & (df["trade_date"] >= df["filed"] - pd.DateOffset(years=2))]
     df = df[["cik", "owner", "role", "code", "trade_date", "filed", "shares", "price", "value"]]
     df = df.astype({"cik": int, "owner": int}).drop_duplicates()
     df.to_parquet(TRADES)
@@ -114,8 +117,10 @@ def attach(df: pd.DataFrame) -> pd.DataFrame:
 def test(horizons: tuple = (1, 3)) -> dict:
     """On each 30 June, against companies of their own size, over the next
     1 and 3 years: companies with an opportunistic purchase in the past year
-    against those without, and the fifth with the highest net purchase ratio
-    against the lowest."""
+    against those without, and net buyers (ratio above 0) against companies
+    whose insiders only sold (ratio -1; over half of them, so fifths would
+    tie). Medians: the price proxy's noise puts a few +1000% years in any
+    mean of 150 names."""
     import winners
     df = attach(winners.outcomes(winners.panel_all(), horizons=horizons))
     df["size_tenth"] = df.groupby("date")["log_size"].rank(pct=True).mul(10).apply(np.ceil)
@@ -123,21 +128,20 @@ def test(horizons: tuple = (1, 3)) -> dict:
     for h in horizons:
         rows = []
         for d, g in df[df[f"r{h}"].notna()].groupby("date"):
-            g = g.assign(excess=g[f"r{h}"] - g.groupby("size_tenth")[f"r{h}"].transform("mean"))
+            excess = g[f"r{h}"] - g.groupby("size_tenth")[f"r{h}"].transform("median")
             bought = g["opportunistic_buys"] > 0
-            npr = g["net_purchase_ratio"]
-            fifth = np.ceil(npr.rank(pct=True) * 5)
+            buyers, sellers = g["net_purchase_ratio"] > 0, g["net_purchase_ratio"] == -1
             rows.append({"date": d, "with_buys": int(bought.sum()),
-                         "buys_minus_none": float(g["excess"][bought].mean() - g["excess"][~bought].mean()),
-                         "npr_top_minus_bottom": float(g["excess"][fifth == 5].mean() - g["excess"][fifth == 1].mean())
-                         if npr.notna().sum() >= 50 else np.nan})
+                         "buys_minus_none": float(excess[bought].median() - excess[~bought].median()),
+                         "buyers_minus_sellers": float(excess[buyers].median() - excess[sellers].median())})
         s = pd.DataFrame(rows)
-        for col in ("buys_minus_none", "npr_top_minus_bottom"):
-            x = s[col].dropna()
+        for col in ("buys_minus_none", "buyers_minus_sellers"):
+            x = s[col]
             out[f"{col}_{h}y"] = {"dates": len(x), "a_year": float(x.mean()),
-                                  "t": float(x.mean() / (x.std(ddof=1) / np.sqrt(len(x)))) if len(x) > 2 else None,
+                                  "t": float(x.mean() / (x.std(ddof=1) / np.sqrt(len(x)))),
                                   "years_positive": int((x > 0).sum()),
-                                  "before_2015": float(x[s.loc[x.index, "date"] < "2015"].mean()),
-                                  "from_2015": float(x[s.loc[x.index, "date"] >= "2015"].mean())}
+                                  "before_2015": float(x[s["date"] < "2015"].mean()),
+                                  "from_2015": float(x[s["date"] >= "2015"].mean()),
+                                  "by_date": dict(zip(s["date"], x.round(4)))}
         out[f"companies_with_buys_{h}y"] = float(s["with_buys"].mean())
     return out
