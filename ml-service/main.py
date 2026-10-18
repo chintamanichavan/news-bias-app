@@ -20,6 +20,7 @@ import pricer
 import proof
 import portfolio
 import scorecard
+import smallcaps
 import tracker
 import universe
 
@@ -213,6 +214,15 @@ def evidence_result():
     out = evidence.result()
     if out is None:
         raise HTTPException(status_code=404, detail="no evidence yet: run evidence.py")
+    return out
+
+
+@app.get("/smallcaps")
+def smallcaps_latest():
+    """The latest monthly lose-less screen of small companies (smallcaps.py)."""
+    out = smallcaps.latest()
+    if out is None:
+        raise HTTPException(status_code=404, detail="no screen yet: run smallcaps.py")
     return out
 
 

@@ -49,3 +49,14 @@ as copies:
 
     cp ops/systemd/artha-options.* ~/.config/systemd/user/
     systemctl --user daemon-reload && systemctl --user enable --now artha-options.timer
+
+## Installed: the small-cap screen
+
+`artha-smallcaps.service` + `artha-smallcaps.timer` run `ml-service/smallcaps.py`
+on the 3rd of each month at 05:00: download SEC's bulk submissions and
+companyfacts files and the latest form indexes (about 3 GB), read any new
+10-Ks, fetch the latest FINRA short-interest settlement, then write that
+month's list to `ml-service/record/screen/` and commit it. Installed as copies:
+
+    cp ops/systemd/artha-smallcaps.* ~/.config/systemd/user/
+    systemctl --user daemon-reload && systemctl --user enable --now artha-smallcaps.timer

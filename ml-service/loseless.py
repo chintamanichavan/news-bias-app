@@ -35,7 +35,13 @@ BAD_NEWS = ("delisting_notice", "restatement", "auditor_change")   # 8-K items, 
 
 
 def panel(horizons=(1, 3)) -> pd.DataFrame:
-    df = eightk.attach(shorts.attach(reports.attach(winners.outcomes(winners.panel_all(), horizons=horizons))))
+    return flag(eightk.attach(shorts.attach(reports.attach(winners.outcomes(winners.panel_all(), horizons=horizons)))))
+
+
+def flag(df: pd.DataFrame) -> pd.DataFrame:
+    """The smaller half on each date, with the three reasons to drop a
+    company; smallcaps.py applies the same to today."""
+    df = df.copy()
     df["size_pct"] = df.groupby("date")["log_size"].rank(pct=True)
     df = df[df["size_pct"] <= SMALL].copy()
     pct = lambda c: df.groupby("date")[c].rank(pct=True)       # NaN stays NaN

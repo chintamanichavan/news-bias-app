@@ -1,0 +1,8 @@
+[Unit]
+Description=Monthly small-cap screen: refresh SEC bulk data, write and commit the list (smallcaps.py)
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/code/news-bias-app/ml-service
+ExecStart=%h/code/news-bias-app/ml-service/.venv/bin/python -W ignore smallcaps.py
+TimeoutStartSec=7200

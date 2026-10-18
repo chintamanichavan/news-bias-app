@@ -53,9 +53,9 @@ us very was we were what when where which while who whom why will with within wi
 _WORD = re.compile(r"[a-z]{2,}")
 
 
-def tenk_filings(symbols: set[str] | None = None) -> pd.DataFrame:
+def tenk_filings(symbols: set[str] | None = None, rebuild: bool = False) -> pd.DataFrame:
     """Every 10-K in the indexes with its file: cik, date, path."""
-    if TENK.exists():
+    if TENK.exists() and not rebuild:
         df = pd.read_parquet(TENK)
     else:
         rows = []
@@ -193,10 +193,40 @@ async def collect(symbols: set[str], batch: int = 100) -> dict:
     return {"companies": len(done) + n}
 
 
+async def update(symbols: set[str]) -> dict:
+    """After filers.refresh(): companies never read are crawled whole; for
+    the rest, each 10-K filed since is read with the one before it."""
+    tenk_filings(rebuild=True)
+    new = await collect(symbols)
+    have = similarities()
+    seen = set(zip(have["cik"], have["date"]))
+    todo = tenk_filings(symbols)
+    pairs = []
+    for cik, g in todo.groupby("cik"):
+        for i in range(1, len(g)):
+            if (cik, g["date"].iloc[i]) not in seen:
+                pairs.append((cik, g.iloc[i - 1:i + 1]))
+    pace, results = Pace(RATE), []
+    async with httpx.AsyncClient(headers=UA, timeout=60, follow_redirects=True) as client:
+        sem = asyncio.Semaphore(WORKERS)
+
+        async def one(cik, rows):
+            async with sem:
+                got = await company(client, pace, cik, rows)
+                results.extend(r for r in got if r["date"] == rows["date"].iloc[-1])
+        await asyncio.gather(*[one(c, r) for c, r in pairs])
+    if results:
+        pd.DataFrame(results).to_parquet(OUT / f"update_{int(time.time())}.parquet")
+    return {**new, "new_reports": len(results)}
+
+
 def similarities() -> pd.DataFrame:
     """cik, date (filed), words, cosine, jaccard for every 10-K read."""
     parts = [pd.read_parquet(f) for f in OUT.glob("*.parquet")]
-    return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    if not parts:
+        return pd.DataFrame()
+    df = pd.concat(parts, ignore_index=True)
+    return df.sort_values("cosine", na_position="first").drop_duplicates(["cik", "date"], keep="last")
 
 
 def attach(df: pd.DataFrame) -> pd.DataFrame:

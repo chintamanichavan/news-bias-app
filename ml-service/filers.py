@@ -24,10 +24,12 @@ Symbols are "CIK" + the ten-digit CIK, so these never collide with tickers.
 import json
 import re
 import zipfile
+from datetime import date
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import duckdb
+import httpx
 import numpy as np
 import pandas as pd
 
@@ -145,6 +147,36 @@ def connect() -> duckdb.DuckDBPyConnection:
 
 def info() -> pd.DataFrame:
     return pd.read_parquet(INFO)
+
+
+UA = {"User-Agent": "Artha Research research@artha.app"}
+BULK = {"submissions.zip": "https://www.sec.gov/Archives/edgar/daily-index/bulkdata/submissions.zip",
+        "companyfacts.zip": "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip"}
+
+
+def _download(url: str, path: Path) -> None:
+    """Stream to a side file and rename, so a cut download never replaces a
+    good file."""
+    part = path.with_suffix(path.suffix + ".part")
+    with httpx.stream("GET", url, headers=UA, timeout=600, follow_redirects=True) as r:
+        r.raise_for_status()
+        with open(part, "wb") as f:
+            for chunk in r.iter_bytes(1 << 20):
+                f.write(chunk)
+    part.replace(path)
+
+
+def refresh(today: date | None = None) -> dict:
+    """Today's bulk files and this and last quarter's form indexes, then
+    forms() and extract() again: about 3 GB and ten minutes."""
+    today = today or date.today()
+    for name, url in BULK.items():
+        _download(url, ROOT / name)
+    q = (today.month - 1) // 3 + 1
+    for y, qq in ((today.year, q), (today.year - (q == 1), q - 1 or 4)):
+        _download(f"https://www.sec.gov/Archives/edgar/full-index/{y}/QTR{qq}/form.idx", INDEX / f"{y}-Q{qq}.idx")
+    forms(rebuild=True)
+    return extract()
 
 
 if __name__ == "__main__":

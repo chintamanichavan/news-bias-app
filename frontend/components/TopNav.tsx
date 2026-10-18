@@ -10,6 +10,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 // read the odds. Older pages still open at their own addresses.
 const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/companies', label: 'Companies' },
+  { href: '/smallcaps', label: 'Small caps' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/odds',    label: 'Odds' },
 ]

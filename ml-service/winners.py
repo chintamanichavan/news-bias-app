@@ -106,6 +106,41 @@ def panel(rebuild: bool = False) -> pd.DataFrame:
     return df
 
 
+def filers_context() -> tuple:
+    """What filers_on() reads: non-financial filers, value points, facts."""
+    info = filers.info()
+    info = info[info["sic"].str.isdigit() & ~info["sic"].map(scorecard.is_financial)].set_index("symbol")
+    return info, filers.value_points(), filers.connect()
+
+
+def filers_on(day: str, info: pd.DataFrame, pts: pd.DataFrame, conn) -> list[dict]:
+    """Every filer worth MIN_VALUE or more on `day` by its last public float
+    filed by then, with a 10-K for a fiscal year ended in the 18 months
+    before, and its traits as known that day."""
+    t = pd.Timestamp(day)
+    known = pts[(pts["filed_at"] <= t) & (pts["float_date"] >= t - pd.Timedelta(days=548))]
+    last = known.sort_values("float_date").groupby("symbol").tail(1)
+    last = last[last["symbol"].isin(info.index) & (last["float"] >= MIN_VALUE)].set_index("symbol")
+    syms = last.index.tolist()
+    years = scorecard.annual(conn, day, syms)
+    shares = scorecard.share_changes(conn, day, syms)
+    cutoff = (t - pd.Timedelta(days=548)).date().isoformat()
+    rows = []
+    for sym, y in years.groupby("ticker"):
+        y = y[y["revenue"].notna() | y["net_income"].notna()]
+        if y.empty:
+            continue
+        c = scorecard.card(sym, y, info.at[sym, "sic"], shares.get(sym))
+        if c["fiscal_year_end"] < cutoff:
+            continue
+        moat = [r for r in c["return_by_year"] if r is not None]
+        rows.append({"date": day, "symbol": sym, "name": info.at[sym, "name"],
+                     "log_size": np.log(last.at[sym, "float"]),
+                     "moat_years": float(np.mean([r >= 0.15 for r in moat])) if moat else None,
+                     **{k: c.get(k) for k in TRAITS_ALL if k in c and k != "log_size"}})
+    return rows
+
+
 def panel_all(rebuild: bool = False) -> pd.DataFrame:
     """One row per filer per 30 June, dead or alive: traits from its filings
     as known that day and its size from the last public float filed by then.
@@ -113,33 +148,12 @@ def panel_all(rebuild: bool = False) -> pd.DataFrame:
     assumptions."""
     if PANEL_ALL.exists() and not rebuild:
         return pd.read_parquet(PANEL_ALL)
-    info = filers.info()
-    info = info[info["sic"].str.isdigit() & ~info["sic"].map(scorecard.is_financial)].set_index("symbol")
-    pts = filers.value_points()
-    conn = filers.connect()
+    info, pts, conn = filers_context()
     rows = []
     for day in days(LAST_ALL):
-        t = pd.Timestamp(day)
-        known = pts[(pts["filed_at"] <= t) & (pts["float_date"] >= t - pd.Timedelta(days=548))]
-        last = known.sort_values("float_date").groupby("symbol").tail(1)
-        last = last[last["symbol"].isin(info.index) & (last["float"] >= MIN_VALUE)].set_index("symbol")
-        syms = last.index.tolist()
-        years = scorecard.annual(conn, day, syms)
-        shares = scorecard.share_changes(conn, day, syms)
-        cutoff = (t - pd.Timedelta(days=548)).date().isoformat()
-        for sym, y in years.groupby("ticker"):
-            y = y[y["revenue"].notna() | y["net_income"].notna()]
-            if y.empty:
-                continue
-            c = scorecard.card(sym, y, info.at[sym, "sic"], shares.get(sym))
-            if c["fiscal_year_end"] < cutoff:
-                continue
-            moat = [r for r in c["return_by_year"] if r is not None]
-            rows.append({"date": day, "symbol": sym, "name": info.at[sym, "name"],
-                         "log_size": np.log(last.at[sym, "float"]),
-                         "moat_years": float(np.mean([r >= 0.15 for r in moat])) if moat else None,
-                         **{k: c.get(k) for k in TRAITS_ALL if k in c and k != "log_size"}})
-        print(f"[winners] {day}: {sum(r['date'] == day for r in rows)} filers", flush=True)
+        got = filers_on(day, info, pts, conn)
+        rows += got
+        print(f"[winners] {day}: {len(got)} filers", flush=True)
     df = pd.DataFrame(rows)
     df.to_parquet(PANEL_ALL)
     return df

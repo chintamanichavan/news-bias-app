@@ -34,25 +34,44 @@ SHORTS = filers.ROOT / "short_interest.parquet"
 EXCHANGES = {"NYSE", "NNM", "SC", "AMEX", "ARCA", "BZX"}     # listed, not OTC
 
 
+def on(date: str, client: httpx.Client) -> pd.DataFrame:
+    """Every listed stock's short position settled on `date`; empty if
+    nothing settled that day."""
+    rows, offset = [], 0
+    while True:
+        body = {"limit": 5000, "offset": offset,
+                "compareFilters": [{"compareType": "equal", "fieldName": "settlementDate", "fieldValue": date}]}
+        r = client.post(API, content=json.dumps(body))
+        got = r.json() if r.status_code == 200 and r.text.strip() else []
+        rows += got
+        if len(got) < 5000:
+            break
+        offset += 5000
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df = df[df["marketClassCode"].isin(EXCHANGES)]
+    return pd.DataFrame({"year": int(date[:4]), "settled": date, "ticker": df["symbolCode"],
+                         "short": pd.to_numeric(df["currentShortPositionQuantity"], errors="coerce")})
+
+
 def settlement(year: int, client: httpx.Client) -> pd.DataFrame:
-    """Every listed stock's short position at the mid-June settlement."""
+    """The mid-June settlement."""
     for day in range(10, 20):
-        date = f"{year}-06-{day:02d}"
-        rows, offset = [], 0
-        while True:
-            body = {"limit": 5000, "offset": offset,
-                    "compareFilters": [{"compareType": "equal", "fieldName": "settlementDate", "fieldValue": date}]}
-            r = client.post(API, content=json.dumps(body))
-            got = r.json() if r.status_code == 200 and r.text.strip() else []
-            rows += got
-            if len(got) < 5000:
-                break
-            offset += 5000
-        if rows:
-            df = pd.DataFrame(rows)
-            df = df[df["marketClassCode"].isin(EXCHANGES)]
-            return pd.DataFrame({"year": year, "settled": date, "ticker": df["symbolCode"],
-                                 "short": pd.to_numeric(df["currentShortPositionQuantity"], errors="coerce")})
+        df = on(f"{year}-06-{day:02d}", client)
+        if len(df):
+            return df
+    return pd.DataFrame()
+
+
+def latest(day: pd.Timestamp) -> pd.DataFrame:
+    """The last settlement published on or before `day` (twice a month,
+    published about a week after)."""
+    with httpx.Client(headers=UA, timeout=120) as client:
+        for back in range(45):
+            df = on((day - pd.Timedelta(days=back)).date().isoformat(), client)
+            if len(df):
+                return df
     return pd.DataFrame()
 
 
@@ -81,27 +100,26 @@ def attach(df: pd.DataFrame) -> pd.DataFrame:
     """Panel rows with their short ratio, where the June settlement is on
     record (2018 on)."""
     shorts = pd.read_parquet(SHORTS)
-    names = tickers()
-    pts = filers.value_points()
+    names, pts = tickers(), filers.value_points()
     out = []
     for d in sorted(df["date"].unique()):
-        day = pd.Timestamp(d)
-        s = shorts[shorts["year"] == day.year]
-        g = df[df["date"] == d].copy()
-        if s.empty:
-            g["short_ratio"] = np.nan
-            out.append(g)
-            continue
-        recent = names[(names["filed"] <= day) & (names["filed"] > day - pd.DateOffset(years=1))]
-        latest = recent.sort_values("filed").groupby("ticker").tail(1)        # each ticker's issuer now
-        m = s.merge(latest[["ticker", "cik"]], on="ticker")
-        m["symbol"] = m["cik"].astype(int).map(filers.symbol)
-        sh = pts[pts["filed_at"] <= day].sort_values("filed_at").groupby("symbol").tail(1)[["symbol", "shares"]]
-        m = m.merge(sh, on="symbol")
-        m["short_ratio"] = m["short"] / m["shares"]
-        g = g.merge(m.groupby("symbol")["short_ratio"].max().clip(upper=1.0), on="symbol", how="left")
-        out.append(g)
+        g = df[df["date"] == d]
+        s = shorts[shorts["year"] == pd.Timestamp(d).year]
+        out.append(g.merge(ratios(pd.Timestamp(d), s, names, pts), on="symbol", how="left") if len(s)
+                   else g.assign(short_ratio=np.nan))
     return pd.concat(out, ignore_index=True)
+
+
+def ratios(day: pd.Timestamp, s: pd.DataFrame, names: pd.DataFrame, pts: pd.DataFrame) -> pd.Series:
+    """symbol -> shares short over shares outstanding, for one settlement."""
+    recent = names[(names["filed"] <= day) & (names["filed"] > day - pd.DateOffset(years=1))]
+    latest = recent.sort_values("filed").groupby("ticker").tail(1)        # each ticker's issuer now
+    m = s.merge(latest[["ticker", "cik"]], on="ticker")
+    m["symbol"] = m["cik"].astype(int).map(filers.symbol)
+    sh = pts[pts["filed_at"] <= day].sort_values("filed_at").groupby("symbol").tail(1)[["symbol", "shares"]]
+    m = m.merge(sh, on="symbol")
+    m["short_ratio"] = m["short"] / m["shares"]
+    return m.groupby("symbol")["short_ratio"].max().clip(upper=1.0)
 
 
 def test(horizons: tuple = (1, 3)) -> dict:
