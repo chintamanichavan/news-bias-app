@@ -133,7 +133,9 @@ export default function CompaniesPage() {
         worth: p ? p.value_per_share['50'] / p.price : null, groups, evidence }
     })
   }, [data, pricing.data, evidence.data])
-  const allGoodCount = joined.filter(c => TRAITS.every(([t]) => goodGroup(c.groups[t]))).length
+  // Counted within the moat chosen, so the number matches the rows it shows.
+  const allGoodCount = joined.filter(c =>
+    (moat === 'all' || moatOf(c) === moat) && TRAITS.every(([t]) => goodGroup(c.groups[t]))).length
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -201,7 +203,7 @@ export default function CompaniesPage() {
 
       <div className="flex flex-wrap items-center gap-1.5 mb-4">
         {MOATS.map(m => (
-          <button key={m} onClick={() => setMoat(m)}
+          <button key={m} onClick={() => setMoat(moat === m ? 'all' : m)}
             className={`text-[13px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${moat === m ? 'bg-foreground text-background' : 'bg-muted/60 hover:bg-muted text-muted-foreground'}`}>
             {MOAT_LABEL[m]} <span className="tabular-nums opacity-70">{counts[m]}</span>
           </button>
