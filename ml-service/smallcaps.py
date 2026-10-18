@@ -14,7 +14,8 @@ Beside the list, the trend rule (trend.py) read on the Russell 2000 fund
 not.
 
 The rule it was tested as: buy the list equal-weighted each 30 June, hold
-a year. Each month's snapshot goes to record/screen/ and is committed,
+a year. Fifty of them, drawn at random with the date as the seed, keep
+most of that (loseless.holdings) and are listed as "pick". Each month's snapshot goes to record/screen/ and is committed,
 never rewritten, so the list builds a record of its own.
 """
 
@@ -38,6 +39,7 @@ import winners
 
 DIR = Path(__file__).parent / "record" / "screen"
 LISTED = {"Nasdaq", "NYSE", "CBOE"}
+PICK = 50             # loseless.holdings(): 50 kept the 1-in-20 worst year near -34%
 FUND = "IWM"
 
 
@@ -52,6 +54,14 @@ def trend(today: date) -> dict:
     avg = float(done.iloc[-10:].mean())
     return {"fund": FUND, "month_end": done.index[-1], "close": round(float(done.iloc[-1]), 2),
             "average_10m": round(avg, 2), "above": bool(done.iloc[-1] > avg)}
+
+
+def pick(day: str, symbols: list[str]) -> list[str]:
+    """PICK of the kept companies, at random with the date as the seed: the
+    same list from the same day's snapshot, every time."""
+    rng = np.random.default_rng(int(day.replace("-", "")))
+    pool = sorted(symbols)
+    return sorted(rng.choice(pool, min(PICK, len(pool)), replace=False).tolist())
 
 
 def build(today: date | None = None, refresh: bool = True) -> dict:
@@ -90,6 +100,7 @@ def build(today: date | None = None, refresh: bool = True) -> dict:
                    "not_listed": int((~df["listed"]).sum()), "kept": int(len(kept))},
         "largest_float": float(df["float"].max()),
         "kept": clean(kept),
+        "pick": pick(day, kept["symbol"].tolist()),
         "dropped": [{**r, "why": w} for r, w in zip(clean(df[df["drop"].str.len() > 0]), df[df["drop"].str.len() > 0]["drop"])],
     }
 
@@ -106,7 +117,11 @@ def snapshot(save: bool = True, refresh: bool = True) -> Path:
 
 def latest() -> dict | None:
     snaps = sorted(DIR.glob("*.json"))
-    return json.loads(snaps[-1].read_text()) if snaps else None
+    if not snaps:
+        return None
+    out = json.loads(snaps[-1].read_text())
+    out.setdefault("pick", pick(out["date"], [c["symbol"] for c in out["kept"]]))   # lists before picks
+    return out
 
 
 if __name__ == "__main__":

@@ -24,8 +24,12 @@ interface Screen {
   counts: { filers: number; small_half: number; rewritten: number; shorted: number; bad_news: number; not_listed: number; kept: number }
   largest_float: number
   kept: Company[]
+  pick: string[]
   dropped: Company[]
 }
+
+type View = 'pick' | 'kept' | 'dropped'
+const VIEW_LABEL: Record<View, string> = { pick: 'A pick of 50', kept: 'Kept', dropped: 'Dropped' }
 
 const WHY: Record<string, string> = {
   rewritten: 'report rewritten',
@@ -39,13 +43,19 @@ const millions = (x: number) => (x >= 1e9 ? `$${(x / 1e9).toFixed(2)}B` : `$${Ma
 export default function SmallCapsPage() {
   const { data, loading, refreshing, error, reload } = useResource<Screen>('/api/smallcaps')
   const [query, setQuery] = useState('')
-  const [showDropped, setShowDropped] = useState(false)
+  const [view, setView] = useState<View>('pick')
+  const showDropped = view === 'dropped'
+
+  const lists = useMemo(() => {
+    const picked = new Set(data?.pick ?? [])
+    return { pick: (data?.kept ?? []).filter(c => picked.has(c.symbol)), kept: data?.kept ?? [], dropped: data?.dropped ?? [] }
+  }, [data])
 
   const rows = useMemo(() => {
-    const list = (showDropped ? data?.dropped : data?.kept) ?? []
+    const list = lists[view]
     const q = query.trim().toLowerCase()
     return q ? list.filter(c => c.ticker.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)) : list
-  }, [data, query, showDropped])
+  }, [lists, view, query])
 
   return (
     <div className="px-4 sm:px-6 lg:px-10 xl:px-14 py-8">
@@ -94,14 +104,12 @@ export default function SmallCapsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 mb-4">
-            <button onClick={() => setShowDropped(false)}
-              className={`text-[13px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${!showDropped ? 'bg-foreground text-background' : 'bg-muted/60 hover:bg-muted text-muted-foreground'}`}>
-              Kept <span className="tabular-nums opacity-70">{data.kept.length}</span>
-            </button>
-            <button onClick={() => setShowDropped(true)}
-              className={`text-[13px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${showDropped ? 'bg-foreground text-background' : 'bg-muted/60 hover:bg-muted text-muted-foreground'}`}>
-              Dropped <span className="tabular-nums opacity-70">{data.dropped.length}</span>
-            </button>
+            {(Object.keys(VIEW_LABEL) as View[]).map(v => (
+              <button key={v} onClick={() => setView(v)}
+                className={`text-[13px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${view === v ? 'bg-foreground text-background' : 'bg-muted/60 hover:bg-muted text-muted-foreground'}`}>
+                {VIEW_LABEL[v]} <span className="tabular-nums opacity-70">{lists[v].length}</span>
+              </button>
+            ))}
             <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search name or ticker"
               className="ml-auto text-[13px] bg-muted/60 rounded-full px-3 py-1.5 w-full sm:w-64" />
           </div>
@@ -142,7 +150,10 @@ export default function SmallCapsPage() {
       )}
 
       <p className="text-xs text-muted-foreground mt-8 max-w-3xl leading-relaxed">
-        Tested as: buy every kept company in equal amounts each 30 June and hold a year. This list is refreshed
+        Tested as: buy every kept company in equal amounts each 30 June and hold a year. A pick of 50: drawn at
+        random from the kept list with the date as the seed; in the test, 50 companies kept a middle return of 13.8%
+        a year (9 in 10 picks between 10% and 18%) and an unlucky 1-in-20 worst year of −34%, against −23% for the
+        whole list; with 10 companies, 1 pick in 12 fell past half. This list is refreshed
         monthly and each one is kept in the record, so it builds a track record of its own; between Junes it is a
         watch list. The test measured companies without a quoted price by their public float, which is noisy, and
         capped any one company&apos;s year at +300%. Short interest is on record only from 2018, so that filter has

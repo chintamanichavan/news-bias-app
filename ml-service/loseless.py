@@ -86,6 +86,27 @@ def run() -> dict:
     return out
 
 
+def holdings(sizes=(10, 20, 50, 100), tries: int = 2000, seed: int = 7) -> dict:
+    """How few kept companies (reports and 8-K filters, 2010 on) one can
+    hold: each year a random `n` of them, `tries` times."""
+    df = panel()
+    d = df[(df["date"] >= "2010") & ~df["rewritten"] & ~df["bad_news"] & df["r1"].notna()]
+    by = [g["r1"].clip(upper=CAP).to_numpy() for _, g in d.groupby("date")]
+    rng, out = np.random.default_rng(seed), {}
+    for n in sizes:
+        yearly, worst, fall = [], [], []
+        for _ in range(tries):
+            yr = np.array([rng.choice(v, n, replace=False).mean() for v in by])
+            w = np.cumprod(1 + yr)
+            yearly.append(np.exp(np.log1p(yr).mean()) - 1)
+            worst.append(yr.min())
+            fall.append((w / np.maximum.accumulate(w)).min() - 1)
+        yearly, worst, fall = map(np.array, (yearly, worst, fall))
+        out[n] = {"yearly_median": float(np.median(yearly)), "yearly_5_95": np.percentile(yearly, [5, 95]).tolist(),
+                  "worst_year_1_in_20": float(np.percentile(worst, 5)), "fall_past_half": float((fall <= -0.5).mean())}
+    return out
+
+
 if __name__ == "__main__":
     import json
     r = run()
