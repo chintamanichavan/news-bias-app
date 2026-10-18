@@ -78,8 +78,10 @@ export default function SmallCapsPage() {
         )}
         <p className="text-[13px] mt-2 max-w-2xl">
           Every small company, less the three groups that most often halve. Tested 2010–2022 with failed companies
-          included: <b>14.2%</b> a year against 11.6% for all small companies, and 21% halved within three years
-          against 24%. It does not find big winners; it loses less.
+          included: <b>14.2%</b> a year against 11.6% for all small companies, before trading costs (about 1 point a
+          year at today&apos;s spreads), and 21% halved within three years against 24%. It does not find big winners;
+          it loses less. The whole edge is in avoiding companies that later leave the exchanges: among companies
+          still listed today, kept and dropped did the same.
         </p>
       </header>
 
@@ -183,7 +185,10 @@ export default function SmallCapsPage() {
         whole list; with 10 companies, 1 pick in 12 fell past half. This list is refreshed
         monthly and each one is kept in the record, so it builds a track record of its own; between Junes it is a
         watch list. The test measured companies without a quoted price by their public float, which is noisy, and
-        capped any one company&apos;s year at +300%. Short interest is on record only from 2018, so that filter has
+        capped any one company&apos;s year at +300%; checked on companies with real prices, the estimate tracks
+        them (correlation 0.85) and if anything flatters the dropped ones, so it does not make the gap. Trading
+        costs: spreads read from daily highs and lows (Corwin &amp; Schultz 2012) were 1.1% for the kept companies
+        on 2026-10-18, and a new pick each June turns over nearly all of it. Short interest is on record only from 2018, so that filter has
         five tested years. The test also held companies traded over the counter; this list keeps exchange-listed
         ones only. Report sameness: Cohen, Malloy &amp; Nguyen, &quot;Lazy Prices&quot; (2020). Short interest:
         Boehmer, Huszar &amp; Jordan (2010). Trend rule: Faber (2007). <Link href="/companies" className="underline">The S&amp;P 500 companies</Link>.

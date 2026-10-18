@@ -25,6 +25,7 @@ import pandas as pd
 import eightk
 import monitor
 import reports
+import scorecard
 import shorts
 import winners
 
@@ -83,6 +84,37 @@ def run() -> dict:
         k = keep(d)
         out[name] = {"all_small": summary(d), "kept": summary(d[k]), "dropped": summary(d[~k])}
     monitor.log_experiment("loseless:screen", {"small": SMALL, "drop": DROP, "cap": CAP}, {k: v["kept"]["yearly_mean"] for k, v in out.items()})
+    return out
+
+
+def sources() -> dict:
+    """Where the kept-minus-dropped gap (reports and 8-K filters, 2010 on)
+    comes from, by how each company-year was measured; and, for companies
+    with real prices, how far the price estimate strays for each group.
+    Measured 2026-10-18: among real prices (survivors) the gap is +0.1
+    points; it lives in the estimate rows (+8), the companies that later
+    left the exchanges. The estimate flatters the dropped (+6.6 points
+    mean error) a little more than the kept (+3.9), so it is not what makes
+    the gap."""
+    df = panel()
+    d = df[(df["date"] >= "2010") & df["r1"].notna()].copy()
+    d["keep"], d["r"] = ~d["rewritten"] & ~d["bad_news"], d["r1"].clip(upper=CAP)
+    out = {"by_source": {f"{'kept' if k else 'dropped'}/{h}": {"share": float(len(g) / (d["keep"] == k).sum()),
+                                                                "mean": float(g["r"].mean())}
+                         for (k, h), g in d.groupby(["keep", "how1"])}}
+    priced = d[d["how1"] == "prices"][["date", "symbol", "r", "keep"]]
+    real = scorecard.companies
+    scorecard.companies = lambda: {}                 # every row by the estimate
+    try:
+        est = winners.outcomes(winners.panel_all(), horizons=(1,))
+    finally:
+        scorecard.companies = real
+    m = priced.merge(est[est["how1"] == "proxy"][["date", "symbol", "r1"]], on=["date", "symbol"])
+    m["est"] = m["r1"].clip(upper=CAP)
+    m["err"] = m["est"] - m["r"]
+    out["estimate_error"] = {("kept" if k else "dropped"): {"mean": float(g["err"].mean()), "median": float(g["err"].median()),
+                                                           "n": int(len(g))} for k, g in m.groupby("keep")}
+    out["estimate_real_corr"] = float(m[["est", "r"]].corr().iloc[0, 1])
     return out
 
 
