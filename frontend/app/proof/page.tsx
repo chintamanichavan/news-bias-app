@@ -191,9 +191,72 @@ function ForecastSection({ f }: { f: Forecast }) {
   )
 }
 
+interface Beyond {
+  min_value: number
+  hurdle_t: number
+  spy_growth_a_year: number
+  portfolios: Record<string, { growth_a_year: number; vs_spy: Stats; vs_control: Stats | null; years_ahead: number | null; average_names: number }>
+  payoffs: Record<string, { mean: number; t: number }>
+  horizons: Record<string, { dates: number; wide: number; rest: number; wide_ahead: number }>
+}
+
+function BeyondSection({ b }: { b: Beyond }) {
+  const rows: [string, string, string][] = [
+    ['moat_clean', 'Wide moat, no dilution', 'outside the S&P 500'],
+    ['wide', 'Every wide moat', 'outside the S&P 500'],
+    ['control', 'The control', `every company outside, worth $${b.min_value / 1e6}M+`],
+    ['sp_moat_clean', 'Wide moat, no dilution', 'inside the S&P 500'],
+    ['sp_control', 'The control', 'inside the S&P 500'],
+  ]
+  return (
+    <section className="mb-10">
+      <h2 className="news-section-label mb-3 px-1">Beyond the S&amp;P 500</h2>
+      <div className="news-card p-4 overflow-x-auto">
+        <table className="w-full text-[13px] tabular-nums min-w-[640px]">
+          <thead>
+            <tr className="text-[11px] text-muted-foreground text-right">
+              <th className="font-normal pb-2 text-left"></th>
+              <th className="font-normal pb-2">Names</th>
+              <th className="font-normal pb-2">Grew a year</th>
+              <th className="font-normal pb-2">vs SPY</th>
+              <th className="font-normal pb-2">vs its control</th>
+              <th className="font-normal pb-2">t</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([k, label, sub]) => {
+              const p = b.portfolios[k]
+              return (
+                <tr key={k} className="border-t border-border/60 text-right">
+                  <td className="py-2 text-left">{label}<div className="text-[11px] text-muted-foreground">{sub}</div></td>
+                  <td className="py-2">{p.average_names.toFixed(0)}</td>
+                  <td className="py-2">{pct(p.growth_a_year)}</td>
+                  <td className={`py-2 ${tone(p.vs_spy.mean_a_year)}`}>{signed(p.vs_spy.mean_a_year)}</td>
+                  <td className={`py-2 ${tone(p.vs_control?.mean_a_year)}`}>{p.vs_control ? signed(p.vs_control.mean_a_year) : '—'}</td>
+                  <td className="py-2">{p.vs_control?.t == null ? '—' : p.vs_control.t.toFixed(2)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        <p className="text-[12px] mt-3 leading-relaxed">
+          Outside the index, wide moats delivered{' '}
+          {Object.entries(b.horizons).map(([h, v]) => `${pct(v.wide)} against ${pct(v.rest)} over ${h} years`).join(', and ')}.
+          Share issuance paid {signed(b.payoffs.issuance.mean)} a year (t {b.payoffs.issuance.t.toFixed(2)}): the wrong
+          sign. The control beat SPY by {signed(b.portfolios.control.vs_spy.mean_a_year)} a year, which is mostly
+          survivors: the list holds only companies that file today, and small companies fail far more often than large
+          ones, so a diluter that went bust is missing while one that grew is not. Free prices cannot settle this
+          outside the index.
+        </p>
+      </div>
+    </section>
+  )
+}
+
 export default function ProofPage() {
   const { data, loading, refreshing, error, reload } = useResource<Proof>('/api/proof')
   const fc = useResource<Forecast>('/api/forecast')
+  const beyond = useResource<Beyond>('/api/beyond')
   if (error && !data) return <LoadError message={error} onRetry={reload} retrying={refreshing || loading} />
   if (!data) return <div className="px-4 py-16 text-center text-sm text-muted-foreground">Loading the replay…</div>
 
@@ -259,6 +322,7 @@ export default function ProofPage() {
       )}
 
       {fc.data && <ForecastSection f={fc.data} />}
+      {beyond.data && <BeyondSection b={beyond.data} />}
 
       <section className="mb-10">
         <h2 className="news-section-label mb-3 px-1">{first}–{last}, a year at a time, dividends in</h2>

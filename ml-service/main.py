@@ -19,6 +19,7 @@ import hazards
 import alpha
 import alpha_factory
 import backtest
+import beyond
 import lab
 import mandates
 import monitor
@@ -1136,6 +1137,16 @@ def forecast_result():
     out = forecast.result()
     if out is None:
         raise HTTPException(status_code=404, detail="no forecast yet: run forecast.py")
+    return out
+
+
+@app.get("/beyond")
+def beyond_result():
+    """The moat and no-dilution rules tested outside the S&P 500, and inside
+    it for comparison. Rebuilt by running beyond.py."""
+    out = beyond.result()
+    if out is None:
+        raise HTTPException(status_code=404, detail="no result yet: run beyond.py")
     return out
 
 

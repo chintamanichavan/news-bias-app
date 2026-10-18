@@ -417,10 +417,10 @@ def card(ticker: str, y: pd.DataFrame, sic: str, shares: list[float] | None = No
     }
 
 
-def cards(as_of: str) -> list[dict]:
-    """Every S&P 500 member on the day that has filings, with its share of
-    its industry's member sales."""
-    tickers = members(as_of)
+def cards(as_of: str, tickers: list[str] | None = None) -> list[dict]:
+    """Every S&P 500 member on the day — or every one of `tickers` — that has
+    filings, with its share of its industry's sales among them."""
+    tickers = members(as_of) if tickers is None else tickers
     info = companies()
     conn = pit.connect()
     tickers = [t for t in tickers if t in info]
