@@ -7,8 +7,10 @@ attention.py), but two found the losers: the most-shorted fifth
 (shorts.py; 30% halve within 3 years) and the fifth whose 10-K was
 rewritten most (reports.py; 25%). The screen holds every company in the
 smaller half by size, equal weight, bought each 30 June, and drops those
-two fifths. Short interest is on record from 2018, so the screen is run
-twice: report filter alone (2010 on) and both filters (2018 on).
+two fifths, and (eightk.py) any company whose 8-Ks in the past year
+reported a delisting notice, a restatement or a change of auditor (26-32%
+of those halve). Short interest is on record from 2018, so each mix is run
+from 2010 without it and from 2018 with it.
 
 Same universe as the winner study, dead companies included, same return
 measure (winners.outcomes). The price proxy reads a few tiny shells at
@@ -20,6 +22,7 @@ stocks do triple, but not a thousandfold. Medians are shown beside.
 import numpy as np
 import pandas as pd
 
+import eightk
 import monitor
 import reports
 import shorts
@@ -28,15 +31,17 @@ import winners
 SMALL = 0.5          # the smaller half by size, each date
 DROP = 0.2           # a fifth
 CAP = 3.0            # +300% a company-year
+BAD_NEWS = ("delisting_notice", "restatement", "auditor_change")   # 8-K items, past year
 
 
 def panel(horizons=(1, 3)) -> pd.DataFrame:
-    df = shorts.attach(reports.attach(winners.outcomes(winners.panel_all(), horizons=horizons)))
+    df = eightk.attach(shorts.attach(reports.attach(winners.outcomes(winners.panel_all(), horizons=horizons))))
     df["size_pct"] = df.groupby("date")["log_size"].rank(pct=True)
     df = df[df["size_pct"] <= SMALL].copy()
     pct = lambda c: df.groupby("date")[c].rank(pct=True)       # NaN stays NaN
     df["rewritten"] = pct("cosine_content") <= DROP
     df["shorted"] = pct("short_ratio") > 1 - DROP
+    df["bad_news"] = df[list(BAD_NEWS)].max(axis=1) == 1
     return df
 
 
@@ -63,9 +68,11 @@ def run() -> dict:
     out = {}
     for name, start, keep in (
             ("reports_only", "2010", lambda d: ~d["rewritten"]),
+            ("reports_8k", "2010", lambda d: ~d["rewritten"] & ~d["bad_news"]),
+            ("all_three", "2018", lambda d: ~d["rewritten"] & ~d["shorted"] & ~d["bad_news"]),
             ("both", "2018", lambda d: ~d["rewritten"] & ~d["shorted"])):
         d = df[(df["date"] >= start)]
-        if name == "both":
+        if name in ("both", "all_three"):
             d = d[d["short_ratio"].notna()]                  # only where shorts are on record
         k = keep(d)
         out[name] = {"all_small": summary(d), "kept": summary(d[k]), "dropped": summary(d[~k])}
