@@ -92,7 +92,7 @@ def build(today: date | None = None, refresh: bool = True) -> dict:
     cols = ["symbol", "ticker", "exchange", "name", "float", "cosine_content", "short_ratio"]
     clean = lambda g: json.loads(g[cols].to_json(orient="records"))
     return {
-        "date": day, "rule": "Buy equal-weighted each 30 June, hold a year; tested 2010-2022 (loseless.py).",
+        "date": day, "rule": "Buy equal-weighted with each June list, hold a year; tested 2010-2022 with 30 June buys (loseless.py).",
         "short_settlement": s["settled"].iloc[0] if len(s) else None,
         "trend": trend(today),
         "counts": {"filers": filed, "small_half": int(len(df)), "rewritten": int(df["rewritten"].sum()),
@@ -172,12 +172,34 @@ def performance(today: date | None = None) -> dict:
     return {"since": snaps[0]["date"], "to": end, "plan": plan - 1, "fund": fund - 1, "months": months}
 
 
+def action(snaps: list[dict]) -> dict:
+    """What the plan asks of the holder now, from the last two lists: the
+    trend reading then and now, and whether the held pick changed."""
+    now = snaps[-1]
+    up = now["trend"]["above"]
+    if len(snaps) == 1:
+        return {"do": "buy" if up else "bills", "why": "first list" + ("" if up else "; trend below its average")}
+    before = snaps[-2]
+    was_up = before["trend"]["above"]
+    new_pick = holding(snaps, now["date"])["date"] != holding(snaps[:-1], before["date"])["date"]
+    if up and not was_up:
+        return {"do": "buy", "why": "small caps closed back above their 10-month average"}
+    if was_up and not up:
+        return {"do": "sell", "why": "small caps closed below their 10-month average"}
+    if up and new_pick:
+        return {"do": "rebuy", "why": "the June pick replaces last year's"}
+    return {"do": "hold" if up else "bills", "why": "no change since the last list"}
+
+
 def latest() -> dict | None:
-    snaps = sorted(DIR.glob("*.json"))
-    if not snaps:
+    paths = sorted(DIR.glob("*.json"))
+    if not paths:
         return None
-    out = json.loads(snaps[-1].read_text())
-    out.setdefault("pick", pick(out["date"], [c["symbol"] for c in out["kept"]]))   # lists before picks
+    snaps = [json.loads(p.read_text()) for p in paths]
+    for x in snaps:
+        x.setdefault("pick", pick(x["date"], [c["symbol"] for c in x["kept"]]))   # lists before picks
+    out = snaps[-1]
+    out["action"] = action(snaps)
     return out
 
 

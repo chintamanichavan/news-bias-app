@@ -25,6 +25,7 @@ interface Screen {
   largest_float: number
   kept: Company[]
   pick: string[]
+  action?: { do: 'buy' | 'hold' | 'sell' | 'bills' | 'rebuy'; why: string }
   dropped: Company[]
 }
 
@@ -43,6 +44,14 @@ const WHY: Record<string, string> = {
   rewritten: 'report rewritten',
   shorted: 'heavily shorted',
   bad_news: '8-K warning',
+}
+
+const ACTION: Record<string, string> = {
+  buy: 'Buy the pick of 50 in equal amounts',
+  hold: 'Hold the pick; nothing to do',
+  sell: 'Sell the pick and hold Treasury bills',
+  bills: 'Stay in Treasury bills; nothing to do',
+  rebuy: 'Sell last year\'s pick and buy the new pick of 50',
 }
 
 const pct = (x: number | null, d = 0) => (x === null ? '—' : `${(x * 100).toFixed(d)}%`)
@@ -94,7 +103,11 @@ export default function SmallCapsPage() {
             <p className="text-[11px] text-muted-foreground">The plan</p>
             <p className="text-[13px] mt-1">
               Hold the pick of 50 in equal amounts while small caps are above their 10-month average, else Treasury
-              bills; a new pick each 30 June. Today: <b>{data.trend.above ? 'hold the pick' : 'hold Treasury bills'}</b>.
+              bills; a new pick with each June list.
+            </p>
+            <p className="text-[15px] mt-2">
+              What to do now: <b>{data.action ? ACTION[data.action.do] : (data.trend.above ? ACTION.hold : ACTION.bills)}</b>
+              {data.action && <span className="text-[12px] text-muted-foreground"> ({data.action.why}, list of {data.date})</span>}
             </p>
             {record.data && (
               <p className="text-[12px] text-muted-foreground mt-1 tabular-nums">
@@ -182,7 +195,7 @@ export default function SmallCapsPage() {
       )}
 
       <p className="text-xs text-muted-foreground mt-8 max-w-3xl leading-relaxed">
-        Tested as: buy every kept company in equal amounts each 30 June and hold a year. A pick of 50: drawn at
+        Tested as: buy every kept company in equal amounts each 30 June and hold a year; the live plan rebuys on the June list, made on the 3rd. A pick of 50: drawn at
         random from the kept list with the date as the seed; in the test, 50 companies kept a middle return of 13.8%
         a year (9 in 10 picks between 10% and 18%) and an unlucky 1-in-20 worst year of −34%, against −23% for the
         whole list; with 10 companies, 1 pick in 12 fell past half. This list is refreshed

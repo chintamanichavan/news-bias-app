@@ -19,3 +19,18 @@ def test_pick_is_fixed_by_date():
     syms = [f"CIK{i:010d}" for i in range(200)]
     assert smallcaps.pick("2026-10-18", syms) == smallcaps.pick("2026-10-18", list(reversed(syms)))
     assert len(smallcaps.pick("2026-10-18", syms)) == smallcaps.PICK
+
+
+def _snap(day, up):
+    return {"date": day, "trend": {"above": up}}
+
+
+def test_action_follows_trend_and_june_pick():
+    a = smallcaps.action
+    assert a([_snap("2026-10-18", True)])["do"] == "buy"
+    assert a([_snap("2026-10-18", True), _snap("2026-11-03", True)])["do"] == "hold"
+    assert a([_snap("2026-10-18", True), _snap("2026-11-03", False)])["do"] == "sell"
+    assert a([_snap("2026-10-18", False), _snap("2026-11-03", False)])["do"] == "bills"
+    assert a([_snap("2026-11-03", False), _snap("2026-12-03", True)])["do"] == "buy"
+    assert a([_snap("2027-05-03", True), _snap("2027-06-30", True)])["do"] == "rebuy"
+    assert a([_snap("2027-06-30", True), _snap("2027-07-03", True)])["do"] == "hold"
