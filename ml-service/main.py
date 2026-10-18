@@ -40,6 +40,7 @@ import signal_engine
 import signal_manager
 import simulation
 import social_manager
+import tracker
 import universe
 # The per-article bias model is retired. Its label was the publishing outlet's
 # AllSides rating, and `source_prior` fed that same rating in as a feature — so
@@ -1178,6 +1179,18 @@ def evidence_companies(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     _data_cache[key] = (time.time(), out)
+    return out
+
+
+@app.get("/tracker")
+def tracker_record():
+    """The live record: the rule lists written down each month and how they
+    have done since, against SPY and every member. Rebuilt at most hourly."""
+    cached = _data_cache.get("tracker")
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    out = tracker.record()
+    _data_cache["tracker"] = (time.time(), out)
     return out
 
 

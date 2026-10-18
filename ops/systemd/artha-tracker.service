@@ -1,0 +1,10 @@
+[Unit]
+Description=Artha live record: refresh S&P 500 prices, snapshot the rule lists
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/code/news-bias-app/ml-service
+ExecStart=%h/code/news-bias-app/ml-service/.venv/bin/python -W ignore tracker.py
+TimeoutStartSec=3600

@@ -330,11 +330,71 @@ function EvidenceSection({ tests, through }: { tests: Record<string, EvidenceTes
   )
 }
 
+interface Tracked {
+  since?: string
+  through?: string
+  snapshots?: number
+  periods: { snapshot: string; start: string; end: string; spy: number | null; good_all_three: number | null;
+    buyback_profitable: number | null; control: number | null; n_good_all_three: number; n_buyback_profitable: number }[]
+  total?: Record<string, number>
+  current?: Record<string, string[]>
+}
+
+function LiveRecord({ r }: { r: Tracked }) {
+  const rows: [string, string][] = [
+    ['good_all_three', 'Good on all three'], ['buyback_profitable', 'Buys back + profitable'],
+    ['control', 'Every S&P member'], ['spy', 'SPY'],
+  ]
+  return (
+    <section className="mb-10">
+      <h2 className="news-section-label mb-3 px-1">The live record</h2>
+      <div className="news-card p-4">
+        <p className="text-[13px] leading-relaxed max-w-3xl">
+          Each month the rules are written down before anyone knows how they will do, and scored as the months arrive.
+          No survivors only, no hindsight: a name that later fails or is bought stays in the record.{' '}
+          {r.since ? <>Started {r.since}; {r.snapshots} snapshot{r.snapshots === 1 ? '' : 's'}, priced through {r.through}.</> : 'No snapshot yet.'}
+        </p>
+        {r.total && r.periods.length > 0 ? (
+          <table className="w-full text-[13px] tabular-nums mt-3 max-w-xl">
+            <thead>
+              <tr className="text-[11px] text-muted-foreground text-right">
+                <th className="font-normal pb-1 text-left"></th>
+                <th className="font-normal pb-1">Names now</th>
+                <th className="font-normal pb-1">Since start</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(([k, label]) => (
+                <tr key={k} className="border-t border-border/60 text-right">
+                  <td className="py-1.5 text-left">{label}</td>
+                  <td className="py-1.5">{k === 'spy' ? '—' : r.current?.[k]?.length ?? '—'}</td>
+                  <td className={`py-1.5 font-semibold ${k === 'spy' ? '' : tone((r.total?.[k] ?? 0) - (r.total?.spy ?? 0))}`}>{signed(r.total?.[k])}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="text-[12px] text-muted-foreground mt-2">The first month is under way; results appear after the next snapshot.</p>
+        )}
+        {r.current && (
+          <p className="text-[12px] mt-3 leading-relaxed">
+            <span className="text-muted-foreground">Good on all three now: </span>{r.current.good_all_three.join(', ')}
+          </p>
+        )}
+        <p className="text-[11px] text-muted-foreground mt-2">
+          A snapshot is taken on the 1st of each month. A month or a year says little: judge it over years.
+        </p>
+      </div>
+    </section>
+  )
+}
+
 export default function ProofPage() {
   const { data, loading, refreshing, error, reload } = useResource<Proof>('/api/proof')
   const fc = useResource<Forecast>('/api/forecast')
   const beyond = useResource<Beyond>('/api/beyond')
   const ev = useResource<{ through: string; tests: Record<string, EvidenceTest> }>('/api/evidence')
+  const live = useResource<Tracked>('/api/tracker')
   if (error && !data) return <LoadError message={error} onRetry={reload} retrying={refreshing || loading} />
   if (!data) return <div className="px-4 py-16 text-center text-sm text-muted-foreground">Loading the replay…</div>
 
@@ -355,6 +415,7 @@ export default function ProofPage() {
         </p>
       </header>
 
+      {live.data && <LiveRecord r={live.data} />}
       {ev.data && <EvidenceSection tests={ev.data.tests} through={ev.data.through} />}
 
       {Object.keys(data.long_horizon).length > 0 && (

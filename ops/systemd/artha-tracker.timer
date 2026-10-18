@@ -1,0 +1,9 @@
+[Unit]
+Description=Monthly live-record snapshot, the 1st at 07:00 local
+
+[Timer]
+OnCalendar=*-*-01 07:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

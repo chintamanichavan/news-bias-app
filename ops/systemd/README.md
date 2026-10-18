@@ -24,3 +24,13 @@ the root `https://kaunteya.tail78af30.ts.net` proxies to :3002 (dev), and
 `TimeoutStartSec=3600`, `After=news-bias-ml.service`) would run the nightly
 PIT ingest at 02:30. Install both to `~/.config/systemd/user/`, then:
 `systemctl --user daemon-reload && systemctl --user enable --now artha-pit-ingest.timer`.
+
+## Installed: the live record
+
+`artha-tracker.service` + `artha-tracker.timer` run `ml-service/tracker.py` on
+the 1st of each month at 07:00: refresh every S&P 500 member's price history,
+then write that month's rule lists to `ml-service/data/scorecard/tracker/`.
+A snapshot is never rewritten. Installed as copies:
+
+    cp ops/systemd/artha-tracker.* ~/.config/systemd/user/
+    systemctl --user daemon-reload && systemctl --user enable --now artha-tracker.timer
