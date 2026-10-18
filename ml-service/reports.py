@@ -210,7 +210,7 @@ def attach(df: pd.DataFrame) -> pd.DataFrame:
     rows = df.copy()
     rows["when"] = pd.to_datetime(rows["date"])
     merged = pd.merge_asof(rows.sort_values("when"),
-                           sims[["symbol", "filed", "cosine", "cosine_content", "jaccard", "new_share", "length_change"]],
+                           sims.sort_values("filed")[["symbol", "filed", "cosine", "cosine_content", "jaccard", "new_share", "length_change"]],
                            left_on="when", right_on="filed", by="symbol", direction="backward",
                            tolerance=pd.Timedelta(days=456))
     return merged.drop(columns=["when", "filed"])
@@ -220,7 +220,8 @@ def test(horizons: tuple = (1, 3)) -> dict:
     """The paper's comparison on the winner study's universe, dead included:
     on each 30 June, the fifth of companies whose report changed least
     against the fifth that changed most, each against companies of its own
-    size, over the next 1 and 3 years."""
+    size, over the next 1 and 3 years. Medians, as in insiders.test: the
+    price proxy puts a few +1000% years in any mean."""
     import winners
     df = attach(winners.outcomes(winners.panel_all(), horizons=horizons))
     df["size_tenth"] = df.groupby("date")["log_size"].rank(pct=True).mul(10).apply(np.ceil)
@@ -232,11 +233,11 @@ def test(horizons: tuple = (1, 3)) -> dict:
             for d, g in df[df[measure].notna() & df[f"r{h}"].notna()].groupby("date"):
                 if len(g) < 100:
                     continue
-                g = g.assign(excess=g[f"r{h}"] - g.groupby("size_tenth")[f"r{h}"].transform("mean"))
+                g = g.assign(excess=g[f"r{h}"] - g.groupby("size_tenth")[f"r{h}"].transform("median"))
                 fifth = np.ceil(g[measure].rank(pct=True) * 5)
                 spreads.append({"date": d, "companies": len(g),
-                                "least_changed": float(g["excess"][fifth == 5].mean()),
-                                "most_changed": float(g["excess"][fifth == 1].mean())})
+                                "least_changed": float(g["excess"][fifth == 5].median()),
+                                "most_changed": float(g["excess"][fifth == 1].median())})
             s = pd.DataFrame(spreads)
             s["spread"] = s["least_changed"] - s["most_changed"]
             early, late = s[s["date"] < "2015"], s[s["date"] >= "2015"]
