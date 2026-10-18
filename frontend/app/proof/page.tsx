@@ -88,8 +88,112 @@ function verdict(p: Portfolio, hurdle: number): string {
   return 'not distinguishable from luck'
 }
 
+interface Forecast {
+  run_at: string
+  trials: number
+  hurdle_t: number
+  payoffs: Record<string, { mean: number; t: number | null }>
+  horizons: Record<string, { dates: number; slope: number; rank_corr_mean: number; rank_corr_positive: number;
+    fifths: { fifth: number; forecast: number; realised: number }[] }>
+  portfolios: Record<string, { growth_a_year: number; vs_spy: Stats; vs_universe: Stats | null }>
+}
+
+const TRAITS: Record<string, string> = {
+  roic: 'Return on capital', moat_years: 'Years of high return (moat)', gross_margin: 'Gross margin',
+  margin_swing: 'Margin swing', sales_growth: 'Sales growth', issuance: 'Share issuance',
+  reinvestment: 'Reinvestment', altman_z: 'Altman Z', implied: 'Implied return (cheapness)',
+  momentum: 'Past year’s return', size: 'Size',
+}
+
+function ForecastSection({ f }: { f: Forecast }) {
+  const payoffs = Object.entries(f.payoffs).sort((a, b) => Math.abs(b[1].t ?? 0) - Math.abs(a[1].t ?? 0))
+  return (
+    <section className="mb-10">
+      <h2 className="news-section-label mb-3 px-1">A forecast learned from history</h2>
+      <p className="text-[13px] mb-3 px-1 max-w-3xl leading-relaxed">
+        Each year, how much every trait of a company paid over the next twelve months; each later year forecast from
+        the average of the years before it only (Fama-MacBeth; Lewellen 2015). Judged on the 1, 3 and 5 years that
+        followed.
+      </p>
+      <div className="grid lg:grid-cols-3 gap-3 mb-3">
+        {Object.entries(f.horizons).map(([h, v]) => (
+          <div key={h} className="news-card p-4">
+            <p className="text-[13px] mb-2">
+              <b>{h} year{h === '1' ? '' : 's'}</b>, {v.dates} forecasts: slope <b>{v.slope.toFixed(2)}</b>, rank
+              correlation {v.rank_corr_mean.toFixed(2)} (positive {v.rank_corr_positive} of {v.dates})
+            </p>
+            <table className="w-full text-[12px] tabular-nums">
+              <thead>
+                <tr className="text-[11px] text-muted-foreground text-right">
+                  <th className="font-normal pb-1 text-left">Fifth</th>
+                  <th className="font-normal pb-1">Forecast</th>
+                  <th className="font-normal pb-1">Realised</th>
+                </tr>
+              </thead>
+              <tbody>
+                {v.fifths.map(q => (
+                  <tr key={q.fifth} className="border-t border-border/60 text-right">
+                    <td className="py-1 text-left">{q.fifth === 5 ? '5 · best' : q.fifth}</td>
+                    <td className="py-1">{pct(q.forecast)}</td>
+                    <td className="py-1 font-semibold">{pct(q.realised)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+      <div className="grid lg:grid-cols-2 gap-3">
+        <div className="news-card p-4">
+          <p className="text-[11px] text-muted-foreground mb-2">
+            What each trait paid a year, top-ranked company against bottom-ranked, 2014–2025. Luck is ruled out at a t of {f.hurdle_t}.
+          </p>
+          <table className="w-full text-[13px] tabular-nums">
+            <tbody>
+              {payoffs.map(([k, v]) => (
+                <tr key={k} className="border-t border-border/60 first:border-0">
+                  <td className="py-1.5">{TRAITS[k] ?? k}</td>
+                  <td className={`py-1.5 text-right ${tone(v.mean)}`}>{signed(v.mean)}</td>
+                  <td className="py-1.5 text-right text-muted-foreground">t {v.t == null ? '—' : v.t.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="news-card p-4">
+          <p className="text-[11px] text-muted-foreground mb-2">Held a year at a time, 2015–2026</p>
+          <table className="w-full text-[13px] tabular-nums">
+            <thead>
+              <tr className="text-[11px] text-muted-foreground text-right">
+                <th className="font-normal pb-1"></th>
+                <th className="font-normal pb-1">Grew a year</th>
+                <th className="font-normal pb-1">vs control</th>
+                <th className="font-normal pb-1">t</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(['moat_top', 'top_fifth', 'universe'] as const).map(k => {
+                const p = f.portfolios[k]
+                return (
+                  <tr key={k} className="border-t border-border/60 text-right">
+                    <td className="py-1.5 text-left">{k === 'moat_top' ? '20 wide moats, best forecast' : k === 'top_fifth' ? 'Best-forecast fifth' : 'The control'}</td>
+                    <td className="py-1.5">{pct(p.growth_a_year)}</td>
+                    <td className={`py-1.5 ${tone(p.vs_universe?.mean_a_year)}`}>{p.vs_universe ? signed(p.vs_universe.mean_a_year) : '—'}</td>
+                    <td className="py-1.5">{p.vs_universe?.t == null ? '—' : p.vs_universe.t.toFixed(2)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function ProofPage() {
   const { data, loading, refreshing, error, reload } = useResource<Proof>('/api/proof')
+  const fc = useResource<Forecast>('/api/forecast')
   if (error && !data) return <LoadError message={error} onRetry={reload} retrying={refreshing || loading} />
   if (!data) return <div className="px-4 py-16 text-center text-sm text-muted-foreground">Loading the replay…</div>
 
@@ -153,6 +257,8 @@ export default function ProofPage() {
           </p>
         </section>
       )}
+
+      {fc.data && <ForecastSection f={fc.data} />}
 
       <section className="mb-10">
         <h2 className="news-section-label mb-3 px-1">{first}–{last}, a year at a time, dividends in</h2>
@@ -247,9 +353,9 @@ export default function ProofPage() {
       <section className="news-card p-4 mb-8 max-w-3xl">
         <h2 className="news-section-label mb-2">What this cannot see</h2>
         <p className="text-[13px] leading-relaxed">
-          Only companies that still trade today have prices here, so the control beat SPY by{' '}
-          {signed(data.survivor_bias_estimate)} a year: that is roughly how much survivors flatter every portfolio, and why
-          each is compared with the control rather than with SPY alone. The flattery is largest where failures are
+          Only companies that still trade today have prices here. The control&apos;s lead over SPY,{' '}
+          {signed(data.survivor_bias_estimate)} a year, is a rough measure of how much that flatters every portfolio, and
+          each is compared with the control rather than with SPY alone for that reason. The flattery is largest where failures are
           likeliest: among cheap, troubled companies, which is where the best-priced fifth draws from. Early years price
           barely half the index. {data.caveat}
         </p>

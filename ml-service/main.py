@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 import db
 import divergence
 import feed_manager
+import forecast
 import hazards
 import alpha
 import alpha_factory
@@ -1125,6 +1126,16 @@ def proof_result():
     out = proof.result()
     if out is None:
         raise HTTPException(status_code=404, detail="no replay yet: run proof.py")
+    return out
+
+
+@app.get("/forecast")
+def forecast_result():
+    """The Fama-MacBeth forecast of yearly returns from company traits, tested
+    out of sample over 1, 3 and 5 years. Rebuilt by running forecast.py."""
+    out = forecast.result()
+    if out is None:
+        raise HTTPException(status_code=404, detail="no forecast yet: run forecast.py")
     return out
 
 

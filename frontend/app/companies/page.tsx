@@ -91,7 +91,7 @@ export default function CompaniesPage() {
   const pricing = useResource<Pricing>(asOf ? `/api/pricer?as_of=${asOf}` : '/api/pricer')
   const [moat, setMoat] = useState<Moat>('wide')
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: 'alpha', desc: true })
+  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: 'return_median', desc: true })
 
   const counts = useMemo(() => {
     const n: Record<Moat, number> = { all: 0, wide: 0, narrow: 0, none: 0, unknown: 0 }
@@ -147,6 +147,12 @@ export default function CompaniesPage() {
             <p className="text-[13px] mt-2">
               The market&apos;s price implies <b className="tabular-nums">{pct(pricing.data.market_return, 1)}</b> a year
               for the whole business, value-weighted over {pricing.data.priced} companies.
+            </p>
+          )}
+          {pricing.data && (
+            <p className="text-[12px] text-muted-foreground mt-1 max-w-2xl">
+              Tested on 2014–2026, the implied return did not predict which companies did better over 3 or 5 years;
+              the moat grade did, by about 2 points a year. <Link href="/proof" className="underline">See the proof</Link>.
             </p>
           )}
         </div>
