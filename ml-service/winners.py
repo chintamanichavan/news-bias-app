@@ -145,7 +145,8 @@ def panel_all(rebuild: bool = False) -> pd.DataFrame:
     return df
 
 
-def outcomes(df: pd.DataFrame, exit_bought: float = EXIT_BOUGHT, exit_gone: float = EXIT_GONE) -> pd.DataFrame:
+def outcomes(df: pd.DataFrame, exit_bought: float = EXIT_BOUGHT, exit_gone: float = EXIT_GONE,
+             horizons: tuple = HORIZONS) -> pd.DataFrame:
     """Each row's yearly return over each horizon. Companies Yahoo still
     prices get their real total return; the rest, the price proxy chained
     from the public float nearest the start to the one nearest the end
@@ -173,7 +174,7 @@ def outcomes(df: pd.DataFrame, exit_bought: float = EXIT_BOUGHT, exit_gone: floa
         i = np.argmin(np.abs(dates - np.datetime64(when)))
         return i if abs(dates[i] - np.datetime64(when)) <= NEAR.to_timedelta64() else None
 
-    for h in HORIZONS:
+    for h in horizons:
         out, how = [], []
         real = {d: proof.realised(rets, d, h) for d in df["date"].unique()}
         for d, sym in zip(df["date"], df["symbol"]):
@@ -341,22 +342,29 @@ def pooled(rows: list[dict], h: int) -> dict | None:
 
 
 def run(which: str = "all", rebuild: bool = False,
-        exit_bought: float = EXIT_BOUGHT, exit_gone: float = EXIT_GONE) -> dict:
+        exit_bought: float = EXIT_BOUGHT, exit_gone: float = EXIT_GONE,
+        extra: tuple = (), attach=None) -> dict:
     """`which`: "all" (every filer, dead or alive) or "survivors" (the
-    companies that file today, with real prices)."""
+    companies that file today, with real prices). `attach` adds the columns
+    named in `extra` (an attribute module's attach()), which join the traits;
+    the run is saved and logged under `which` plus their names."""
     started = time.time()
+    base = which
     if which == "all":
         df, traits, key = outcomes(panel_all(rebuild), exit_bought, exit_gone), TRAITS_ALL, "name"
     else:
         df, traits, key = panel(rebuild), TRAITS, "ticker"
+    if attach is not None:
+        df, traits = attach(df), traits + tuple(extra)
+        which = "+".join([which, *extra])
     rows, weights = evaluate(df, traits, key)
     w = np.mean(weights, axis=0) if weights else None
     trials = monitor_trials() + 1
-    how = {h: df[f"how{h}"].value_counts().to_dict() for h in HORIZONS} if which == "all" else None
+    how = {h: df[f"how{h}"].value_counts().to_dict() for h in HORIZONS} if base == "all" else None
     out = {"run_at": time.strftime("%Y-%m-%d %H:%M"), "seconds": round(time.time() - started),
            "which": which, "goal": GOAL, "train_h": TRAIN_H, "traits": list(traits), "trials": trials,
            "hurdle_t": validation.significance_hurdle(trials),
-           "exits": {"bought": exit_bought, "gone": exit_gone} if which == "all" else None,
+           "exits": {"bought": exit_bought, "gone": exit_gone} if base == "all" else None,
            "measured_by": how,
            "results": {str(h): pooled(rows, h) for h in HORIZONS},
            "weights": dict(zip(traits, w[1:].round(3).tolist())) if w is not None else None,
