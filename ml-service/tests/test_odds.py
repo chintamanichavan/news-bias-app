@@ -94,3 +94,14 @@ def test_parse_french_reads_a_later_block():
     text = (",A\n199107, 1.00\n\n  Equal Weighted\n,A\n199107, 3.00\n")
     assert odds.parse_french(text, block=1) == {"199107": {"A": 0.03}}
     assert odds.parse_french(text) == {"199107": {"A": 0.01}}
+
+
+def test_momentum_pays_its_trading_costs(monkeypatch):
+    month = {"Mkt-RF": 0.01, "RF": 0.0}
+    rows = {m: {"BIG HiBM": 0.01, "SMALL HiBM": 0.01, "BIG HiOP": 0.01, "RlEst": 0.01, "Oil": 0.01,
+                "Mines": 0.01, "Agric": 0.01, "< 0": 0.01, "Hi 20": 0.01, "Hi PRIOR": 0.01, **month}
+            for m in ("202001", "202002")}
+    monkeypatch.setattr(odds, "french", lambda name, block=0: rows)
+    _, S, _ = odds.history()
+    assert S["us-developed/momentum"] == pytest.approx([0.01 - 0.03 / 12] * 2)
+    assert S["us-developed/buybacks"] == pytest.approx([0.01] * 2)

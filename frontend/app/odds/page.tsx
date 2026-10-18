@@ -134,10 +134,21 @@ function WhatIf({ data, years }: { data: Odds; years: number }) {
     <section className="mb-10">
       <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3 px-1">
         <h2 className="news-section-label">What if</h2>
-        <button onClick={() => { setWeights(plan); setResult(null) }} disabled={!changed}
-          className="text-[13px] px-3 py-1 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground disabled:opacity-40">
-          Back to the plan
-        </button>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setWeights({
+              ...Object.fromEntries(data.choices.map(k => [k, 0])),
+              'us-developed/buybacks': 50, 'us-developed/most-profitable': 50,
+            })}
+            title="Half in companies whose share count fell, half in the most profitable fifth: the two rules sixty years of data favour"
+            className="text-[13px] px-3 py-1 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground">
+            Buybacks + profitable
+          </button>
+          <button onClick={() => { setWeights(plan); setResult(null) }} disabled={!changed}
+            className="text-[13px] px-3 py-1 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground disabled:opacity-40">
+            Back to the plan
+          </button>
+        </div>
       </div>
       <div className="grid lg:grid-cols-2 gap-3">
         <div className="news-card p-4">

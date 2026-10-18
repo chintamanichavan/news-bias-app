@@ -48,7 +48,22 @@ PROXIES = {
     ("emerging", "value"): ("Emerging_Markets_6_Portfolios_ME_BE-ME", ["BIG HiBM"]),
     ("emerging", "profitability"): ("Emerging_Markets_6_Portfolios_ME_OP", ["BIG HiOP"]),
     ("global", "quality"): ("Developed_6_Portfolios_ME_OP", ["BIG HiOP"]),
+    # The three groups the sixty-year evidence favours (evidence.py), US,
+    # value-weighted: companies whose share count fell, the most profitable
+    # fifth, and last year's top tenth.
+    ("us-developed", "buybacks"): ("Portfolios_Formed_on_NI", ["< 0"]),
+    ("us-developed", "most-profitable"): ("Portfolios_Formed_on_OP", ["Hi 20"]),
+    ("us-developed", "momentum"): ("10_Portfolios_Prior_12_2", ["Hi PRIOR"]),
 }
+# Trading costs a year beyond FEES. Momentum turns over most of its book every
+# few months; costs of this order halve its paper return (Novy-Marx & Velikov,
+# "A Taxonomy of Anomalies and Their Trading Costs", Review of Financial
+# Studies 29, 2016). The yearly-rebalanced groups are left at FEES.
+COSTS = {("us-developed", "momentum"): 0.03}
+# Equal mixes of the evidence groups, priced beside the plan.
+TILTS = {"Buybacks + profitable": ["us-developed/buybacks", "us-developed/most-profitable"],
+         "Buybacks + profitable + momentum": ["us-developed/buybacks", "us-developed/most-profitable",
+                                              "us-developed/momentum"]}
 # The plain alternatives: a whole-market index fund, Mkt-RF + RF.
 BENCHMARKS = {"us": ("F-F_Research_Data_Factors", "US index fund"),
               "world": ("Developed_3_Factors", "World index fund (developed markets)")}
@@ -125,7 +140,7 @@ def history() -> tuple[list[str], dict[str, np.ndarray], dict[str, np.ndarray]]:
     have — one window, so a what-if is priced on the same months as the plan."""
     files = {name: french(name) for name, _ in PROXIES.values()}
     benches = {k: french(name) for k, (name, _) in BENCHMARKS.items()}
-    series = {key(*k): {m: sum(v[c] for c in cols) / len(cols)
+    series = {key(*k): {m: sum(v[c] for c in cols) / len(cols) - COSTS.get(k, 0.0) / 12
                         for m, v in files[name].items() if all(c in v for c in cols)}
               for k, (name, cols) in PROXIES.items()}
     months = sorted(set.intersection(*map(set, series.values()), *map(set, benches.values())))
@@ -217,7 +232,9 @@ def odds(weights: dict[str, float] | None = None) -> dict:
         "fees": FEES,
         "goals": list(GOALS),
         "plan": priced(plan, "Your plan" if weights is None else "What if"),
-        "benchmarks": [priced(b, BENCHMARKS[k][1]) for k, b in benches.items()],
+        "benchmarks": [priced(b, BENCHMARKS[k][1]) for k, b in benches.items()] +
+                      [priced(np.mean([S[k] for k in keys], axis=0) - FEES / 12, label)
+                       for label, keys in TILTS.items()],
         "choices": [key(*k) for k in PROXIES],
         "sleeves": [{"key": key(s["region"], s["factor"]), "region": s["region"],
                      "factor": s["factor"], "weight": s["weight"],
