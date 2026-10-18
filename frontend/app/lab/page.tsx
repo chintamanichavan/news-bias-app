@@ -50,8 +50,6 @@ interface Dossier {
     shares_change_pct: number | null
     society: Record<string, number | null>
   } | null
-  engine: { snapshots: { taken_at: string; composite: number }[]; latest_composite: number | null }
-  recent_headlines: { title: string; published: string; sentiment: number; source: string }[]
 }
 
 function fmtBig(v: number | null | undefined): string {
@@ -384,28 +382,6 @@ export default function LabPage() {
               </div>
             )
           })()}
-
-          {/* Engine + headlines */}
-          {(d.engine.latest_composite != null || d.recent_headlines.length > 0) && (
-            <div className="mt-4 news-card p-5">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Platform signal on this name</p>
-              {d.engine.latest_composite != null && (
-                <p className="text-[13px] tabular-nums mb-2">
-                  Engine composite <span className={`font-bold ${d.engine.latest_composite >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {d.engine.latest_composite > 0 ? '+' : ''}{d.engine.latest_composite.toFixed(2)}
-                  </span> · {d.engine.snapshots.length} snapshots
-                </p>
-              )}
-              {d.recent_headlines.map((h, i) => (
-                <p key={i} className="text-[12.5px] leading-snug text-foreground/85 py-0.5">
-                  <span className={`tabular-nums font-semibold mr-1.5 ${h.sentiment >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {h.sentiment > 0 ? '+' : ''}{h.sentiment.toFixed(2)}
-                  </span>
-                  {h.title} <span className="text-muted-foreground text-[10px] uppercase">· {h.source}</span>
-                </p>
-              ))}
-            </div>
-          )}
 
           <p className="mt-3 text-[10px] text-muted-foreground/80">
             Daily-close statistics over the shown span · VaR/CVaR historical · Hurst via rescaled range ·

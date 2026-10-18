@@ -1,5 +1,5 @@
 # Artha — one command brings up the platform: `docker compose up --build`
-# ML service on :8421, web on :3002. State (SQLite + sources.json) lives in
+# ML service on :8421, web on :3002. State (SQLite + the PIT store) lives in
 # ./ml-service/data so containers are disposable.
 
 services:

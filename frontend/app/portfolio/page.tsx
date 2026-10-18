@@ -3,12 +3,9 @@
 // The portfolio-research workspace, merged into the platform and rendered in
 // Artha's own design language. Long-horizon quality businesses with their
 // buy-below levels against live prices, the factor-tilt target allocation,
-// and the ADR decision log — joined with the signal engine's short-horizon
-// read where one exists. Research workspace, not holdings.
+// and the ADR decision log. Research workspace, not holdings.
 
-import CompoundingJourney from '@/components/CompoundingJourney'
 import LoadError from '@/components/LoadError'
-import MandateStrip from '@/components/MandateStrip'
 import { useResource } from '@/lib/useResource'
 
 interface Name {
@@ -22,7 +19,6 @@ interface Name {
   buy_below: number | null
   intrinsic_value: number | null
   price: number | null
-  composite: number | null
   to_buy_zone_pct?: number
   in_buy_zone?: boolean
   upside_pct?: number
@@ -78,13 +74,6 @@ const REGION_LABEL: Record<string, string> = {
   emerging: 'Emerging', global: 'Global',
 }
 
-function tone(v: number | null | undefined): string {
-  if (v == null) return 'text-muted-foreground'
-  if (v > 0.1) return 'text-emerald-600 dark:text-emerald-400'
-  if (v < -0.1) return 'text-red-600 dark:text-red-400'
-  return 'text-muted-foreground'
-}
-
 export default function PortfolioPage() {
   const { data, loading, error, reload } = useResource<PortfolioData>('/api/portfolio')
 
@@ -102,7 +91,7 @@ export default function PortfolioPage() {
       </h1>
       <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-[68ch]">
         The quality-business watchlist and factor allocation from the research workspace,
-        joined with live prices and the engine&rsquo;s short-horizon signal. The thesis work
+        joined with live prices. The thesis work
         lives in the workspace; the platform watches the prices.
       </p>
       {data?.ips_excerpt && (
@@ -111,8 +100,6 @@ export default function PortfolioPage() {
           <span className="not-italic block mt-1 text-[11px] uppercase tracking-wider">— Investment Policy Statement</span>
         </blockquote>
       )}
-
-      <MandateStrip active="wealth" />
 
       {error && !data && <div className="mt-8"><LoadError message={error} onRetry={reload} /></div>}
       {loading && !data && <div className="mt-8 skeleton h-96 rounded-2xl" />}
@@ -261,10 +248,6 @@ export default function PortfolioPage() {
               )}
             </section>
           )}
-
-          {/* The alpha path to compounded wealth */}
-          <CompoundingJourney />
-
           {/* Watchlist — the discretionary alpha sleeve */}
           <section className="mt-10">
             <div className="flex items-baseline justify-between mb-4">
@@ -283,7 +266,6 @@ export default function PortfolioPage() {
                     <th className="px-3 py-2.5 font-semibold text-right">Buy below</th>
                     <th className="px-3 py-2.5 font-semibold text-right">To zone</th>
                     <th className="px-3 py-2.5 font-semibold text-right">Est. upside</th>
-                    <th className="px-3 py-2.5 font-semibold text-right">Signal</th>
                     <th className="px-4 py-2.5 font-semibold">Status</th>
                   </tr>
                 </thead>
@@ -318,9 +300,6 @@ export default function PortfolioPage() {
                       <td className="px-3 py-3 text-right tabular-nums">
                         {n.upside_pct != null ? `${n.upside_pct > 0 ? '+' : ''}${n.upside_pct}%` : '—'}
                       </td>
-                      <td className={`px-3 py-3 text-right tabular-nums font-semibold ${tone(n.composite)}`}>
-                        {n.composite != null ? `${n.composite > 0 ? '+' : ''}${n.composite.toFixed(2)}` : '·'}
-                      </td>
                       <td className="px-4 py-3">
                         <span className="text-[11px] text-muted-foreground">{n.status ?? '—'}</span>
                       </td>
@@ -331,8 +310,7 @@ export default function PortfolioPage() {
             </div>
             <p className="mt-2 text-[11px] text-muted-foreground">
               Buy-below and intrinsic-value estimates come from the workspace&rsquo;s own methodology
-              (decisions 0002, 0007). Signal is the engine&rsquo;s short-horizon composite where one exists —
-              context, never a trigger. Quotes delayed 15+ min.
+              (decisions 0002, 0007). Quotes delayed 15+ min.
             </p>
           </section>
 

@@ -4,10 +4,8 @@ platform.
 
 Reads the ~/code/portfolio-research workspace directly (CSV / YAML / ADR
 markdown; no cross-service dependency) and joins it with what only this
-platform has: live quotes and the signal engine's composites. The watchlist
-is the centerpiece — each quality business with its buy-below level against
-the live price, plus whatever short-horizon signal the engine currently
-carries on it.
+platform has: live quotes. The watchlist is the centerpiece — each quality
+business with its buy-below level against the live price.
 """
 
 import csv
@@ -17,7 +15,6 @@ from pathlib import Path
 
 import yaml
 
-import db
 import valuation
 
 PF_DIR = Path(os.environ.get("PORTFOLIO_RESEARCH_DIR",
@@ -103,24 +100,12 @@ def ips_excerpt(max_chars: int = 400) -> str | None:
     return None
 
 
-def latest_composites() -> dict[str, float]:
-    """Most recent composite per entity from the engine's snapshots."""
-    conn = db.get_conn()
-    rows = conn.execute(
-        """SELECT entity, composite FROM signal_snapshots
-           WHERE id IN (SELECT MAX(id) FROM signal_snapshots GROUP BY entity)""",
-    ).fetchall()
-    conn.close()
-    return {r["entity"]: r["composite"] for r in rows}
-
-
 def report(quotes: dict[str, float]) -> dict:
-    """The joined view: workspace + live prices + engine composites."""
-    composites = latest_composites()
+    """The joined view: workspace + live prices."""
     names = []
     for w in watchlist():
         price = quotes.get(w["ticker"])
-        entry = {**w, "price": price, "composite": composites.get(w["ticker"])}
+        entry = {**w, "price": price}
         if price is not None and w["buy_below"]:
             entry["to_buy_zone_pct"] = round((price / w["buy_below"] - 1) * 100, 1)
             entry["in_buy_zone"] = price <= w["buy_below"]

@@ -13,7 +13,6 @@ Yahoo's chart API quotes), one quantitative dossier out:
 - regime:         50/200-day trend state, distance from 52-week extremes,
                   rolling 30-day vol series
 - relative:       beta and correlation vs a benchmark (SPY by default)
-- platform join:  the engine's composite history and recent scored headlines
 - derivatives:    nearest-expiry options read (ATM IV, put/call OI) where a
                   chain exists; degrades to null elsewhere
 
@@ -30,10 +29,12 @@ from scipy import stats as sstats
 
 import db
 import pit
-import simulation
 import universe
 
-YAHOO_HEADERS = simulation.YAHOO_HEADERS
+YAHOO_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+}
 TRADING_DAYS = 252
 BENCHMARK = "SPY"
 
@@ -277,23 +278,20 @@ async def _profile(symbol: str) -> dict | None:
     }
 
 
-def _news_context(symbol: str) -> list[dict]:
-    conn = db.get_conn()
-    rows = conn.execute(
-        """SELECT title, published, sentiment_score, source_id FROM articles
-           WHERE datetime(published) > datetime('now', '-14 days')
-             AND sentiment_score IS NOT NULL
-           ORDER BY published DESC LIMIT 400""",
-    ).fetchall()
-    conn.close()
-    out = []
-    for r in rows:
-        if symbol in universe.extract_symbols(r["title"] or ""):
-            out.append({"title": r["title"], "published": r["published"],
-                        "sentiment": r["sentiment_score"], "source": r["source_id"]})
-        if len(out) >= 6:
-            break
-    return out
+async def _daily_closes(symbol: str, days: int) -> list[tuple[str, float]]:
+    rng = ("10y" if days > 1400 else "5y" if days > 800 else "2y" if days > 300 else
+           "1y" if days > 180 else "6mo" if days > 90 else "3mo")
+    async with httpx.AsyncClient(timeout=15, headers=YAHOO_HEADERS) as client:
+        r = await client.get(
+            f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}",
+            params={"range": rng, "interval": "1d"},
+        )
+        r.raise_for_status()
+        result = r.json()["chart"]["result"][0]
+    stamps = result["timestamp"]
+    closes = result["indicators"]["quote"][0]["close"]
+    return [(datetime.fromtimestamp(t, tz=timezone.utc).strftime("%Y-%m-%d"), float(c))
+            for t, c in zip(stamps, closes) if c is not None]
 
 
 def search(q: str, limit: int = 12) -> list[dict]:
@@ -310,7 +308,7 @@ def search(q: str, limit: int = 12) -> list[dict]:
 
 
 async def dossier(symbol: str, days: int = 500) -> dict:
-    closes_pairs = await simulation._daily_closes(symbol, days)
+    closes_pairs = await _daily_closes(symbol, days)
     if len(closes_pairs) < 40:
         return {"error": f"not enough price history for {symbol}"}
     dates = [d for d, _ in closes_pairs]
@@ -358,7 +356,7 @@ async def dossier(symbol: str, days: int = 500) -> dict:
     beta = corr = None
     if symbol != BENCHMARK:
         try:
-            bpairs = dict(await simulation._daily_closes(BENCHMARK, days))
+            bpairs = dict(await _daily_closes(BENCHMARK, days))
             common = [d for d in dates if d in bpairs]
             if len(common) > 60:
                 a = _returns([dict(closes_pairs)[d] for d in common])
@@ -374,13 +372,6 @@ async def dossier(symbol: str, days: int = 500) -> dict:
     sma200 = sum(closes[-200:]) / min(200, len(closes))
     hi52 = max(closes[-TRADING_DAYS:])
     lo52 = min(closes[-TRADING_DAYS:])
-
-    # Engine join
-    conn = db.get_conn()
-    snaps = [dict(r) for r in conn.execute(
-        """SELECT taken_at, composite FROM signal_snapshots
-           WHERE entity = ? ORDER BY taken_at DESC LIMIT 96""", (symbol,)).fetchall()]
-    conn.close()
 
     info = universe.lookup(symbol)
     worst_i = rets.index(sorted_r[0])
@@ -426,9 +417,6 @@ async def dossier(symbol: str, days: int = 500) -> dict:
         "fundamentals_history": fundamentals_history(symbol),
         "profile": await _profile(symbol),
         "options": await _options_read(symbol),
-        "engine": {"snapshots": list(reversed(snaps)),
-                   "latest_composite": snaps[0]["composite"] if snaps else None},
-        "recent_headlines": _news_context(symbol),
     }
 
 
