@@ -88,8 +88,9 @@ export default function SmallCapsPage() {
                 {' '}The trend rule says <b>{data.trend.above ? 'hold' : 'wait in Treasury bills'}</b>.
               </p>
               <p className="text-[11px] text-muted-foreground mt-1">
-                Since 1926 the rule halved the worst year (−53% to −28%) at about the same return; it trailed holding in
-                most 20-year periods.
+                Insurance with a varying price. Held, small caps fell past half twice since 1963 (−58% in 1972–75,
+                −59% in 2007–09); with the rule the worst fall was −32%. It cost 0.6 points a year over sixty years,
+                but 4 a year in 2010–2023, when quick falls and false exits came one after another.
               </p>
             </div>
             <div className="news-card px-4 py-3">

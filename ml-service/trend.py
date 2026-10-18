@@ -60,6 +60,32 @@ def rules(small: pd.Series, bills: pd.Series) -> dict:
     return out
 
 
+CRASHES = (("197201", "197512"), ("198701", "198812"), ("199801", "199912"), ("200001", "200312"),
+           ("200701", "200912"), ("202001", "202012"), ("202101", "202306"))
+
+
+def crashes() -> dict:
+    """The worst fall inside each crash window, held and with the 10-month
+    rule, on the five smallest size tenths (the screen's half), equal-weighted.
+    Measured 2026-10-18: held, 1972-75 -58% and 2007-09 -59%, past a 50%
+    limit; with the rule -10% and -15%, at 0.6 points a year since 1963 but
+    4 a year 2010-2023, a decade of quick falls and false exits."""
+    d = odds.french("Portfolios_Formed_on_ME", 1)
+    f = odds.french("F-F_Research_Data_Factors", 0)
+    m = sorted(set(d) & set(f))
+    cols = ["Lo 10"] + [f"{i}-Dec" for i in range(2, 6)]
+    small = pd.Series([np.mean([d[k][c] for c in cols]) for k in m], index=m)
+    bills = pd.Series([f[k]["RF"] for k in m], index=m)
+    level = (1 + small).cumprod()
+    inn = (level > level.rolling(10).mean()).shift(1, fill_value=True)
+    ruled = small.where(inn, bills) - inn.astype(int).diff().abs().fillna(0) * COST
+
+    def worst(x, a, b):
+        w = (1 + x[(x.index >= a) & (x.index <= b)]).cumprod()
+        return float((w / w.cummax()).min() - 1)
+    return {f"{a[:4]}-{b[:4]}": {"held": worst(small, a, b), "rule": worst(ruled, a, b)} for a, b in CRASHES}
+
+
 def run() -> dict:
     small, bills = series()
     out = {s: rules(small[small.index >= s], bills[bills.index >= s]) for s in STARTS}
