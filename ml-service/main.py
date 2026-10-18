@@ -31,7 +31,6 @@ import retrain
 import risk
 import signal_engine
 import signal_manager
-from terminal import api as terminal_api
 import simulation
 import social_manager
 import universe
@@ -202,7 +201,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Artha ML Service", lifespan=lifespan)
-app.include_router(terminal_api.router)
 
 app.add_middleware(
     CORSMiddleware,

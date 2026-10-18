@@ -5,7 +5,7 @@
 // tabular numerals. Every expanded card draws with these instead of naked
 // polylines.
 
-import { useWidth } from '@/lib/terminal/useWidth'
+import { useWidth } from '@/lib/useWidth'
 
 interface Pt { t: string | number; v: number }
 export interface Series {
