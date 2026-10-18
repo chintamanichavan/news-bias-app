@@ -89,8 +89,9 @@ def ar1(x: pd.Series, nxt: pd.Series) -> tuple[float, float, int]:
     return rho, float(1.4826 * np.median(np.abs(resid - np.median(resid)))), int(ok.sum())
 
 
-def calibrate(as_of: str) -> dict:
-    """Fit the fades by moat grade on the panel known on `as_of`; save it."""
+def calibrate(as_of: str, save: bool = True) -> dict:
+    """Fit the fades by moat grade on the panel known on `as_of`; save it
+    as the calibration today's pricing uses unless `save` is off."""
     y = panel(as_of)
     for col in ("roic", "growth"):
         y[f"{col}_gap"] = y[col] - y.groupby("year")[col].transform("median")
@@ -104,8 +105,9 @@ def calibrate(as_of: str) -> dict:
         gr, gs, gn = ar1(s["growth_gap"], s["growth_next"])
         out["grades"][g] = {"roic_persistence": rr, "roic_noise": rs, "roic_pairs": rn,
                             "growth_persistence": gr, "growth_noise": gs, "growth_pairs": gn}
-    CALIBRATION.parent.mkdir(parents=True, exist_ok=True)
-    CALIBRATION.write_text(json.dumps(out, indent=1))
+    if save:
+        CALIBRATION.parent.mkdir(parents=True, exist_ok=True)
+        CALIBRATION.write_text(json.dumps(out, indent=1))
     return out
 
 
@@ -125,9 +127,10 @@ def terminal(nopat: np.ndarray, roic: np.ndarray, rate: np.ndarray) -> np.ndarra
     return np.where(nopat <= 0, 0.0, np.where(roic > rate, grows, nopat / rate))
 
 
-def simulate(capital: float, roic0: float, growth0: float, ev: float, fade: dict,
-             roic_mean: float, rng, paths: int = PATHS) -> np.ndarray:
-    """The implied return today's enterprise value earns, one per future."""
+def futures(capital: float, roic0: float, growth0: float, fade: dict,
+            roic_mean: float, rng, paths: int = PATHS) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Simulated futures: each one's yearly cash, and the NOPAT and ROIC of
+    year 11 that set its terminal value."""
     rr, rs = fade["roic_persistence"], fade["roic_noise"]
     gr, gs = fade["growth_persistence"], fade["growth_noise"]
     r_gap = np.full(paths, np.clip(roic0, *CLIP_ROIC) - roic_mean)
@@ -143,7 +146,33 @@ def simulate(capital: float, roic0: float, growth0: float, ev: float, fade: dict
         g = np.clip(LONG_RUN_GROWTH + g_gap, *CLIP_GROWTH)
         cash[:, t] = ic * (roic - g)        # NOPAT less the capital growth needs
         ic = ic * (1 + g)
-    return implied_return(cash, ic * roic, roic, ev)
+    return cash, ic * roic, roic
+
+
+def simulate(capital: float, roic0: float, growth0: float, ev: float, fade: dict,
+             roic_mean: float, rng, paths: int = PATHS) -> np.ndarray:
+    """The implied return today's enterprise value earns, one per future."""
+    return implied_return(*futures(capital, roic0, growth0, fade, roic_mean, rng, paths), ev)
+
+
+def worth(cash: np.ndarray, nopat_after: np.ndarray, roic_after: np.ndarray,
+          rate: np.ndarray | float) -> np.ndarray:
+    """Each future's value today at `rate`, terminal value included."""
+    rate = np.broadcast_to(np.asarray(rate, dtype=float), cash.shape[:1])
+    t = np.arange(1, cash.shape[1] + 1)
+    floor = np.maximum(rate, LONG_RUN_GROWTH + 0.01)    # the terminal needs rate > growth
+    return (cash / (1 + rate[:, None]) ** t).sum(axis=1) + \
+        terminal(nopat_after, roic_after, floor) / (1 + rate) ** cash.shape[1]
+
+
+def per_share(cash: np.ndarray, nopat_after: np.ndarray, roic_after: np.ndarray,
+              rate: float, net_debt: float, shares: float) -> np.ndarray:
+    """What one share is worth in each future at `rate`: the business's
+    value less net debt, over the shares. Owners can lose no more than the
+    business, so a share is worth at least nothing — equity as a call on
+    the business, struck at its debt (Merton, "On the Pricing of Corporate
+    Debt", Journal of Finance 29, 1974)."""
+    return np.maximum(worth(cash, nopat_after, roic_after, rate) - net_debt, 0.0) / shares
 
 
 def implied_return(cash: np.ndarray, nopat_after: np.ndarray, roic_after: np.ndarray,
@@ -152,15 +181,12 @@ def implied_return(cash: np.ndarray, nopat_after: np.ndarray, roic_after: np.nda
     (valued at that same rate) is worth `price`, by bisection. Worth falls
     as the rate rises; a future worth less than `price` even at `lo` reads
     as `lo`."""
-    t = np.arange(1, cash.shape[1] + 1)
     lo_v = np.full(cash.shape[0], lo)
     hi_v = np.full(cash.shape[0], hi)
     for _ in range(60):
         mid = (lo_v + hi_v) / 2
-        rate = np.maximum(mid, LONG_RUN_GROWTH + 0.01)   # the terminal needs rate > growth
-        worth = (cash / (1 + mid[:, None]) ** t).sum(axis=1) + \
-            terminal(nopat_after, roic_after, rate) / (1 + mid) ** cash.shape[1]
-        above = worth > price            # still worth more: the rate can go higher
+        value = worth(cash, nopat_after, roic_after, mid)
+        above = value > price            # still worth more: the rate can go higher
         lo_v = np.where(above, mid, lo_v)
         hi_v = np.where(above, hi_v, mid)
     return (lo_v + hi_v) / 2
@@ -284,10 +310,11 @@ def industry_targets(members: dict[str, dict], cards: dict[str, dict]) -> dict[s
             for t in members}
 
 
-def price(as_of: str) -> dict:
+def price(as_of: str, cal: dict | None = None) -> dict:
     """Every non-financial S&P 500 member priced on the day; the market is
-    their value-weighted average."""
-    cal = calibration()
+    their value-weighted average. `cal` defaults to the saved calibration;
+    a replay of the past passes the one fitted on what was known then."""
+    cal = cal or calibration()
     cards = {c["ticker"]: c for c in scorecard.cards(as_of)}
     tickers = [t for t, c in cards.items() if not c["financial"]]
     years = scorecard.annual(pit.connect(), as_of, tickers)
@@ -322,6 +349,14 @@ def price(as_of: str) -> dict:
     for p in priced:
         p["alpha"] = p["percentiles"]["50"] - market
         p["p_beat_market"] = float((draws[p["ticker"]] > market).mean())
+        # The same futures again (same seed), each valued at the market's rate.
+        t, m = p["ticker"], members[p["ticker"]]
+        grade = cal["grades"][cards[t]["moat"] or "none"]
+        fade = {**grade, "roic_noise": (grade["roic_noise"] + own_noise(cards[t], grade)) / 2}
+        v = per_share(*futures(m["capital"], m["roic"], m["growth"], fade, target[t],
+                               np.random.default_rng(SEED)), market, m["net_debt"], mv[t]["shares"])
+        p["value_per_share"] = {str(q): float(np.percentile(v, q)) for q in (5, 25, 50, 75, 95)}
+        p["p_worth_more"] = float((v > p["price"]).mean())
     return {"as_of": as_of, "market_return": market, "priced": len(priced),
             "long_run_growth": LONG_RUN_GROWTH, "calibration": cal,
             "companies": sorted(priced, key=lambda p: -p["alpha"])}

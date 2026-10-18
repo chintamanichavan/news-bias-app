@@ -34,6 +34,8 @@ interface Priced {
   roic_target: number
   price: number
   price_date: string
+  value_per_share: Record<'5' | '25' | '50' | '75' | '95', number>
+  p_worth_more: number
 }
 
 interface Pricing {
@@ -62,10 +64,10 @@ const TRAITS: [Trait, string, string][] = [
 const goodGroup = (g?: Group) => !!g && g.won_10y > 0.7
 const badGroup = (g?: Group) => !!g && g.won_10y < 0.3
 
-type Row = Card & { implied: number | null; evidence: number; groups: Partial<Record<Trait, Group>>; priced?: Priced }
+type Row = Card & { implied: number | null; worth: number | null; evidence: number; groups: Partial<Record<Trait, Group>>; priced?: Priced }
 
 type Moat = 'all' | 'wide' | 'narrow' | 'none' | 'unknown'
-type SortKey = 'ticker' | 'implied' | 'evidence' | 'return_median' | 'gross_margin' | 'industry_share'
+type SortKey = 'ticker' | 'implied' | 'worth' | 'evidence' | 'return_median' | 'gross_margin' | 'industry_share'
   | 'sales_growth_5y' | 'altman_z' | 'share_change_yearly'
 
 const MOATS: Moat[] = ['all', 'wide', 'narrow', 'none', 'unknown']
@@ -80,6 +82,7 @@ const MOAT_CLASS: Record<string, string> = {
 
 const pct = (x: number | null, d = 0) => (x === null ? '—' : `${(x * 100).toFixed(d)}%`)
 const signed = (x: number | null, d = 1) => (x === null ? '—' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(d)}%`)
+const money = (x: number) => `$${x >= 1000 ? Math.round(x).toLocaleString() : x.toFixed(x >= 100 ? 0 : 2)}`
 const moatOf = (c: Card): Moat => c.moat ?? 'unknown'
 
 /** Ten years of return on capital as bars; the line marks the 15% wide-moat hurdle. */
@@ -126,7 +129,8 @@ export default function CompaniesPage() {
       const p = byTicker.get(c.ticker)
       const groups = ev[c.ticker] ?? {}
       const evidence = TRAITS.reduce((n, [t]) => n + (goodGroup(groups[t]) ? 1 : 0) - (badGroup(groups[t]) ? 1 : 0), 0)
-      return { ...c, priced: p, implied: p?.percentiles['50'] ?? null, groups, evidence }
+      return { ...c, priced: p, implied: p?.percentiles['50'] ?? null,
+        worth: p ? p.value_per_share['50'] / p.price : null, groups, evidence }
     })
   }, [data, pricing.data, evidence.data])
   const allGoodCount = joined.filter(c => TRAITS.every(([t]) => goodGroup(c.groups[t]))).length
@@ -216,7 +220,7 @@ export default function CompaniesPage() {
 
       {data && (
         <div className="news-card px-4 py-3 overflow-x-auto">
-          <table className="w-full text-[13px] tabular-nums min-w-[1180px]">
+          <table className="w-full text-[13px] tabular-nums min-w-[1300px]">
             <thead>
               <tr className="text-[11px] text-muted-foreground text-left">
                 <th className="font-normal pb-2">
@@ -225,6 +229,7 @@ export default function CompaniesPage() {
                 </th>
                 <th className="font-normal pb-2">Moat</th>
                 {head('implied', 'Implied return', 'What today\'s price earns a year, middle of 5,000 futures; the small figures are the 1-in-20 low and high')}
+                {head('worth', 'Price · value a share', 'Today\'s price, and what one share is worth in the middle of the 5,000 futures when each is valued at the market\'s implied return; the small figures are the 1-in-20 low and high. Sorts by value over price.')}
                 {head('evidence', 'Evidence', 'Good groups less bad groups, of the three below: −3 to +3')}
                 {TRAITS.map(([t, label, title]) => (
                   <th key={t} className="font-normal pb-2 text-left pl-3 whitespace-nowrap" title={title}>{label}</th>
@@ -256,6 +261,19 @@ export default function CompaniesPage() {
                   <td className="py-2 text-right">
                     {pct(c.implied, 1)}
                     {c.priced && <div className="text-[10px] text-muted-foreground">{pct(c.priced.percentiles['5'])} – {pct(c.priced.percentiles['95'])}</div>}
+                  </td>
+                  <td className="py-2 pl-3 text-right whitespace-nowrap">
+                    {c.priced ? (
+                      <span title={`Worth more than its price in ${pct(c.priced.p_worth_more)} of futures; price on ${c.priced.price_date}`}>
+                        {money(c.priced.price)}
+                        <span className={`ml-1.5 ${c.worth! > 1 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {money(c.priced.value_per_share['50'])}
+                        </span>
+                        <div className="text-[10px] text-muted-foreground">
+                          {money(c.priced.value_per_share['5'])} – {money(c.priced.value_per_share['95'])}
+                        </div>
+                      </span>
+                    ) : '—'}
                   </td>
                   <td className={`py-2 text-right font-semibold ${c.evidence > 0 ? 'text-emerald-600 dark:text-emerald-400' : c.evidence < 0 ? 'text-red-600 dark:text-red-400' : ''}`}>
                     {c.evidence > 0 ? `+${c.evidence}` : c.evidence}
@@ -303,7 +321,10 @@ export default function CompaniesPage() {
         Implied return: 5,000 futures of each company&apos;s sales growth and return on capital, which fades toward
         its industry&apos;s median at the speed measured for its moat grade (Fama &amp; French 2000); the rate at which
         today&apos;s enterprise value buys that cash is its implied cost of capital (Gebhardt, Lee &amp; Swaminathan
-        2001). It is the return to the whole business, before leverage. Banks and insurers are not priced.
+        2001). It is the return to the whole business, before leverage. Value a share: the same futures, each valued
+        at the market&apos;s implied return, less net debt, over the diluted shares — at least nothing, as owners can
+        lose no more than they put in (Merton 1974). It is the implied return in dollars, so it carries the same
+        warning: it has not predicted returns. Banks and insurers are not priced.
         From SEC filings, each figure counted from the day it was first filed. Moat: return on capital above 15% in 8 of
         every 10 years is wide, above 10% in 6 of 10 is narrow (Mauboussin; Fama &amp; French 2000). Industry share
         counts S&amp;P 500 members only, so it is a share of filed peers, not of the whole market. Altman Z&apos;&apos;

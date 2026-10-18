@@ -72,3 +72,22 @@ def test_own_noise_is_the_robust_spread_of_yearly_changes():
     assert pricer.own_noise(steady, {"roic_noise": 0.05}) == pytest.approx(0.0, abs=1e-9)
     short = {"return_by_year": [0.2, 0.3, None]}
     assert pricer.own_noise(short, {"roic_noise": 0.05}) == 0.05
+
+
+def test_a_share_valued_at_its_implied_return_is_worth_its_price():
+    rng = np.random.default_rng(0)
+    noisy = {**STILL, "roic_persistence": 0.8, "roic_noise": 0.03}
+    f = pricer.futures(100.0, 0.18, 0.06, noisy, 0.12, rng, paths=200)
+    net_debt, shares, price = 300.0, 50.0, 30.0
+    r = pricer.implied_return(*f, net_debt + price * shares)
+    ok = r > -0.59                                  # futures worth something at the floor
+    v = pricer.per_share(*(x[ok] for x in f), r[ok], net_debt, shares)
+    assert v == pytest.approx(np.full(ok.sum(), price), rel=1e-6)
+
+
+def test_a_share_is_worth_nothing_below_zero():
+    # the business is worth 100 at 6%, owing 150: owners walk away with nothing
+    cash = np.full((1, 10), 100 / sum(1 / 1.06 ** t for t in range(1, 11)))
+    v = pricer.per_share(cash, np.array([0.0]), np.array([0.1]), 0.06, 150.0, 10.0)
+    assert v[0] == 0
+    assert pricer.per_share(cash, np.array([0.0]), np.array([0.1]), 0.06, 40.0, 10.0)[0] == pytest.approx(6.0)
