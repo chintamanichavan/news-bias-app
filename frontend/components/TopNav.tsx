@@ -12,6 +12,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/lab',     label: 'Lab' },
   { href: '/markets', label: 'Markets' },
   { href: '/portfolio', label: 'Portfolio' },
+  { href: '/odds',    label: 'Odds' },
   { href: '/weather', label: 'Weather' },
 ]
 

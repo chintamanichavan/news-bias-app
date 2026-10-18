@@ -21,6 +21,7 @@ import backtest
 import lab
 import mandates
 import monitor
+import odds
 import paper_trader
 import pit
 import sestm
@@ -1047,6 +1048,19 @@ def mandates_snapshot():
     """The two-tier capital mandate — long term wealthy, short term rich —
     with each book's live status and the firewall rules between them."""
     return mandates.snapshot()
+
+
+@app.get("/odds")
+def odds_on_plan():
+    """The Core allocation priced as a distribution: the odds of reaching the
+    15% / 20% a year goals over 5, 10 and 15 years, the bad year and the deep
+    fall, beside plain index funds. Rebuilt at most daily."""
+    cached = _data_cache.get("odds")
+    if cached and time.time() - cached[0] < 86_400:
+        return cached[1]
+    out = odds.odds()
+    _data_cache["odds"] = (time.time(), out)
+    return out
 
 
 @app.get("/health/pipeline")
