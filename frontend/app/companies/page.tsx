@@ -250,7 +250,8 @@ export default function CompaniesPage() {
                 <tr key={c.ticker} className="border-t border-border/60">
                   <td className="py-2 pr-3 max-w-72">
                     <div className="flex items-baseline gap-2">
-                      <span className="font-semibold w-14 shrink-0">{c.ticker}</span>
+                      <Link href={`/lab?symbol=${encodeURIComponent(c.ticker)}`} title={`Research ${c.ticker}`}
+                        className="font-semibold w-14 shrink-0 hover:underline">{c.ticker}</Link>
                       <span className="truncate capitalize">{c.name.toLowerCase()}</span>
                     </div>
                     <div className="text-[11px] text-muted-foreground truncate pl-16">{c.industry}</div>

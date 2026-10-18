@@ -13,6 +13,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/smallcaps', label: 'Small caps' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/odds',    label: 'Odds' },
+  { href: '/lab',     label: 'Research' },
 ]
 
 function isActive(pathname: string, href: string): boolean {

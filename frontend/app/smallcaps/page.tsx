@@ -160,7 +160,10 @@ export default function SmallCapsPage() {
                   <tr key={c.symbol} className="border-t border-border/60">
                     <td className="py-2 pr-3 max-w-80">
                       <div className="flex items-baseline gap-2">
-                        <span className="font-semibold w-14 shrink-0">{c.ticker || '—'}</span>
+                        {c.ticker
+                          ? <Link href={`/lab?symbol=${encodeURIComponent(c.ticker)}`} title={`Research ${c.ticker}`}
+                              className="font-semibold w-14 shrink-0 hover:underline">{c.ticker}</Link>
+                          : <span className="font-semibold w-14 shrink-0">—</span>}
                         <span className="truncate capitalize">{c.name.toLowerCase()}</span>
                       </div>
                     </td>
