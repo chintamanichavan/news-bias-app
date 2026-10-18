@@ -54,17 +54,19 @@ BENCHMARKS = {"us": ("F-F_Research_Data_Factors", "US index fund"),
               "world": ("Developed_3_Factors", "World index fund (developed markets)")}
 
 
-def parse_french(text: str) -> dict[str, dict[str, float]]:
-    """{YYYYMM: {column: monthly return as a fraction}} from the first monthly
-    block of a French library CSV — value-weighted returns in the portfolio
-    files. Missing values (-99.99) are left out."""
+def parse_french(text: str, block: int = 0) -> dict[str, dict[str, float]]:
+    """{YYYYMM: {column: monthly return as a fraction}} from the `block`-th
+    table of a French library CSV: in the portfolio files, 0 is value-weighted
+    monthly returns, 1 equal-weighted. Missing values (-99.99) are left out."""
     out: dict[str, dict[str, float]] = {}
-    header = None
+    header, seen = None, -1
     for line in text.splitlines():
         cells = [c.strip() for c in line.split(",")]
         if header is None:
             if len(cells) > 1 and cells[0] == "" and cells[1]:
-                header = cells[1:]
+                seen += 1
+                if seen == block:
+                    header = cells[1:]
             continue
         if len(cells[0]) == 6 and cells[0].isdigit():
             out[cells[0]] = {h: float(v) / 100 for h, v in zip(header, cells[1:])
@@ -74,8 +76,8 @@ def parse_french(text: str) -> dict[str, dict[str, float]]:
     return out
 
 
-def french(name: str) -> dict[str, dict[str, float]]:
-    """One French file, kept on disk for CACHE_DAYS."""
+def french(name: str, block: int = 0) -> dict[str, dict[str, float]]:
+    """One table of a French file, the file kept on disk for CACHE_DAYS."""
     path = CACHE / f"{name}.zip"
     if not path.exists() or time.time() - path.stat().st_mtime > CACHE_DAYS * 86400:
         r = httpx.get(FRENCH.format(name), timeout=60, follow_redirects=True)
@@ -83,7 +85,7 @@ def french(name: str) -> dict[str, dict[str, float]]:
         CACHE.mkdir(parents=True, exist_ok=True)
         path.write_bytes(r.content)
     z = zipfile.ZipFile(io.BytesIO(path.read_bytes()))
-    return parse_french(z.read(z.namelist()[0]).decode("latin-1"))
+    return parse_french(z.read(z.namelist()[0]).decode("latin-1"), block)
 
 
 def key(region: str, factor: str) -> str:

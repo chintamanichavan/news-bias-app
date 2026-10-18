@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 import db
 import divergence
+import evidence
 import feed_manager
 import forecast
 import hazards
@@ -1147,6 +1148,16 @@ def beyond_result():
     out = beyond.result()
     if out is None:
         raise HTTPException(status_code=404, detail="no result yet: run beyond.py")
+    return out
+
+
+@app.get("/evidence")
+def evidence_result():
+    """Sixty years of survivor-free returns to each company trait, from Ken
+    French's data library. Rebuilt by running evidence.py."""
+    out = evidence.result()
+    if out is None:
+        raise HTTPException(status_code=404, detail="no evidence yet: run evidence.py")
     return out
 
 

@@ -88,3 +88,9 @@ def test_what_ifs_that_cannot_be_priced_are_refused(monkeypatch):
     for bad in ({"global/quality": -5}, {"global/quality": 0}, {"moon/value": 10}):
         with pytest.raises(ValueError):
             odds.odds(bad)
+
+
+def test_parse_french_reads_a_later_block():
+    text = (",A\n199107, 1.00\n\n  Equal Weighted\n,A\n199107, 3.00\n")
+    assert odds.parse_french(text, block=1) == {"199107": {"A": 0.03}}
+    assert odds.parse_french(text) == {"199107": {"A": 0.01}}

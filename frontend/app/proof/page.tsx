@@ -253,10 +253,88 @@ function BeyondSection({ b }: { b: Beyond }) {
   )
 }
 
+interface EvidenceTest {
+  signal: string
+  weighting: 'value' | 'equal'
+  since: string
+  spread_a_year: number
+  t: number
+  won_10y: number
+  recent_a_year: number
+  best_group_growth: number
+  worst_group_growth: number
+  market_growth: number
+}
+
+const SIGNAL_NAMES: Record<string, [string, string]> = {
+  low_issuance: ['Buybacks over heavy issuance', 'Pontiff & Woodgate 2008'],
+  momentum: ['Last year’s winners over losers', 'Jegadeesh & Titman 1993'],
+  cheapness: ['Cheap over dear', 'Fama & French 1992'],
+  conservative: ['Slow asset growth over fast', 'Titman, Wei & Xie 2004'],
+  profitability: ['Profitable over unprofitable', 'Novy-Marx 2013'],
+  profitability_big: ['…among the largest fifth only', 'the nearest test of a moat'],
+}
+
+function EvidenceSection({ tests, through }: { tests: Record<string, EvidenceTest>; through: string }) {
+  const order = ['low_issuance', 'momentum', 'cheapness', 'conservative', 'profitability', 'profitability_big']
+  const get = (s: string, w: string) => tests[`${s}:${w}`]
+  const iss = get('low_issuance', 'value')
+  return (
+    <section className="mb-10">
+      <h2 className="news-section-label mb-3 px-1">Sixty years, failures included</h2>
+      <p className="text-[13px] mb-3 px-1 max-w-3xl leading-relaxed">
+        Our own tests start in 2014 and hold only companies that still trade. Ken French&apos;s free data library holds
+        portfolios built from every listed company since 1963, the dead ones too, sorted on each trait. Best fifth
+        against worst, through {through.slice(0, 4)}: large companies buying back shares grew{' '}
+        <b>{pct(iss.best_group_growth)}</b> a year, the market <b>{pct(iss.market_growth)}</b>, heavy issuers{' '}
+        <b>{pct(iss.worst_group_growth)}</b>.
+      </p>
+      <div className="news-card p-4 overflow-x-auto">
+        <table className="w-full text-[13px] tabular-nums min-w-[760px]">
+          <thead>
+            <tr className="text-[11px] text-muted-foreground text-right">
+              <th className="font-normal pb-2 text-left"></th>
+              <th className="font-normal pb-2" title="Value-weighted: behaves like large companies">Large: a year</th>
+              <th className="font-normal pb-2" title="Newey-West t-statistic">t</th>
+              <th className="font-normal pb-2" title="Share of rolling ten-year windows in which the best group grew more">Won 10-yr</th>
+              <th className="font-normal pb-2">Since 2007</th>
+              <th className="font-normal pb-2" title="Equal-weighted: behaves like small companies">Small: a year</th>
+              <th className="font-normal pb-2">t</th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.map(s => {
+              const v = get(s, 'value'), e = get(s, 'equal')
+              if (!v) return null
+              return (
+                <tr key={s} className={`border-t border-border/60 text-right ${s === 'low_issuance' ? 'font-semibold' : ''}`}>
+                  <td className="py-2 text-left">{SIGNAL_NAMES[s][0]}<div className="text-[11px] text-muted-foreground font-normal">{SIGNAL_NAMES[s][1]}</div></td>
+                  <td className={`py-2 ${tone(v.spread_a_year)}`}>{signed(v.spread_a_year)}</td>
+                  <td className="py-2">{v.t.toFixed(1)}</td>
+                  <td className="py-2">{pct(v.won_10y, 0)}</td>
+                  <td className={`py-2 ${tone(v.recent_a_year)}`}>{signed(v.recent_a_year)}</td>
+                  <td className={`py-2 ${tone(e?.spread_a_year)}`}>{e ? signed(e.spread_a_year) : '—'}</td>
+                  <td className="py-2">{e ? e.t.toFixed(1) : '—'}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+          A t of about 2 or more says the gap is unlikely to be luck; Newey-West standard errors (1987). These are
+          portfolios of hundreds of companies rebalanced each year, before costs and taxes; one company&apos;s trait says
+          much less about that company than a fifth of the market&apos;s says about the fifth.
+        </p>
+      </div>
+    </section>
+  )
+}
+
 export default function ProofPage() {
   const { data, loading, refreshing, error, reload } = useResource<Proof>('/api/proof')
   const fc = useResource<Forecast>('/api/forecast')
   const beyond = useResource<Beyond>('/api/beyond')
+  const ev = useResource<{ through: string; tests: Record<string, EvidenceTest> }>('/api/evidence')
   if (error && !data) return <LoadError message={error} onRetry={reload} retrying={refreshing || loading} />
   if (!data) return <div className="px-4 py-16 text-center text-sm text-muted-foreground">Loading the replay…</div>
 
@@ -276,6 +354,8 @@ export default function ProofPage() {
           <b>{mine.vs_universe_by_year.years_ahead} of {mine.vs_universe_by_year.years}</b> years: {verdict(mine, data.hurdle_t)}.
         </p>
       </header>
+
+      {ev.data && <EvidenceSection tests={ev.data.tests} through={ev.data.through} />}
 
       {Object.keys(data.long_horizon).length > 0 && (
         <section className="mb-10">
