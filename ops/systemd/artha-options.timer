@@ -1,0 +1,9 @@
+[Unit]
+Description=Weekly options snapshot, Fridays 13:30 local, while the market is open
+
+[Timer]
+OnCalendar=Fri 13:30:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

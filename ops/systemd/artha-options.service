@@ -1,0 +1,8 @@
+[Unit]
+Description=Weekly options snapshot for the forward record (options.py)
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/code/news-bias-app/ml-service
+ExecStart=%h/code/news-bias-app/ml-service/.venv/bin/python -W ignore options.py
+TimeoutStartSec=3600

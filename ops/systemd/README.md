@@ -37,3 +37,15 @@ A snapshot is never rewritten. Installed as copies:
 
     cp ops/systemd/artha-tracker.* ~/.config/systemd/user/
     systemctl --user daemon-reload && systemctl --user enable --now artha-tracker.timer
+
+## Installed: the options record
+
+`artha-options.service` + `artha-options.timer` run `ml-service/options.py`
+every Friday at 13:30, while the market is open: two expiries and five call
+strikes for every S&P 500 member, saved to `ml-service/record/options/` and
+committed (see the module's pre-registered test). `Persistent=false`: a
+missed Friday is skipped rather than run on stale weekend quotes. Installed
+as copies:
+
+    cp ops/systemd/artha-options.* ~/.config/systemd/user/
+    systemctl --user daemon-reload && systemctl --user enable --now artha-options.timer
