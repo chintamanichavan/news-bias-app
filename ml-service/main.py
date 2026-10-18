@@ -24,12 +24,14 @@ import monitor
 import odds
 import paper_trader
 import pit
+import pricer
 import sestm
 import particle
 import portfolio
 import research
 import retrain
 import risk
+import scorecard
 import signal_engine
 import signal_manager
 import simulation
@@ -1075,6 +1077,43 @@ def odds_what_if(body: WhatIf):
         return odds.odds(body.weights)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/scorecard")
+def scorecard_cards(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
+    """Every S&P 500 member's moat, industry share, growth engine, fragility
+    and share discipline, read from its filings as known on `as_of`
+    (default today). Rebuilt at most hourly."""
+    day = as_of or time.strftime("%Y-%m-%d")
+    key = f"scorecard:{day}"
+    cached = _data_cache.get(key)
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    try:
+        out = {"as_of": day, "cards": scorecard.cards(day)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    _data_cache[key] = (time.time(), out)
+    return out
+
+
+@app.get("/pricer")
+def pricer_prices(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
+    """Every non-financial S&P 500 member priced on `as_of` (default today):
+    the range of its implied return over 5,000 futures of its sales growth
+    and return on capital, against the market's value-weighted figure.
+    Rebuilt at most hourly."""
+    day = as_of or time.strftime("%Y-%m-%d")
+    key = f"pricer:{day}"
+    cached = _data_cache.get(key)
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    try:
+        out = pricer.price(day)
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    _data_cache[key] = (time.time(), out)
+    return out
 
 
 @app.get("/health/pipeline")

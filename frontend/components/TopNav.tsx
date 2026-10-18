@@ -6,14 +6,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import ThemeToggle from '@/components/ThemeToggle'
 
+// The engine in the order it is used: price each company, choose the picks,
+// read the odds. Older pages still open at their own addresses.
 const NAV_ITEMS: { href: string; label: string }[] = [
-  { href: '/',        label: 'Signals' },
-  { href: '/strategy', label: 'Strategy' },
-  { href: '/lab',     label: 'Lab' },
-  { href: '/markets', label: 'Markets' },
+  { href: '/companies', label: 'Companies' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/odds',    label: 'Odds' },
-  { href: '/weather', label: 'Weather' },
 ]
 
 function isActive(pathname: string, href: string): boolean {
@@ -102,7 +100,7 @@ export default function TopNav() {
     <header className={`print:hidden sticky top-0 z-50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65 transition-shadow ${scrolled ? 'shadow-[0_1px_0_0_hsl(var(--border))]' : ''}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3 min-w-0">
         <Link
-          href="/"
+          href="/companies"
           className="flex items-baseline gap-1 font-bold text-[19px] tracking-tight shrink-0"
         >
           <span>Artha</span>
