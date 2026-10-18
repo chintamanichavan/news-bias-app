@@ -118,6 +118,36 @@ def sources() -> dict:
     return out
 
 
+TILTS = {"share_change_yearly": -1, "gross_margin": 1, "reinvestment": -1, "altman_z": 1}   # +1: high is good
+
+
+def tilts() -> dict:
+    """Within the kept list (reports and 8-K filters, 2010 on), the best
+    fifth by each business trait less the worst, on all rows and on real
+    prices only. Measured 2026-10-18, against predictions of +2 to +5
+    points each: issuance +3.7 (6 of 13 years; -4.5 on real prices, and
+    the price estimate itself adjusts for share counts, so it cannot judge
+    issuance), gross margin +3.1 (7 of 13), reinvestment -6.8 and Altman Z
+    -1.8 (wrong way; real prices -15). No tilt is added."""
+    df = panel()
+    d = df[(df["date"] >= "2010") & ~df["rewritten"] & ~df["bad_news"] & df["r1"].notna()].copy()
+    d["r"] = d["r1"].clip(upper=CAP)
+    out = {}
+    for trait, sign in TILTS.items():
+        for name, g0 in (("all", d), ("prices", d[d["how1"] == "prices"])):
+            gaps = []
+            for _, g in g0[g0[trait].notna()].groupby("date"):
+                if len(g) < 50:
+                    continue
+                f = np.ceil(g[trait].rank(pct=True) * 5)
+                good, bad = (5, 1) if sign > 0 else (1, 5)
+                gaps.append(g["r"][f == good].mean() - g["r"][f == bad].mean())
+            gaps = pd.Series(gaps)
+            out[f"{trait}/{name}"] = {"a_year": float(gaps.mean()), "years_ahead": f"{int((gaps > 0).sum())}/{len(gaps)}"}
+    monitor.log_experiment("loseless:tilts", {"traits": list(TILTS)}, {k: v["a_year"] for k, v in out.items()})
+    return out
+
+
 def holdings(sizes=(10, 20, 50, 100), tries: int = 2000, seed: int = 7) -> dict:
     """How few kept companies (reports and 8-K filters, 2010 on) one can
     hold: each year a random `n` of them, `tries` times."""
