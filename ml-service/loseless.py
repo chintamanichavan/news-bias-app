@@ -148,6 +148,33 @@ def tilts() -> dict:
     return out
 
 
+HOLDOUT = ("2023-06-30", "2024-06-30")      # never used to choose the filters
+
+
+def holdout() -> dict:
+    """The three filters on years the screen was not built on, one-year
+    returns. Measured 2026-10-18, predicted +6 points in both: 2023 kept
+    +5.6% vs dropped -3.9% (gap +9.5); 2024 kept +7.6% vs +10.7% (gap -3.1,
+    while the median gap was +11.1: 15 dropped names hit the +300% cap
+    against 5 kept, in the 2024-25 run in quantum, nuclear and battery
+    names). Failures (gone) were 2.5-3 times as common among the dropped in
+    both years: the avoidance held, the average edge did not in 2024."""
+    info, pts, conn = winners.filers_context()
+    df = pd.DataFrame([r for d in HOLDOUT for r in winners.filers_on(d, info, pts, conn)])
+    df = flag(eightk.attach(shorts.attach(reports.attach(winners.outcomes(df, horizons=(1,))))))
+    df = df[df["r1"].notna()].copy()
+    df["r"], df["keep"] = df["r1"].clip(upper=CAP), ~df["rewritten"] & ~df["bad_news"] & ~df["shorted"]
+    out = {}
+    for d, g in df.groupby("date"):
+        k, x = g[g["keep"]], g[~g["keep"]]
+        out[d] = {"kept": float(k["r"].mean()), "dropped": float(x["r"].mean()),
+                  "median_gap": float(k["r"].median() - x["r"].median()),
+                  "gone": [float((k["how1"] == "gone").mean()), float((x["how1"] == "gone").mean())],
+                  "at_cap": [int((k["r"] >= CAP).sum()), int((x["r"] >= CAP).sum())]}
+    monitor.log_experiment("loseless:holdout", {"dates": list(HOLDOUT)}, {d: v["kept"] - v["dropped"] for d, v in out.items()})
+    return out
+
+
 def holdings(sizes=(10, 20, 50, 100), tries: int = 2000, seed: int = 7) -> dict:
     """How few kept companies (reports and 8-K filters, 2010 on) one can
     hold: each year a random `n` of them, `tries` times."""
