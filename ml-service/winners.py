@@ -33,6 +33,7 @@ import time
 import numpy as np
 import pandas as pd
 
+import filers
 import monitor
 import odds
 import pricer
@@ -41,6 +42,7 @@ import scorecard
 import validation
 
 FIRST, LAST = 2010, 2021        # start years with prices and filings
+LAST_ALL = 2022                 # the filers' value points reach mid-2025
 GOAL = 0.40                     # a year
 HORIZONS = (3, 5)
 TRAIN_H = 3                     # the label the model learns from
@@ -51,11 +53,27 @@ TRAITS = ("log_size", "momentum", "sales_growth_5y", "return_median", "return_la
           "gross_margin", "gross_margin_swing", "reinvestment", "altman_z",
           "share_change_yearly", "debt_to_operating_income", "moat_years")
 PANEL = scorecard.DATA / "winners_panel.parquet"
+PANEL_ALL = scorecard.DATA / "winners_panel_all.parquet"
 RESULT = scorecard.DATA / "winners.json"
 
+# Every filer, dead or alive (filers.py). Without monthly prices for the
+# dead, momentum is left out — its absence alone would mark them — and size
+# is the public float for everyone, so both are measured alike.
+TRAITS_ALL = tuple(t for t in TRAITS if t != "momentum")
+NEAR = pd.Timedelta(days=183)   # a value point counts for a date this close
+DIVIDENDS = 0.016               # a year: the price proxy's measured shortfall
+# What a company that stopped filing is assumed to earn from its last value
+# point to its exit. Bought: a typical takeover premium, most of it after the
+# last point (Betton, Eckbo & Thorburn, "Corporate Takeovers", Handbook of
+# Corporate Finance, 2008). Gone (delisted, deregistered or silent): Shumway
+# (1997) measures -30% from the last trade; the last point here is up to a
+# year and a half earlier, through the slide, so twice that is the centre.
+EXIT_BOUGHT = 0.25
+EXIT_GONE = -0.50
 
-def days() -> list[str]:
-    return [f"{y}-06-30" for y in range(FIRST, LAST + 1)]
+
+def days(last: int = LAST) -> list[str]:
+    return [f"{y}-06-30" for y in range(FIRST, last + 1)]
 
 
 def panel(rebuild: bool = False) -> pd.DataFrame:
@@ -88,10 +106,115 @@ def panel(rebuild: bool = False) -> pd.DataFrame:
     return df
 
 
-def ranks(day: pd.DataFrame) -> np.ndarray:
+def panel_all(rebuild: bool = False) -> pd.DataFrame:
+    """One row per filer per 30 June, dead or alive: traits from its filings
+    as known that day and its size from the last public float filed by then.
+    Outcomes are added by outcomes(), which is cheap and carries the exit
+    assumptions."""
+    if PANEL_ALL.exists() and not rebuild:
+        return pd.read_parquet(PANEL_ALL)
+    info = filers.info()
+    info = info[info["sic"].str.isdigit() & ~info["sic"].map(scorecard.is_financial)].set_index("symbol")
+    pts = filers.value_points()
+    conn = filers.connect()
+    rows = []
+    for day in days(LAST_ALL):
+        t = pd.Timestamp(day)
+        known = pts[(pts["filed_at"] <= t) & (pts["float_date"] >= t - pd.Timedelta(days=548))]
+        last = known.sort_values("float_date").groupby("symbol").tail(1)
+        last = last[last["symbol"].isin(info.index) & (last["float"] >= MIN_VALUE)].set_index("symbol")
+        syms = last.index.tolist()
+        years = scorecard.annual(conn, day, syms)
+        shares = scorecard.share_changes(conn, day, syms)
+        cutoff = (t - pd.Timedelta(days=548)).date().isoformat()
+        for sym, y in years.groupby("ticker"):
+            y = y[y["revenue"].notna() | y["net_income"].notna()]
+            if y.empty:
+                continue
+            c = scorecard.card(sym, y, info.at[sym, "sic"], shares.get(sym))
+            if c["fiscal_year_end"] < cutoff:
+                continue
+            moat = [r for r in c["return_by_year"] if r is not None]
+            rows.append({"date": day, "symbol": sym, "name": info.at[sym, "name"],
+                         "log_size": np.log(last.at[sym, "float"]),
+                         "moat_years": float(np.mean([r >= 0.15 for r in moat])) if moat else None,
+                         **{k: c.get(k) for k in TRAITS_ALL if k in c and k != "log_size"}})
+        print(f"[winners] {day}: {sum(r['date'] == day for r in rows)} filers", flush=True)
+    df = pd.DataFrame(rows)
+    df.to_parquet(PANEL_ALL)
+    return df
+
+
+def outcomes(df: pd.DataFrame, exit_bought: float = EXIT_BOUGHT, exit_gone: float = EXIT_GONE) -> pd.DataFrame:
+    """Each row's yearly return over each horizon. Companies Yahoo still
+    prices get their real total return; the rest, the price proxy chained
+    from the public float nearest the start to the one nearest the end
+    (filers.links: split-proof), plus DIVIDENDS. A
+    company that stopped filing before the end is valued at its last point
+    and leaves with its exit return; its money then sits in cash. Windows
+    ending after the last value point anyone could have filed stay NaN."""
+    df = df.copy()
+    pts = filers.value_points().sort_values(["symbol", "float_date"])
+    pts["link"] = filers.links(pts)
+    by = {s: (g["float_date"].to_numpy(), g["link"].to_numpy()) for s, g in pts.groupby("symbol")}
+
+    def change(link, i, k):
+        """Price multiple from point i to point k; NaN if a link is missing."""
+        return float(np.prod(link[i + 1:k + 1])) if k > i else 1.0
+    f = filers.forms()
+    last_10k = f[f["form"] == "10-K"].groupby("cik")["date"].max()
+    bought = f[f["form"].isin(filers.BOUGHT)].groupby("cik")["date"].apply(list)
+    co = scorecard.companies()
+    ticker = {filers.symbol(c["cik"]): t for t, c in co.items() if c.get("cik")}
+    rets = proof.monthly_returns(sorted(set(ticker.values())) + ["SPY"])
+    horizon_end = pts["float_date"][pts["filed_at"] <= pts["filed_at"].max()].max() - NEAR
+
+    def nearest(dates, when):
+        i = np.argmin(np.abs(dates - np.datetime64(when)))
+        return i if abs(dates[i] - np.datetime64(when)) <= NEAR.to_timedelta64() else None
+
+    for h in HORIZONS:
+        out, how = [], []
+        real = {d: proof.realised(rets, d, h) for d in df["date"].unique()}
+        for d, sym in zip(df["date"], df["symbol"]):
+            start, end = pd.Timestamp(d), pd.Timestamp(d) + pd.DateOffset(years=h)
+            if end > horizon_end:
+                out.append(np.nan); how.append(None); continue
+            t = ticker.get(sym)
+            if t and t in real[d]:
+                out.append(real[d][t]); how.append("prices"); continue
+            if sym not in by:
+                out.append(np.nan); how.append(None); continue
+            dates, link = by[sym]
+            i = nearest(dates, start)
+            if i is None:
+                out.append(np.nan); how.append(None); continue
+            j = nearest(dates, end)
+            if j is not None and j > i:
+                yrs = (dates[j] - dates[i]) / np.timedelta64(1, "D") / 365.25
+                m = change(link, i, j)
+                out.append(float(m ** (1 / yrs) - 1 + DIVIDENDS) if np.isfinite(m) else np.nan)
+                how.append("proxy" if np.isfinite(m) else None); continue
+            cik = int(sym[3:])
+            if last_10k.get(cik, "9999") >= end.date().isoformat():
+                out.append(np.nan); how.append(None); continue
+            k = int(np.max(np.nonzero(dates <= np.datetime64(end))[0]))
+            yrs = max((dates[k] - dates[i]) / np.timedelta64(1, "D") / 365.25, 0.0)
+            was_bought = any(start.date().isoformat() <= x for x in bought.get(cik, []))
+            exit_r = exit_bought if was_bought else exit_gone
+            multiple = change(link, i, k) * (1 + DIVIDENDS) ** yrs * (1 + exit_r)
+            if not np.isfinite(multiple):
+                out.append(np.nan); how.append(None); continue
+            out.append(float(max(multiple, 0.0) ** (1 / h) - 1)); how.append("bought" if was_bought else "gone")
+        df[f"r{h}"], df[f"how{h}"] = out, how
+        df[f"spy{h}"] = df["date"].map(lambda d: real[d].get("SPY"))
+    return df
+
+
+def ranks(day: pd.DataFrame, traits: tuple = TRAITS) -> np.ndarray:
     """The day's traits as ranks, -0.5 to +0.5, missing at 0."""
     cols = []
-    for k in TRAITS:
+    for k in traits:
         x = pd.to_numeric(day[k], errors="coerce")
         cols.append((x.rank(pct=True) - 0.5).fillna(0.0).to_numpy() if x.notna().sum() > 1
                     else np.zeros(len(day)))
@@ -135,7 +258,7 @@ def survivor_gap(df: pd.DataFrame, h: int) -> dict | None:
     beats the survivor-free market's equal-weighted return (the average of
     French's ten size deciles, equal-weighted) over the same windows."""
     deciles = odds.french("Portfolios_Formed_on_ME", 1)
-    cols = [f"Dec {i}" for i in range(1, 10)] + ["Hi 10"]
+    cols = ["Lo 10"] + [f"{i}-Dec" for i in range(2, 10)] + ["Hi 10"]
     ew = pd.Series({m: np.mean([v[c] for c in cols if c in v]) for m, v in deciles.items()}).sort_index()
     gaps = []
     for day, g in df.groupby("date"):
@@ -153,13 +276,17 @@ def survivor_gap(df: pd.DataFrame, h: int) -> dict | None:
     return {"gap_a_year": float(np.mean([g["gap"] for g in gaps])), "by_date": gaps}
 
 
-def run(rebuild: bool = False) -> dict:
-    started = time.time()
-    df = panel(rebuild)
+def evaluate(df: pd.DataFrame, traits: tuple, key: str) -> tuple[list[dict], list[np.ndarray]]:
+    """Fit on the start dates whose TRAIN_H years had ended, rank the next
+    date, and score the ranking on every horizon. Picks are also set against
+    companies of their own size (tenths of the day's sizes), as size alone
+    carries most of the survivor bias."""
+    df = df.copy()
     for h in HORIZONS:
         df[f"win{h}"] = df[f"r{h}"] >= GOAL
+    df["size_tenth"] = df.groupby("date")["log_size"].rank(pct=True).mul(10).apply(np.ceil).clip(1, 10)
     dates = sorted(df["date"].unique())
-    X = {d: ranks(df[df["date"] == d]) for d in dates}
+    X = {d: ranks(df[df["date"] == d], traits) for d in dates}
     rows, weights = [], []
     for d in dates:
         known = [p for p in dates if pd.Timestamp(p) + pd.DateOffset(years=TRAIN_H) <= pd.Timestamp(d)]
@@ -172,7 +299,7 @@ def run(rebuild: bool = False) -> dict:
         day = df[df["date"] == d].copy()
         day["p"] = predict(w, X[d])
         day = day.sort_values("p", ascending=False)
-        row = {"date": d, "trained_on": known, "companies": len(day), "top_names": day["ticker"].head(10).tolist()}
+        row = {"date": d, "companies": len(day), "top_names": day[key].head(10).tolist()}
         for h in HORIZONS:
             done = day[day[f"r{h}"].notna()]
             if len(done) < 50:
@@ -182,36 +309,65 @@ def run(rebuild: bool = False) -> dict:
             row[f"universe_{h}y"] = float(done[f"r{h}"].mean())
             row[f"spy_{h}y"] = float(done[f"spy{h}"].iloc[0])
             for n in TOP:
-                top = done.head(n)
+                top, rest = done.head(n), done.iloc[n:]
+                same_size = top["size_tenth"].map(rest.groupby("size_tenth")[f"r{h}"].mean())
                 row[f"top{n}_hit_{h}y"] = float(top[f"win{h}"].mean())
                 row[f"top{n}_return_{h}y"] = float(top[f"r{h}"].mean())
+                row[f"top{n}_vs_size_{h}y"] = float((top[f"r{h}"] - same_size).mean())
+                row[f"top{n}_median_{h}y"] = float(top[f"r{h}"].median())
+            row[f"universe_median_{h}y"] = float(done[f"r{h}"].median())
         rows.append(row)
+    return rows, weights
 
-    def pooled(h):
-        r = [x for x in rows if f"auc_{h}y" in x]
-        if not r:
-            return None
-        out = {"dates": len(r), "base_rate": float(np.mean([x[f"base_rate_{h}y"] for x in r])),
-               "auc": float(np.mean([x[f"auc_{h}y"] for x in r if x[f"auc_{h}y"] is not None])),
-               "universe_return": float(np.mean([x[f"universe_{h}y"] for x in r])),
-               "spy_return": float(np.mean([x[f"spy_{h}y"] for x in r]))}
-        for n in TOP:
-            out[f"top{n}_hit"] = float(np.mean([x[f"top{n}_hit_{h}y"] for x in r]))
-            out[f"top{n}_return"] = float(np.mean([x[f"top{n}_return_{h}y"] for x in r]))
-            out[f"top{n}_years_ahead"] = int(sum(x[f"top{n}_return_{h}y"] > x[f"universe_{h}y"] for x in r))
-        return out
 
+def pooled(rows: list[dict], h: int) -> dict | None:
+    r = [x for x in rows if f"auc_{h}y" in x]
+    if not r:
+        return None
+    out = {"dates": len(r), "base_rate": float(np.mean([x[f"base_rate_{h}y"] for x in r])),
+           "auc": float(np.mean([x[f"auc_{h}y"] for x in r if x[f"auc_{h}y"] is not None])),
+           "universe_return": float(np.mean([x[f"universe_{h}y"] for x in r])),
+           "spy_return": float(np.mean([x[f"spy_{h}y"] for x in r]))}
+    for n in TOP:
+        out[f"top{n}_hit"] = float(np.mean([x[f"top{n}_hit_{h}y"] for x in r]))
+        out[f"top{n}_return"] = float(np.mean([x[f"top{n}_return_{h}y"] for x in r]))
+        out[f"top{n}_years_ahead"] = int(sum(x[f"top{n}_return_{h}y"] > x[f"universe_{h}y"] for x in r))
+        vs = [x[f"top{n}_vs_size_{h}y"] for x in r]
+        out[f"top{n}_vs_same_size"] = float(np.mean(vs))
+        out[f"top{n}_ahead_of_same_size"] = int(sum(v > 0 for v in vs))
+        out[f"top{n}_median"] = float(np.mean([x[f"top{n}_median_{h}y"] for x in r]))
+    out["universe_median"] = float(np.mean([x[f"universe_median_{h}y"] for x in r]))
+    return out
+
+
+def run(which: str = "all", rebuild: bool = False,
+        exit_bought: float = EXIT_BOUGHT, exit_gone: float = EXIT_GONE) -> dict:
+    """`which`: "all" (every filer, dead or alive) or "survivors" (the
+    companies that file today, with real prices)."""
+    started = time.time()
+    if which == "all":
+        df, traits, key = outcomes(panel_all(rebuild), exit_bought, exit_gone), TRAITS_ALL, "name"
+    else:
+        df, traits, key = panel(rebuild), TRAITS, "ticker"
+    rows, weights = evaluate(df, traits, key)
     w = np.mean(weights, axis=0) if weights else None
     trials = monitor_trials() + 1
+    how = {h: df[f"how{h}"].value_counts().to_dict() for h in HORIZONS} if which == "all" else None
     out = {"run_at": time.strftime("%Y-%m-%d %H:%M"), "seconds": round(time.time() - started),
-           "goal": GOAL, "train_h": TRAIN_H, "traits": list(TRAITS), "trials": trials,
+           "which": which, "goal": GOAL, "train_h": TRAIN_H, "traits": list(traits), "trials": trials,
            "hurdle_t": validation.significance_hurdle(trials),
-           "results": {str(h): pooled(h) for h in HORIZONS},
-           "weights": dict(zip(TRAITS, w[1:].round(3).tolist())) if w is not None else None,
+           "exits": {"bought": exit_bought, "gone": exit_gone} if which == "all" else None,
+           "measured_by": how,
+           "results": {str(h): pooled(rows, h) for h in HORIZONS},
+           "weights": dict(zip(traits, w[1:].round(3).tolist())) if w is not None else None,
            "survivor_gap": {str(h): survivor_gap(df, h) for h in HORIZONS},
            "years": rows, "caveat": validation.SURVIVORSHIP_CAVEAT}
-    RESULT.write_text(json.dumps(out, indent=1, default=float))
-    monitor.log_experiment("winners:logistic", {"traits": list(TRAITS), "goal": GOAL, "train_h": TRAIN_H},
+    saved = result() or {}
+    saved = saved if "runs" in saved else {"runs": {}}
+    saved["runs"][which] = out
+    RESULT.write_text(json.dumps(saved, indent=1, default=float))
+    monitor.log_experiment(f"winners:logistic:{which}",
+                           {"traits": list(traits), "goal": GOAL, "train_h": TRAIN_H, "exits": out["exits"]},
                            {h: v for h, v in out["results"].items()})
     return out
 
@@ -226,5 +382,6 @@ def result() -> dict | None:
 
 
 if __name__ == "__main__":
-    r = run()
-    print(json.dumps({k: v for k, v in r.items() if k not in ("years",)}, indent=1, default=float))
+    import sys
+    r = run(sys.argv[1] if len(sys.argv) > 1 else "all")
+    print(json.dumps({k: v for k, v in r.items() if k not in ("years", "survivor_gap")}, indent=1, default=float))
