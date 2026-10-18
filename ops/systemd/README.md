@@ -17,19 +17,22 @@ The dev server (`pnpm dev -p 3002`) is *not* unit-managed. Tailscale routing:
 the root `https://kaunteya.tail78af30.ts.net` proxies to :3002 (dev), and
 :8445 proxies to :4321 (production).
 
-## Not yet installed
+## Installed: the nightly ingest
 
-`artha-pit-ingest.timer` (in this directory) + a matching oneshot service
-(`ExecStart=/usr/bin/curl -sf -m 3500 -X POST http://localhost:8421/pit/ingest`,
-`TimeoutStartSec=3600`, `After=news-bias-ml.service`) would run the nightly
-PIT ingest at 02:30. Install both to `~/.config/systemd/user/`, then:
-`systemctl --user daemon-reload && systemctl --user enable --now artha-pit-ingest.timer`.
+`artha-pit-ingest.service` + `artha-pit-ingest.timer` run `ml-service/pit_ingest.py`
+every night at 02:30: prices, EDGAR filings, FRED and GDELT into the PIT store.
+It runs as its own process rather than through `POST /pit/ingest`, so a long
+ingest never ties up the ML service. Installed as copies:
+
+    cp ops/systemd/artha-pit-ingest.* ~/.config/systemd/user/
+    systemctl --user daemon-reload && systemctl --user enable --now artha-pit-ingest.timer
 
 ## Installed: the live record
 
 `artha-tracker.service` + `artha-tracker.timer` run `ml-service/tracker.py` on
 the 1st of each month at 07:00: refresh every S&P 500 member's price history,
-then write that month's rule lists to `ml-service/data/scorecard/tracker/`.
+then write that month's rule lists to `ml-service/record/` and commit that one
+file (anything else staged is left alone). Nothing is pushed.
 A snapshot is never rewritten. Installed as copies:
 
     cp ops/systemd/artha-tracker.* ~/.config/systemd/user/

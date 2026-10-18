@@ -1,0 +1,3120 @@
+{
+ "date": "2026-10-18",
+ "price_date": "2026-10-16",
+ "taken_at": "2026-10-18 00:14",
+ "lists": {
+  "good_all_three": [
+   "ABNB",
+   "AMAT",
+   "ANET",
+   "CAT",
+   "CF",
+   "CPAY",
+   "CSCO",
+   "CSX",
+   "DXCM",
+   "EBAY",
+   "EXPD",
+   "FCX",
+   "FIX",
+   "FTNT",
+   "GILD",
+   "GWW",
+   "INCY",
+   "JBL",
+   "JNJ",
+   "KLAC",
+   "KO",
+   "LLY",
+   "LRCX",
+   "MPC",
+   "MRK",
+   "NEM",
+   "NTAP",
+   "ROST",
+   "TGT",
+   "TRGP",
+   "TXN"
+  ],
+  "buyback_profitable": [
+   "AAPL",
+   "ABNB",
+   "ACN",
+   "ADBE",
+   "ADP",
+   "ADSK",
+   "ALL",
+   "ALLE",
+   "AMAT",
+   "AMP",
+   "ANET",
+   "AOS",
+   "APO",
+   "APP",
+   "AVY",
+   "AXP",
+   "BBY",
+   "BR",
+   "CAT",
+   "CBOE",
+   "CDNS",
+   "CDW",
+   "CF",
+   "CHTR",
+   "CL",
+   "CMG",
+   "CMI",
+   "COR",
+   "COST",
+   "CPAY",
+   "CSCO",
+   "CSX",
+   "CTAS",
+   "DECK",
+   "DLTR",
+   "DRI",
+   "DXCM",
+   "EBAY",
+   "EIX",
+   "EME",
+   "ETN",
+   "EXPD",
+   "EXPE",
+   "FCX",
+   "FDS",
+   "FERG",
+   "FIX",
+   "FTNT",
+   "GDDY",
+   "GE",
+   "GEHC",
+   "GEN",
+   "GILD",
+   "GOOG",
+   "GOOGL",
+   "GWW",
+   "HON",
+   "HSY",
+   "HUBB",
+   "HWM",
+   "IDXX",
+   "INCY",
+   "INTU",
+   "IT",
+   "ITW",
+   "JBL",
+   "JKHY",
+   "JNJ",
+   "KLAC",
+   "KMB",
+   "KO",
+   "KR",
+   "LDOS",
+   "LII",
+   "LLY",
+   "LMT",
+   "LRCX",
+   "LULU",
+   "LVS",
+   "LYV",
+   "MA",
+   "MCO",
+   "META",
+   "MMM",
+   "MNST",
+   "MPC",
+   "MRK",
+   "MRSH",
+   "MSFT",
+   "MSI",
+   "NCLH",
+   "NEM",
+   "NFLX",
+   "NKE",
+   "NOC",
+   "NRG",
+   "NTAP",
+   "NVDA",
+   "NXPI",
+   "ODFL",
+   "PAYX",
+   "PEP",
+   "PG",
+   "PH",
+   "PODD",
+   "PPG",
+   "PYPL",
+   "QCOM",
+   "RCL",
+   "RL",
+   "RMD",
+   "ROK",
+   "ROL",
+   "ROST",
+   "SHW",
+   "SYF",
+   "SYY",
+   "TGT",
+   "TJX",
+   "TMUS",
+   "TPL",
+   "TPR",
+   "TRGP",
+   "TSCO",
+   "TT",
+   "TXN",
+   "UHS",
+   "ULTA",
+   "UNP",
+   "UPS",
+   "URI",
+   "VRSK",
+   "WMT",
+   "WSM",
+   "ZTS"
+  ],
+  "control": [
+   "A",
+   "AAPL",
+   "ABBV",
+   "ABNB",
+   "ABT",
+   "ACGL",
+   "ACN",
+   "ADBE",
+   "ADI",
+   "ADM",
+   "ADP",
+   "ADSK",
+   "AEE",
+   "AEP",
+   "AES",
+   "AFL",
+   "AIG",
+   "AIZ",
+   "AKAM",
+   "ALB",
+   "ALGN",
+   "ALL",
+   "ALLE",
+   "AMAT",
+   "AMCR",
+   "AMD",
+   "AME",
+   "AMGN",
+   "AMP",
+   "AMT",
+   "AMZN",
+   "ANET",
+   "AON",
+   "AOS",
+   "APA",
+   "APD",
+   "APH",
+   "APO",
+   "APP",
+   "APTV",
+   "ARE",
+   "ATO",
+   "AVGO",
+   "AVY",
+   "AWK",
+   "AXON",
+   "AXP",
+   "AZO",
+   "BA",
+   "BAC",
+   "BALL",
+   "BAX",
+   "BBY",
+   "BDX",
+   "BEN",
+   "BG",
+   "BIIB",
+   "BKNG",
+   "BKR",
+   "BLDR",
+   "BLK",
+   "BMY",
+   "BNY",
+   "BR",
+   "BRO",
+   "BSX",
+   "BX",
+   "BXP",
+   "C",
+   "CAH",
+   "CARR",
+   "CASY",
+   "CAT",
+   "CB",
+   "CBOE",
+   "CBRE",
+   "CCI",
+   "CCL",
+   "CDNS",
+   "CDW",
+   "CEG",
+   "CF",
+   "CFG",
+   "CHD",
+   "CHRW",
+   "CHTR",
+   "CI",
+   "CIEN",
+   "CINF",
+   "CL",
+   "CLX",
+   "CMCSA",
+   "CME",
+   "CMG",
+   "CMI",
+   "CMS",
+   "CNC",
+   "CNP",
+   "COF",
+   "COHR",
+   "COIN",
+   "COO",
+   "COP",
+   "COR",
+   "COST",
+   "CPAY",
+   "CPRT",
+   "CPT",
+   "CRH",
+   "CRL",
+   "CRM",
+   "CRWD",
+   "CSCO",
+   "CSGP",
+   "CSX",
+   "CTAS",
+   "CTSH",
+   "CTVA",
+   "CVNA",
+   "CVS",
+   "CVX",
+   "D",
+   "DAL",
+   "DASH",
+   "DD",
+   "DDOG",
+   "DE",
+   "DECK",
+   "DELL",
+   "DG",
+   "DGX",
+   "DHI",
+   "DHR",
+   "DIS",
+   "DLR",
+   "DLTR",
+   "DOC",
+   "DOV",
+   "DOW",
+   "DPZ",
+   "DRI",
+   "DTE",
+   "DUK",
+   "DVA",
+   "DVN",
+   "DXCM",
+   "EBAY",
+   "ECHO",
+   "ECL",
+   "ED",
+   "EFX",
+   "EG",
+   "EIX",
+   "EL",
+   "ELV",
+   "EME",
+   "EMR",
+   "EOG",
+   "EQIX",
+   "EQT",
+   "ERIE",
+   "ES",
+   "ESS",
+   "ETN",
+   "ETR",
+   "EVRG",
+   "EW",
+   "EXC",
+   "EXE",
+   "EXPD",
+   "EXPE",
+   "EXR",
+   "F",
+   "FANG",
+   "FAST",
+   "FCX",
+   "FDS",
+   "FDX",
+   "FDXF",
+   "FE",
+   "FERG",
+   "FFIV",
+   "FICO",
+   "FIS",
+   "FISV",
+   "FITB",
+   "FIX",
+   "FLEX",
+   "FOX",
+   "FOXA",
+   "FRT",
+   "FSLR",
+   "FTNT",
+   "FTV",
+   "GD",
+   "GDDY",
+   "GE",
+   "GEHC",
+   "GEN",
+   "GEV",
+   "GILD",
+   "GIS",
+   "GL",
+   "GLW",
+   "GM",
+   "GNRC",
+   "GOOG",
+   "GOOGL",
+   "GPC",
+   "GPN",
+   "GRMN",
+   "GS",
+   "GWW",
+   "HAL",
+   "HAS",
+   "HBAN",
+   "HCA",
+   "HD",
+   "HIG",
+   "HII",
+   "HLT",
+   "HON",
+   "HOOD",
+   "HPE",
+   "HPQ",
+   "HRL",
+   "HSIC",
+   "HST",
+   "HSY",
+   "HUBB",
+   "HUM",
+   "HWM",
+   "IBKR",
+   "IBM",
+   "ICE",
+   "IDXX",
+   "IEX",
+   "IFF",
+   "INCY",
+   "INTC",
+   "INTU",
+   "INVH",
+   "IP",
+   "IQV",
+   "IR",
+   "IRM",
+   "ISRG",
+   "IT",
+   "ITW",
+   "IVZ",
+   "J",
+   "JBHT",
+   "JBL",
+   "JCI",
+   "JKHY",
+   "JNJ",
+   "JPM",
+   "KDP",
+   "KEY",
+   "KEYS",
+   "KHC",
+   "KIM",
+   "KLAC",
+   "KMB",
+   "KMI",
+   "KO",
+   "KR",
+   "KVUE",
+   "L",
+   "LDOS",
+   "LEN",
+   "LH",
+   "LHX",
+   "LII",
+   "LIN",
+   "LITE",
+   "LLY",
+   "LMT",
+   "LNT",
+   "LOW",
+   "LRCX",
+   "LULU",
+   "LUV",
+   "LVS",
+   "LYB",
+   "LYV",
+   "MA",
+   "MAA",
+   "MAR",
+   "MAS",
+   "MCD",
+   "MCHP",
+   "MCK",
+   "MCO",
+   "MDLZ",
+   "MDT",
+   "MET",
+   "META",
+   "MGM",
+   "MKC",
+   "MLM",
+   "MMM",
+   "MNST",
+   "MO",
+   "MOS",
+   "MPC",
+   "MPWR",
+   "MRK",
+   "MRNA",
+   "MRSH",
+   "MRVL",
+   "MS",
+   "MSCI",
+   "MSFT",
+   "MSI",
+   "MTB",
+   "MTD",
+   "MU",
+   "NCLH",
+   "NDAQ",
+   "NDSN",
+   "NEE",
+   "NEM",
+   "NFLX",
+   "NI",
+   "NKE",
+   "NOC",
+   "NOW",
+   "NRG",
+   "NSC",
+   "NTAP",
+   "NTRS",
+   "NUE",
+   "NVDA",
+   "NVR",
+   "NWS",
+   "NWSA",
+   "NXPI",
+   "O",
+   "ODFL",
+   "OKE",
+   "OMC",
+   "ON",
+   "ORCL",
+   "ORLY",
+   "OTIS",
+   "OXY",
+   "PANW",
+   "PAYX",
+   "PCAR",
+   "PCG",
+   "PEG",
+   "PEP",
+   "PFE",
+   "PFG",
+   "PG",
+   "PGR",
+   "PH",
+   "PHM",
+   "PKG",
+   "PLD",
+   "PLTR",
+   "PM",
+   "PNC",
+   "PNR",
+   "PNW",
+   "PODD",
+   "PPG",
+   "PPL",
+   "PRU",
+   "PSA",
+   "PSKY",
+   "PSX",
+   "PTC",
+   "PWR",
+   "PYPL",
+   "Q",
+   "QCOM",
+   "RCL",
+   "RDDT",
+   "REG",
+   "REGN",
+   "RF",
+   "RJF",
+   "RL",
+   "RMD",
+   "ROK",
+   "ROL",
+   "ROP",
+   "ROST",
+   "RSG",
+   "RTX",
+   "RVTY",
+   "SBAC",
+   "SBUX",
+   "SCHW",
+   "SHW",
+   "SJM",
+   "SLB",
+   "SMCI",
+   "SNA",
+   "SNDK",
+   "SNPS",
+   "SO",
+   "SOLV",
+   "SPG",
+   "SPGI",
+   "SRE",
+   "STE",
+   "STLD",
+   "STT",
+   "STX",
+   "SW",
+   "SWK",
+   "SWKS",
+   "SYF",
+   "SYK",
+   "SYY",
+   "T",
+   "TAP",
+   "TDG",
+   "TDY",
+   "TECH",
+   "TEL",
+   "TER",
+   "TGT",
+   "TJX",
+   "TKO",
+   "TMO",
+   "TMUS",
+   "TPL",
+   "TPR",
+   "TRGP",
+   "TRMB",
+   "TROW",
+   "TRV",
+   "TSCO",
+   "TSLA",
+   "TSN",
+   "TT",
+   "TTD",
+   "TTWO",
+   "TXN",
+   "TXT",
+   "TYL",
+   "UAL",
+   "UBER",
+   "UDR",
+   "UHS",
+   "ULTA",
+   "UNH",
+   "UNP",
+   "UPS",
+   "URI",
+   "USB",
+   "VEEV",
+   "VICI",
+   "VLO",
+   "VLTO",
+   "VMC",
+   "VMRK",
+   "VRSK",
+   "VRSN",
+   "VRT",
+   "VRTX",
+   "VST",
+   "VTR",
+   "VTRS",
+   "VZ",
+   "WAB",
+   "WAT",
+   "WDAY",
+   "WDC",
+   "WEC",
+   "WELL",
+   "WFC",
+   "WM",
+   "WMB",
+   "WMT",
+   "WRB",
+   "WSM",
+   "WST",
+   "WTW",
+   "WY",
+   "WYNN",
+   "XEL",
+   "XOM",
+   "XYL",
+   "XYZ",
+   "YUM",
+   "ZBH",
+   "ZBRA",
+   "ZTS"
+  ]
+ },
+ "groups": {
+  "A": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "AAPL": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "ABBV": {
+   "issuance": "no change",
+   "momentum": "7 of 10"
+  },
+  "ABNB": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "8 of 10"
+  },
+  "ABT": {
+   "issuance": "no change",
+   "profitability": "2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "ACGL": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "5 of 10"
+  },
+  "ACN": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "2 of 10"
+  },
+  "ADBE": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "ADI": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "ADM": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "ADP": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "ADSK": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "AEE": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "AEP": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "AES": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "AFL": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "AIG": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "AIZ": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "AJG": {
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "AKAM": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "ALB": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "ALGN": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "ALL": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "ALLE": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "AMAT": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "AMCR": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "AMD": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "AME": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "7 of 10"
+  },
+  "AMGN": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "AMP": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "AMT": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "AMZN": {
+   "issuance": "issues: 3rd fifth",
+   "momentum": "5 of 10"
+  },
+  "ANET": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "8 of 10"
+  },
+  "AON": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "4th fifth",
+   "momentum": "2 of 10"
+  },
+  "AOS": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "3 of 10"
+  },
+  "APA": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "APD": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "APH": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "APO": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "APP": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "APTV": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "ARE": {
+   "issuance": "buys back",
+   "momentum": "3 of 10"
+  },
+  "ARES": {
+   "profitability": "4th fifth",
+   "momentum": "2 of 10"
+  },
+  "ATO": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "AVGO": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "AVY": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "AWK": {
+   "issuance": "no change",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "AXON": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "AXP": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "AZO": {
+   "issuance": "buys back",
+   "momentum": "2 of 10"
+  },
+  "BA": {
+   "issuance": "issues most",
+   "profitability": "most profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "BAC": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "BALL": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "BAX": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "BBY": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "BDX": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "BEN": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "BF.B": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth"
+  },
+  "BG": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "BIIB": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "BKNG": {
+   "issuance": "buys back",
+   "momentum": "2 of 10"
+  },
+  "BKR": {
+   "profitability": "2nd fifth",
+   "momentum": "6 of 10"
+  },
+  "BLDR": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "1 of 10"
+  },
+  "BLK": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "BMY": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "BNY": {
+   "issuance": "buys back",
+   "momentum": "8 of 10"
+  },
+  "BR": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "BRK.B": {
+   "profitability": "least profitable fifth"
+  },
+  "BRO": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "BSX": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "2nd fifth",
+   "momentum": "1 of 10"
+  },
+  "BX": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "BXP": {
+   "issuance": "issues: 2nd fifth",
+   "momentum": "3 of 10"
+  },
+  "C": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "CAH": {
+   "issuance": "buys back",
+   "momentum": "7 of 10"
+  },
+  "CARR": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "3 of 10"
+  },
+  "CASY": {
+   "issuance": "buys back",
+   "momentum": "7 of 10"
+  },
+  "CAT": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "CB": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "7 of 10"
+  },
+  "CBOE": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "6 of 10"
+  },
+  "CBRE": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "3 of 10"
+  },
+  "CCI": {
+   "issuance": "issues: 2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "CCL": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "4th fifth",
+   "momentum": "3 of 10"
+  },
+  "CDNS": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "CDW": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "CEG": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "1 of 10"
+  },
+  "CF": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "CFG": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "CHD": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "5 of 10"
+  },
+  "CHRW": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "CHTR": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "CI": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "6 of 10"
+  },
+  "CIEN": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "CINF": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "5 of 10"
+  },
+  "CL": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "CLX": {
+   "issuance": "buys back",
+   "momentum": "2 of 10"
+  },
+  "CMCSA": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "3 of 10"
+  },
+  "CME": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "CMG": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "CMI": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "7 of 10"
+  },
+  "CMS": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "CNC": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "CNP": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "COF": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "COHR": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "COIN": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "COO": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "COP": {
+   "issuance": "issues most",
+   "profitability": "3rd fifth",
+   "momentum": "9 of 10"
+  },
+  "COR": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "COST": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "CPAY": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "CPRT": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "1 of 10"
+  },
+  "CPT": {
+   "issuance": "buys back",
+   "momentum": "4 of 10"
+  },
+  "CRH": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "2 of 10"
+  },
+  "CRL": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "CRM": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "3 of 10"
+  },
+  "CRWD": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "CSCO": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "9 of 10"
+  },
+  "CSGP": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "CSX": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "8 of 10"
+  },
+  "CTAS": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "CTSH": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "2 of 10"
+  },
+  "CTVA": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "CVNA": {
+   "issuance": "issues most",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "CVS": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "CVX": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "D": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "DAL": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "4th fifth",
+   "momentum": "9 of 10"
+  },
+  "DASH": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "DD": {
+   "issuance": "no change",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "DDOG": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "DE": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "9 of 10"
+  },
+  "DECK": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "DELL": {
+   "issuance": "buys back",
+   "momentum": "10 of 10"
+  },
+  "DG": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "4th fifth",
+   "momentum": "7 of 10"
+  },
+  "DGX": {
+   "issuance": "no change",
+   "profitability": "3rd fifth",
+   "momentum": "8 of 10"
+  },
+  "DHI": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "3 of 10"
+  },
+  "DHR": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "DIS": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "4 of 10"
+  },
+  "DLR": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "DLTR": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "DOC": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "DOV": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "DOW": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "DPZ": {
+   "issuance": "buys back",
+   "momentum": "2 of 10"
+  },
+  "DRI": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "DTE": {
+   "issuance": "no change",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "DUK": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "DVA": {
+   "issuance": "buys back",
+   "momentum": "9 of 10"
+  },
+  "DVN": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "9 of 10"
+  },
+  "DXCM": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "9 of 10"
+  },
+  "EBAY": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "ECHO": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "ECL": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "5 of 10"
+  },
+  "ED": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "EFX": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "1 of 10"
+  },
+  "EG": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "7 of 10"
+  },
+  "EIX": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "EL": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "2nd fifth",
+   "momentum": "4 of 10"
+  },
+  "ELV": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "7 of 10"
+  },
+  "EME": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "EMR": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "6 of 10"
+  },
+  "EOG": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "8 of 10"
+  },
+  "EQIX": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "EQT": {
+   "issuance": "issues most",
+   "profitability": "2nd fifth",
+   "momentum": "3 of 10"
+  },
+  "ERIE": {
+   "profitability": "4th fifth",
+   "momentum": "2 of 10"
+  },
+  "ES": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "ESS": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "ETN": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "6 of 10"
+  },
+  "ETR": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "EVRG": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "EW": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "EXC": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "2nd fifth",
+   "momentum": "3 of 10"
+  },
+  "EXE": {
+   "issuance": "issues most",
+   "profitability": "2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "EXPD": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "EXPE": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "EXR": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "F": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "FANG": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "FAST": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "FCX": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "10 of 10"
+  },
+  "FDS": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "5 of 10"
+  },
+  "FDX": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "9 of 10"
+  },
+  "FDXF": {
+   "issuance": "no change"
+  },
+  "FE": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "FERG": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "FFIV": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "10 of 10"
+  },
+  "FICO": {
+   "issuance": "buys back",
+   "momentum": "1 of 10"
+  },
+  "FIS": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "FISV": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "1 of 10"
+  },
+  "FITB": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "7 of 10"
+  },
+  "FIX": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "FLEX": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "10 of 10"
+  },
+  "FOX": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "4 of 10"
+  },
+  "FOXA": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "4 of 10"
+  },
+  "FRT": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "2nd fifth",
+   "momentum": "6 of 10"
+  },
+  "FSLR": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "2nd fifth",
+   "momentum": "1 of 10"
+  },
+  "FTNT": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "FTV": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "GD": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "4 of 10"
+  },
+  "GDDY": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "GE": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "GEHC": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "3 of 10"
+  },
+  "GEN": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "GEV": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "10 of 10"
+  },
+  "GILD": {
+   "issuance": "no change",
+   "profitability": "most profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "GIS": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "GL": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "8 of 10"
+  },
+  "GLW": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "2nd fifth",
+   "momentum": "10 of 10"
+  },
+  "GM": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "GNRC": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "GOOG": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "7 of 10"
+  },
+  "GOOGL": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "7 of 10"
+  },
+  "GPC": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "GPN": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "GRMN": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "3rd fifth",
+   "momentum": "8 of 10"
+  },
+  "GS": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "6 of 10"
+  },
+  "GWW": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "HAL": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "HAS": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "HBAN": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "HCA": {
+   "issuance": "buys back",
+   "momentum": "3 of 10"
+  },
+  "HD": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "HIG": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "4 of 10"
+  },
+  "HII": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "HLT": {
+   "issuance": "buys back",
+   "momentum": "7 of 10"
+  },
+  "HON": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "HOOD": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "3rd fifth",
+   "momentum": "2 of 10"
+  },
+  "HPE": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "HPQ": {
+   "issuance": "buys back",
+   "momentum": "7 of 10"
+  },
+  "HRL": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "HSIC": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "HST": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "HSY": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "HUBB": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "HUM": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "HWM": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "6 of 10"
+  },
+  "IBKR": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "IBM": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "4th fifth",
+   "momentum": "2 of 10"
+  },
+  "ICE": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "IDXX": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "IEX": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "IFF": {
+   "issuance": "no change",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "INCY": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "8 of 10"
+  },
+  "INTC": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "INTU": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "1 of 10"
+  },
+  "INVH": {
+   "issuance": "buys back",
+   "momentum": "4 of 10"
+  },
+  "IP": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "IQV": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "IR": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "IRM": {
+   "issuance": "issues: 2nd fifth",
+   "momentum": "6 of 10"
+  },
+  "ISRG": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "IT": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "ITW": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "IVZ": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "J": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "3 of 10"
+  },
+  "JBHT": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "8 of 10"
+  },
+  "JBL": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "JCI": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "JKHY": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "JNJ": {
+   "issuance": "no change",
+   "profitability": "most profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "JPM": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "5 of 10"
+  },
+  "KDP": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "6 of 10"
+  },
+  "KEY": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "KEYS": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "10 of 10"
+  },
+  "KHC": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "KIM": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "KKR": {
+   "profitability": "3rd fifth",
+   "momentum": "2 of 10"
+  },
+  "KLAC": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "KMB": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "KMI": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "2nd fifth",
+   "momentum": "7 of 10"
+  },
+  "KO": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "8 of 10"
+  },
+  "KR": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "KVUE": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "L": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "LDOS": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "LEN": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "1 of 10"
+  },
+  "LH": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "7 of 10"
+  },
+  "LHX": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "LII": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "LIN": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "6 of 10"
+  },
+  "LITE": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "LLY": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "LMT": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "LNT": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "LOW": {
+   "issuance": "buys back",
+   "momentum": "2 of 10"
+  },
+  "LRCX": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "LULU": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "LUV": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "LVS": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "LYB": {
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "LYV": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "MA": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "MAA": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "MAR": {
+   "issuance": "buys back",
+   "momentum": "8 of 10"
+  },
+  "MAS": {
+   "issuance": "buys back",
+   "momentum": "5 of 10"
+  },
+  "MCD": {
+   "issuance": "buys back",
+   "momentum": "2 of 10"
+  },
+  "MCHP": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "MCK": {
+   "issuance": "buys back",
+   "momentum": "5 of 10"
+  },
+  "MCO": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "MDLZ": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "MDT": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "MET": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "META": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "6 of 10"
+  },
+  "MGM": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "4 of 10"
+  },
+  "MKC": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "MLM": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "MMM": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "MNST": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "7 of 10"
+  },
+  "MO": {
+   "issuance": "buys back",
+   "momentum": "8 of 10"
+  },
+  "MOS": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "MPC": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "MPWR": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "8 of 10"
+  },
+  "MRK": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "MRNA": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "MRSH": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "MRVL": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "MS": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "6 of 10"
+  },
+  "MSCI": {
+   "issuance": "buys back",
+   "momentum": "3 of 10"
+  },
+  "MSFT": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "MSI": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "MTB": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "7 of 10"
+  },
+  "MTD": {
+   "issuance": "buys back",
+   "momentum": "5 of 10"
+  },
+  "MU": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "NCLH": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "NDAQ": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "NDSN": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "9 of 10"
+  },
+  "NEE": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "2nd fifth",
+   "momentum": "4 of 10"
+  },
+  "NEM": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "9 of 10"
+  },
+  "NFLX": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "NI": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "2nd fifth",
+   "momentum": "4 of 10"
+  },
+  "NKE": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "1 of 10"
+  },
+  "NOC": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "3 of 10"
+  },
+  "NOW": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "NRG": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "NSC": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "6 of 10"
+  },
+  "NTAP": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "NTRS": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "NUE": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "9 of 10"
+  },
+  "NVDA": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "NVR": {
+   "issuance": "buys back",
+   "momentum": "3 of 10"
+  },
+  "NWS": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "NWSA": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "NXPI": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "6 of 10"
+  },
+  "O": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "ODFL": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "7 of 10"
+  },
+  "OKE": {
+   "issuance": "issues most",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "OMC": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "ON": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "ORCL": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "4th fifth",
+   "momentum": "1 of 10"
+  },
+  "ORLY": {
+   "issuance": "buys back",
+   "momentum": "3 of 10"
+  },
+  "OTIS": {
+   "issuance": "buys back",
+   "momentum": "2 of 10"
+  },
+  "OXY": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "PANW": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "PAYX": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "PCAR": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "2nd fifth",
+   "momentum": "6 of 10"
+  },
+  "PCG": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "PEG": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "PEP": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "PFE": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "PFG": {
+   "issuance": "buys back",
+   "momentum": "8 of 10"
+  },
+  "PG": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "PGR": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "PH": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "7 of 10"
+  },
+  "PHM": {
+   "issuance": "buys back",
+   "momentum": "4 of 10"
+  },
+  "PKG": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "PLD": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "PLTR": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "3rd fifth",
+   "momentum": "3 of 10"
+  },
+  "PM": {
+   "issuance": "issues: lowest fifth",
+   "momentum": "8 of 10"
+  },
+  "PNC": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "7 of 10"
+  },
+  "PNR": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "1 of 10"
+  },
+  "PNW": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "PODD": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "1 of 10"
+  },
+  "PPG": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "5 of 10"
+  },
+  "PPL": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "PRU": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "6 of 10"
+  },
+  "PSA": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "5 of 10"
+  },
+  "PSKY": {
+   "issuance": "issues: 4th fifth"
+  },
+  "PSX": {
+   "issuance": "buys back",
+   "momentum": "10 of 10"
+  },
+  "PTC": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "3rd fifth",
+   "momentum": "2 of 10"
+  },
+  "PWR": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "2nd fifth",
+   "momentum": "9 of 10"
+  },
+  "PYPL": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "2 of 10"
+  },
+  "Q": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "QCOM": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "RCL": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "RDDT": {
+   "issuance": "issues most",
+   "profitability": "2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "REG": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "REGN": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "RF": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "RJF": {
+   "issuance": "buys back",
+   "momentum": "4 of 10"
+  },
+  "RL": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "RMD": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "3 of 10"
+  },
+  "ROK": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "ROL": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "ROP": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "ROST": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "9 of 10"
+  },
+  "RSG": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "5 of 10"
+  },
+  "RTX": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "RVTY": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "SBAC": {
+   "issuance": "buys back",
+   "momentum": "3 of 10"
+  },
+  "SBUX": {
+   "issuance": "issues: lowest fifth",
+   "momentum": "7 of 10"
+  },
+  "SCHW": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "5 of 10"
+  },
+  "SHW": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "SJM": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "SLB": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "SMCI": {
+   "issuance": "issues most",
+   "profitability": "2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "SNA": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "6 of 10"
+  },
+  "SNDK": {
+   "issuance": "issues most",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "SNPS": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "SO": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "3rd fifth",
+   "momentum": "3 of 10"
+  },
+  "SOLV": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "SPG": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "SPGI": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "3 of 10"
+  },
+  "SRE": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "STE": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "3 of 10"
+  },
+  "STLD": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "9 of 10"
+  },
+  "STT": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "9 of 10"
+  },
+  "STX": {
+   "issuance": "issues most",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "STZ": {
+   "profitability": "4th fifth",
+   "momentum": "3 of 10"
+  },
+  "SW": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "SWK": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "SWKS": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "SYF": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "SYK": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "3rd fifth",
+   "momentum": "2 of 10"
+  },
+  "SYY": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "T": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "5 of 10"
+  },
+  "TAP": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "TDG": {
+   "issuance": "issues: 2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "TDY": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "TECH": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "TEL": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "3 of 10"
+  },
+  "TER": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "10 of 10"
+  },
+  "TGT": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "10 of 10"
+  },
+  "TJX": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "TKO": {
+   "issuance": "issues most",
+   "profitability": "2nd fifth",
+   "momentum": "4 of 10"
+  },
+  "TMO": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "7 of 10"
+  },
+  "TMUS": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "2 of 10"
+  },
+  "TPL": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "TPR": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "TRGP": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "TRMB": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "TROW": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "5 of 10"
+  },
+  "TRV": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "8 of 10"
+  },
+  "TSCO": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "TSLA": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "TSN": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "TT": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "TTD": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "1 of 10"
+  },
+  "TTWO": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "TXN": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "10 of 10"
+  },
+  "TXT": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "4 of 10"
+  },
+  "TYL": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "1 of 10"
+  },
+  "UAL": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "UBER": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "2 of 10"
+  },
+  "UDR": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "UHS": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "2 of 10"
+  },
+  "ULTA": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "UNH": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "6 of 10"
+  },
+  "UNP": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "UPS": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "URI": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "6 of 10"
+  },
+  "USB": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "V": {
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "VEEV": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "2nd fifth",
+   "momentum": "4 of 10"
+  },
+  "VICI": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "VLO": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "VLTO": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "4th fifth",
+   "momentum": "4 of 10"
+  },
+  "VMC": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "3 of 10"
+  },
+  "VMRK": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "VRSK": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "VRSN": {
+   "issuance": "buys back",
+   "momentum": "7 of 10"
+  },
+  "VRT": {
+   "issuance": "issues: 3rd fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "VRTX": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "VST": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "2 of 10"
+  },
+  "VTR": {
+   "issuance": "issues most",
+   "profitability": "least profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "VTRS": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "VZ": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "WAB": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "9 of 10"
+  },
+  "WAT": {
+   "issuance": "issues: 2nd fifth",
+   "profitability": "4th fifth",
+   "momentum": "7 of 10"
+  },
+  "WBD": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "8 of 10"
+  },
+  "WDAY": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "WDC": {
+   "issuance": "issues most",
+   "profitability": "most profitable fifth",
+   "momentum": "10 of 10"
+  },
+  "WEC": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "WELL": {
+   "issuance": "issues most",
+   "momentum": "8 of 10"
+  },
+  "WFC": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "4 of 10"
+  },
+  "WM": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "most profitable fifth",
+   "momentum": "5 of 10"
+  },
+  "WMB": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "3rd fifth",
+   "momentum": "7 of 10"
+  },
+  "WMT": {
+   "issuance": "buys back",
+   "profitability": "4th fifth",
+   "momentum": "5 of 10"
+  },
+  "WRB": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "4 of 10"
+  },
+  "WSM": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "7 of 10"
+  },
+  "WST": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "8 of 10"
+  },
+  "WTW": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "3 of 10"
+  },
+  "WY": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "WYNN": {
+   "issuance": "buys back",
+   "momentum": "1 of 10"
+  },
+  "XEL": {
+   "issuance": "issues: 4th fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "XOM": {
+   "issuance": "buys back",
+   "profitability": "2nd fifth",
+   "momentum": "9 of 10"
+  },
+  "XYL": {
+   "issuance": "issues: lowest fifth",
+   "profitability": "least profitable fifth",
+   "momentum": "2 of 10"
+  },
+  "XYZ": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "4 of 10"
+  },
+  "YUM": {
+   "issuance": "buys back",
+   "momentum": "4 of 10"
+  },
+  "ZBH": {
+   "issuance": "buys back",
+   "profitability": "least profitable fifth",
+   "momentum": "3 of 10"
+  },
+  "ZBRA": {
+   "issuance": "buys back",
+   "profitability": "3rd fifth",
+   "momentum": "8 of 10"
+  },
+  "ZTS": {
+   "issuance": "buys back",
+   "profitability": "most profitable fifth",
+   "momentum": "1 of 10"
+  }
+ }
+}

@@ -18,11 +18,14 @@ and two lists:
 A list is held equal-weighted from its snapshot to the next, dividends in,
 and compared with SPY and with every member snapshotted (the control).
 
-Run monthly (ops/artha-tracker.timer): refresh prices, then snapshot.
+Run monthly (ops/artha-tracker.timer): refresh prices, snapshot, and commit
+the snapshot, so git's history shows when each was written and that none
+changed after.
 """
 
 import asyncio
 import json
+import subprocess
 import time
 from pathlib import Path
 
@@ -37,7 +40,7 @@ import pit_ingest
 import pricer
 import scorecard
 
-DIR = scorecard.DATA / "tracker"
+DIR = Path(__file__).parent / "record"     # tracked in git, unlike data/
 LISTS = ("good_all_three", "buyback_profitable", "control")
 
 
@@ -82,6 +85,13 @@ def snapshot(as_of: str | None = None) -> dict:
         raise FileExistsError(f"{path} exists: a snapshot is never rewritten")
     path.write_text(json.dumps(snap, indent=1))
     return snap
+
+
+def commit(path: Path) -> None:
+    """Commit this one file, leaving anything else staged as it is."""
+    subprocess.run(["git", "add", "--", path.name], cwd=path.parent, check=True)
+    subprocess.run(["git", "commit", "-m", f"Live record: snapshot {path.stem}", "--", path.name],
+                   cwd=path.parent, check=True)
 
 
 def snapshots() -> list[dict]:
@@ -153,5 +163,6 @@ if __name__ == "__main__":
     print(f"[tracker] refreshing {len(members) + 1} price histories", flush=True)
     refresh_prices(members + ["SPY"])
     snap = snapshot()
+    commit(DIR / f"{snap['date']}.json")
     print(json.dumps({k: len(v) for k, v in snap["lists"].items()}), flush=True)
     print(json.dumps(record()["total"]), flush=True)

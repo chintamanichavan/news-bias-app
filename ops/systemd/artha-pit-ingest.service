@@ -1,0 +1,10 @@
+[Unit]
+Description=Artha nightly PIT ingest: prices, EDGAR filings, FRED, GDELT
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/code/news-bias-app/ml-service
+ExecStart=%h/code/news-bias-app/ml-service/.venv/bin/python -W ignore pit_ingest.py
+TimeoutStartSec=3600
