@@ -25,6 +25,7 @@ import odds
 import paper_trader
 import pit
 import pricer
+import proof
 import sestm
 import particle
 import portfolio
@@ -1113,6 +1114,17 @@ def pricer_prices(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"
     except (ValueError, FileNotFoundError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     _data_cache[key] = (time.time(), out)
+    return out
+
+
+@app.get("/proof")
+def proof_result():
+    """The last replay of the pricer over every 30 June since 2014: how its
+    portfolios did against SPY and against the survivor-biased universe.
+    Rebuilt by running proof.py; this only reads the saved result."""
+    out = proof.result()
+    if out is None:
+        raise HTTPException(status_code=404, detail="no replay yet: run proof.py")
     return out
 
 

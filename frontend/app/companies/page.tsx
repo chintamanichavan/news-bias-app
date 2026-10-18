@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import LoadError from '@/components/LoadError'
 import { useResource } from '@/lib/useResource'
 
@@ -149,12 +150,17 @@ export default function CompaniesPage() {
             </p>
           )}
         </div>
+        <div className="flex flex-col items-end gap-2">
+        <Link href="/proof" className="text-[13px] px-3 py-1.5 rounded-full bg-muted/60 hover:bg-muted">
+          Has this worked? →
+        </Link>
         <label className="text-[12px] text-muted-foreground flex items-center gap-2">
           As known on
           <input type="date" value={asOf} min="2010-01-01" onChange={e => setAsOf(e.target.value)}
             className="bg-muted/60 rounded-md px-2 py-1 text-foreground tabular-nums" />
           {asOf && <button onClick={() => setAsOf('')} className="hover:text-foreground">today</button>}
         </label>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center gap-1.5 mb-4">

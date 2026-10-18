@@ -74,9 +74,13 @@ def expected_max_sharpe(n_trials: int, var_sharpe: float = 1.0) -> float:
     return sd * ((1 - EULER_GAMMA) * z1 + EULER_GAMMA * z2)
 
 
-def deflated_sharpe(returns: list[float], n_trials: int = 1) -> dict:
+def deflated_sharpe(returns: list[float], n_trials: int = 1,
+                    var_sharpe: float = 1.0) -> dict:
     """DSR: probability the observed (per-period) Sharpe exceeds the expected
-    max Sharpe of `n_trials` skill-less tries, honoring skew/kurtosis."""
+    max Sharpe of `n_trials` skill-less tries, honoring skew/kurtosis.
+    `var_sharpe` is the spread of the trials' per-period Sharpes. Under the
+    null of no skill it is about 1/(n-1) (the estimator's own variance);
+    the default of 1.0 sets a far higher bar, which callers here rely on."""
     r = np.asarray(returns, dtype=float)
     n = len(r)
     if n < 20 or r.std(ddof=1) == 0:
@@ -84,7 +88,7 @@ def deflated_sharpe(returns: list[float], n_trials: int = 1) -> dict:
     sr = float(r.mean() / r.std(ddof=1))
     skew = float(sstats.skew(r))
     kurt = float(sstats.kurtosis(r, fisher=False))
-    sr0 = expected_max_sharpe(max(1, n_trials))
+    sr0 = expected_max_sharpe(max(1, n_trials), var_sharpe)
     denom = math.sqrt(max(1e-12, 1 - skew * sr + (kurt - 1) / 4 * sr * sr))
     z = (sr - sr0) * math.sqrt(n - 1) / denom
     return {
