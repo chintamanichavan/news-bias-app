@@ -226,6 +226,18 @@ def smallcaps_latest():
     return out
 
 
+@app.get("/smallcaps/record")
+def smallcaps_record():
+    """The plan as lived since the first list, against IWM. Rebuilt at most
+    hourly."""
+    cached = _data_cache.get("smallcaps-record")
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    out = smallcaps.performance()
+    _data_cache["smallcaps-record"] = (time.time(), out)
+    return out
+
+
 @app.get("/evidence/companies")
 def evidence_companies(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
     """Where each S&P 500 member sits in the groups the sixty years of

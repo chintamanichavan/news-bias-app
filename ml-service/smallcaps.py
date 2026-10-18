@@ -115,6 +115,63 @@ def snapshot(save: bool = True, refresh: bool = True) -> Path:
     return path
 
 
+def holding(snaps: list[dict], day: str) -> dict:
+    """The snapshot whose pick is held on `day`: the latest June list on or
+    before it, or the first list before any June."""
+    june = [x for x in snaps if x["date"][5:7] == "06" and x["date"] <= day]
+    return june[-1] if june else snaps[0]
+
+
+async def _closes(tickers: list[str], days: int) -> dict[str, pd.Series]:
+    async def one(t):
+        try:
+            return t, pd.Series(dict(await lab._daily_closes(t, days)))
+        except Exception:
+            return t, None
+    return {t: c for t, c in await asyncio.gather(*[one(t) for t in tickers]) if c is not None and len(c)}
+
+
+def _change(c: pd.Series, a: str, b: str) -> float | None:
+    """Close on or before `b` over close on or before `a`. A stock that
+    stopped trading keeps its last close: sold there, cash after."""
+    x, y = c[c.index <= a], c[c.index <= b]
+    return float(y.iloc[-1] / x.iloc[-1] - 1) if len(x) and len(y) else None
+
+
+def performance(today: date | None = None) -> dict:
+    """The plan as lived since the first list: each month from one snapshot
+    to the next (or today), the held pick in equal amounts if that
+    snapshot's trend read was up, else Treasury bills; against IWM held."""
+    snaps = [json.loads(p.read_text()) for p in sorted(DIR.glob("*.json"))]
+    if not snaps:
+        return {"months": []}
+    end = (today or date.today()).isoformat()
+    for x in snaps:
+        x.setdefault("pick", pick(x["date"], [c["symbol"] for c in x["kept"]]))
+    tickers = {c["symbol"]: c["ticker"] for x in snaps for c in x["kept"]}
+    held = sorted({tickers[s] for x in snaps for s in holding(snaps, x["date"])["pick"]})
+    days = (pd.Timestamp(end) - pd.Timestamp(snaps[0]["date"])).days + 30
+    closes = asyncio.run(_closes(held + [FUND, "^IRX"], days))
+    months, plan, fund = [], 1.0, 1.0
+    for i, x in enumerate(snaps):
+        a, b = x["date"], snaps[i + 1]["date"] if i + 1 < len(snaps) else end
+        if b <= a:
+            continue
+        names = [tickers[s] for s in holding(snaps, a)["pick"]]
+        if x["trend"]["above"]:
+            got = [r for t in names if t in closes and (r := _change(closes[t], a, b)) is not None]
+            r = float(np.mean(got)) if got else 0.0
+        else:
+            irx = closes.get("^IRX")
+            rate = float(irx[irx.index <= a].iloc[-1]) / 100 if irx is not None else 0.0
+            r = rate * (pd.Timestamp(b) - pd.Timestamp(a)).days / 360
+        f = _change(closes[FUND], a, b) if FUND in closes else None
+        plan *= 1 + r
+        fund *= 1 + (f or 0.0)
+        months.append({"from": a, "to": b, "in": x["trend"]["above"], "plan": r, "fund": f})
+    return {"since": snaps[0]["date"], "to": end, "plan": plan - 1, "fund": fund - 1, "months": months}
+
+
 def latest() -> dict | None:
     snaps = sorted(DIR.glob("*.json"))
     if not snaps:

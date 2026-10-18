@@ -28,6 +28,14 @@ interface Screen {
   dropped: Company[]
 }
 
+interface LiveRecord {
+  since: string
+  to: string
+  plan: number
+  fund: number
+  months: { from: string; to: string; in: boolean; plan: number; fund: number | null }[]
+}
+
 type View = 'pick' | 'kept' | 'dropped'
 const VIEW_LABEL: Record<View, string> = { pick: 'A pick of 50', kept: 'Kept', dropped: 'Dropped' }
 
@@ -42,6 +50,7 @@ const millions = (x: number) => (x >= 1e9 ? `$${(x / 1e9).toFixed(2)}B` : `$${Ma
 
 export default function SmallCapsPage() {
   const { data, loading, refreshing, error, reload } = useResource<Screen>('/api/smallcaps')
+  const record = useResource<LiveRecord>('/api/smallcaps/record')
   const [query, setQuery] = useState('')
   const [view, setView] = useState<View>('pick')
   const showDropped = view === 'dropped'
@@ -79,6 +88,23 @@ export default function SmallCapsPage() {
 
       {data && (
         <>
+          <div className="news-card px-4 py-3 mb-3">
+            <p className="text-[11px] text-muted-foreground">The plan</p>
+            <p className="text-[13px] mt-1">
+              Hold the pick of 50 in equal amounts while small caps are above their 10-month average, else Treasury
+              bills; a new pick each 30 June. Today: <b>{data.trend.above ? 'hold the pick' : 'hold Treasury bills'}</b>.
+            </p>
+            {record.data && (
+              <p className="text-[12px] text-muted-foreground mt-1 tabular-nums">
+                {record.data.months.length === 0
+                  ? `Live record starts ${record.data.since}; the first month is scored at the next list.`
+                  : <>Since {record.data.since}: plan <b className="text-foreground">{pct(record.data.plan, 1)}</b>,
+                    {' '}{data.trend.fund} held {pct(record.data.fund, 1)}, over {record.data.months.length} month
+                    {record.data.months.length === 1 ? '' : 's'}, {record.data.months.filter(m => !m.in).length} in bills.</>}
+              </p>
+            )}
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2 mb-4">
             <div className="news-card px-4 py-3">
               <p className="text-[11px] text-muted-foreground">Timing</p>
