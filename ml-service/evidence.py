@@ -37,6 +37,8 @@ import numpy as np
 import pandas as pd
 
 import odds
+import pit
+import proof
 import scorecard
 
 START = "196307"
@@ -111,6 +113,118 @@ def run() -> dict:
               "through": max(market.index), "tests": out}
     RESULT.write_text(json.dumps(result, indent=1))
     return result
+
+
+# ── Where each company sits today ───────────────────────────────────────────
+#
+# Each company is placed in the groups the sixty years were measured on, and
+# shown what that group earned against the market:
+# - issuance: last fiscal year's change in diluted share count (read within
+#   one filing, so splits do not count). A fall is the buyback group, no
+#   change the zero group; French publishes no breakpoints for issuers, so
+#   they are split into fifths among the companies here;
+# - profitability: operating profit less interest over book equity (French's
+#   OP: revenue less cost of goods, SG&A and interest; SG&A in Compustat
+#   includes R&D, as operating income does), against his NYSE fifths for the
+#   year. Negative book equity is not sorted, as in his portfolios;
+# - momentum: the twelve months to the month before, against his NYSE tenths.
+
+GROUPS = {
+    "issuance": ("Portfolios_Formed_on_NI", ["< 0", "ZERO", "Lo 20", "Qnt 2", "Qnt 3", "Qnt 4", "Hi 20"]),
+    "profitability": ("Portfolios_Formed_on_OP", ["Lo 20", "Qnt 2", "Qnt 3", "Qnt 4", "Hi 20"]),
+    "momentum": ("10_Portfolios_Prior_12_2", ["Lo PRIOR", "PRIOR 2", "PRIOR 3", "PRIOR 4", "PRIOR 5",
+                                               "PRIOR 6", "PRIOR 7", "PRIOR 8", "PRIOR 9", "Hi PRIOR"]),
+}
+LABELS = {
+    "issuance": ["buys back", "no change", "issues: lowest fifth", "issues: 2nd fifth",
+                 "issues: 3rd fifth", "issues: 4th fifth", "issues most"],
+    "profitability": ["least profitable fifth", "2nd fifth", "3rd fifth", "4th fifth", "most profitable fifth"],
+    "momentum": [f"{i} of 10" for i in range(1, 11)],
+}
+COMPANIES = scorecard.DATA / "evidence_companies.json"
+
+
+def group_record() -> dict[str, list[dict]]:
+    """Each group's value-weighted growth against the market since 1963 and
+    since 2007, and the share of ten-year windows it beat the market."""
+    ff = odds.french("F-F_Research_Data_Factors")
+    market = pd.Series({m: v["Mkt-RF"] + v["RF"] for m, v in ff.items()}).sort_index()
+    out = {}
+    for trait, (file, cols) in GROUPS.items():
+        data = odds.french(file, 0)
+        rows = []
+        for col, label in zip(cols, LABELS[trait]):
+            r = pd.Series({m: v[col] for m, v in data.items() if m >= START and col in v}).sort_index()
+            mkt = market[market.index.isin(r.index)]
+            recent = r.index >= RECENT
+            rows.append({"group": col, "label": label,
+                         "excess": growth(r) - growth(mkt),
+                         "excess_recent": growth(r[recent]) - growth(mkt[mkt.index >= RECENT]),
+                         "won_10y": windows_won(r, mkt, 120)})
+        out[trait] = rows
+    return out
+
+
+def breakpoints(name: str) -> dict[str, list[float]]:
+    """{period: the 5th, 10th ... 100th NYSE percentiles, as fractions}."""
+    out = {}
+    for line in odds.french_text(name).splitlines():
+        cells = [c.strip() for c in line.split(",")]
+        if cells[0].isdigit() and len(cells) >= 22:
+            out[cells[0]] = [float(v) / 100 for v in cells[2:22]]
+    return out
+
+
+def place(value: float, cuts: list[float]) -> int:
+    """Index of the group `value` falls in, given the cut-offs between groups."""
+    return int(np.searchsorted(cuts, value, side="right"))
+
+
+def operating_profitability(y: pd.DataFrame) -> float | None:
+    last = y.sort_values("year_end").iloc[-1]
+    oi, eq = last["operating_income"], last["equity"]
+    if pd.isna(oi) or pd.isna(eq) or eq <= 0:
+        return None
+    return float((oi - (0 if pd.isna(last["interest_expense"]) else last["interest_expense"])) / eq)
+
+
+def company_groups(as_of: str, tickers: list[str]) -> dict[str, dict]:
+    """ticker -> {trait: {index, label, excess, excess_recent, won_10y}} on `as_of`."""
+    record = group_record()
+    conn = pit.connect()
+    years = scorecard.annual(conn, as_of, tickers)
+    changes = scorecard.share_changes(conn, as_of, tickers)
+    rets = proof.monthly_returns(tickers)
+    mom = proof.momentum(rets, as_of)
+
+    day = pd.Timestamp(as_of)
+    op_cuts = breakpoints("OP_Breakpoints")
+    year = str(day.year if day.month >= 7 else day.year - 1)
+    op_year = op_cuts.get(year) or op_cuts[max(op_cuts)]
+    op = [op_year[i] for i in (3, 7, 11, 15)]                       # 20th..80th
+    mom_cuts = breakpoints("Prior_2-12_Breakpoints")
+    month = max(m for m in mom_cuts if m <= day.strftime("%Y%m"))
+    mo = [mom_cuts[month][i] for i in range(1, 19, 2)]               # 10th..90th
+
+    last_change = {t: c[-1] for t, c in changes.items() if c}
+    issuers = sorted(v for v in last_change.values() if v > 0)
+    iss_cuts = [issuers[int(len(issuers) * q / 5)] for q in range(1, 5)] if len(issuers) >= 5 else []
+
+    out = {}
+    for t in tickers:
+        groups = {}
+        c = last_change.get(t)
+        if c is not None:
+            i = 0 if c < 0 else 1 if c == 0 else 2 + place(c, iss_cuts)
+            groups["issuance"] = i
+        y = years[years["ticker"] == t]
+        p = operating_profitability(y) if len(y) else None
+        if p is not None:
+            groups["profitability"] = place(p, op)
+        if t in mom:
+            groups["momentum"] = place(mom[t], mo)
+        out[t] = {trait: {"index": i, **record[trait][i]} for trait, i in groups.items()}
+    return out
 
 
 def result() -> dict | None:

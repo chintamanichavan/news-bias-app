@@ -32,3 +32,23 @@ def test_windows_won_counts_rolling_windows():
 def test_growth_is_the_compound_rate_a_year():
     r = pd.Series([0.01] * 24)
     assert evidence.growth(r) == pytest.approx(1.01 ** 12 - 1)
+
+
+def test_place_puts_a_value_in_its_group():
+    cuts = [0.1, 0.2, 0.3, 0.4]                  # four cut-offs, five groups
+    assert [evidence.place(v, cuts) for v in (0.05, 0.1, 0.25, 0.99)] == [0, 1, 2, 4]
+
+
+def test_breakpoints_reads_twenty_percentiles(monkeypatch):
+    row = "2026,  1012," + ",".join(f"{v:.2f}" for v in range(5, 105, 5))
+    monkeypatch.setattr(evidence.odds, "french_text", lambda name: "header\n\n       ,Count\n" + row + "\n\nCopyright\n")
+    bp = evidence.breakpoints("OP_Breakpoints")
+    assert list(bp) == ["2026"] and bp["2026"][3] == pytest.approx(0.20) and len(bp["2026"]) == 20
+
+
+def test_operating_profitability_is_profit_less_interest_over_book_equity():
+    y = pd.DataFrame({"year_end": pd.to_datetime(["2024-12-31", "2025-12-31"]),
+                      "operating_income": [50.0, 60.0], "interest_expense": [5.0, 10.0],
+                      "equity": [200.0, 250.0]})
+    assert evidence.operating_profitability(y) == pytest.approx(50 / 250)
+    assert evidence.operating_profitability(y.assign(equity=[200.0, -5.0])) is None

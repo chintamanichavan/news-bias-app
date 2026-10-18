@@ -1161,6 +1161,26 @@ def evidence_result():
     return out
 
 
+@app.get("/evidence/companies")
+def evidence_companies(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
+    """Where each S&P 500 member sits in the groups the sixty years of
+    evidence were measured on — buybacks, profitability, momentum — and what
+    each group earned against the market. Rebuilt at most hourly."""
+    day = as_of or time.strftime("%Y-%m-%d")
+    key = f"evidence-companies:{day}"
+    cached = _data_cache.get(key)
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    try:
+        tickers = [c["ticker"] for c in scorecard.cards(day)]
+        out = {"as_of": day, "groups": evidence.group_record(),
+               "companies": evidence.company_groups(day, tickers)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    _data_cache[key] = (time.time(), out)
+    return out
+
+
 @app.get("/health/pipeline")
 def health_pipeline():
     """Freshness per component, corpus counts, signal outliers."""

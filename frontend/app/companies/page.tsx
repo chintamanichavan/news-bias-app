@@ -31,8 +31,6 @@ interface Card {
 interface Priced {
   ticker: string
   percentiles: Record<'5' | '25' | '50' | '75' | '95', number>
-  alpha: number
-  p_beat_market: number
   roic_target: number
   price: number
   price_date: string
@@ -45,10 +43,29 @@ interface Pricing {
   companies: Priced[]
 }
 
-type Row = Card & { implied: number | null; alpha: number | null; beat: number | null; priced?: Priced }
+interface Group {
+  index: number
+  label: string
+  excess: number
+  excess_recent: number
+  won_10y: number
+}
+
+type Trait = 'issuance' | 'profitability' | 'momentum'
+const TRAITS: [Trait, string, string][] = [
+  ['issuance', 'Buybacks', 'Last year\'s change in share count, placed in the groups of Fama & French\'s net-issuance portfolios'],
+  ['profitability', 'Profitability', 'Operating profit less interest over book equity, against NYSE fifths (Fama & French 2015)'],
+  ['momentum', 'Momentum', 'The twelve months to last month, against NYSE tenths (Jegadeesh & Titman 1993)'],
+]
+// A group counts as good when it beat the market in more than 70% of ten-year
+// windows since 1963, and bad when it did in under 30%.
+const goodGroup = (g?: Group) => !!g && g.won_10y > 0.7
+const badGroup = (g?: Group) => !!g && g.won_10y < 0.3
+
+type Row = Card & { implied: number | null; evidence: number; groups: Partial<Record<Trait, Group>>; priced?: Priced }
 
 type Moat = 'all' | 'wide' | 'narrow' | 'none' | 'unknown'
-type SortKey = 'ticker' | 'alpha' | 'implied' | 'beat' | 'return_median' | 'gross_margin' | 'industry_share'
+type SortKey = 'ticker' | 'implied' | 'evidence' | 'return_median' | 'gross_margin' | 'industry_share'
   | 'sales_growth_5y' | 'altman_z' | 'share_change_yearly'
 
 const MOATS: Moat[] = ['all', 'wide', 'narrow', 'none', 'unknown']
@@ -89,9 +106,12 @@ export default function CompaniesPage() {
   const url = asOf ? `/api/scorecard?as_of=${asOf}` : '/api/scorecard'
   const { data, loading, refreshing, error, reload } = useResource<{ as_of: string; cards: Card[] }>(url)
   const pricing = useResource<Pricing>(asOf ? `/api/pricer?as_of=${asOf}` : '/api/pricer')
+  const evidence = useResource<{ companies: Record<string, Partial<Record<Trait, Group>>> }>(
+    asOf ? `/api/evidence/companies?as_of=${asOf}` : '/api/evidence/companies')
+  const [allGood, setAllGood] = useState(false)
   const [moat, setMoat] = useState<Moat>('wide')
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: 'return_median', desc: true })
+  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: 'evidence', desc: true })
 
   const counts = useMemo(() => {
     const n: Record<Moat, number> = { all: 0, wide: 0, narrow: 0, none: 0, unknown: 0 }
@@ -101,16 +121,21 @@ export default function CompaniesPage() {
 
   const joined = useMemo<Row[]>(() => {
     const byTicker = new Map((pricing.data?.companies ?? []).map(p => [p.ticker, p]))
+    const ev = evidence.data?.companies ?? {}
     return (data?.cards ?? []).map(c => {
       const p = byTicker.get(c.ticker)
-      return { ...c, priced: p, implied: p?.percentiles['50'] ?? null, alpha: p?.alpha ?? null, beat: p?.p_beat_market ?? null }
+      const groups = ev[c.ticker] ?? {}
+      const evidence = TRAITS.reduce((n, [t]) => n + (goodGroup(groups[t]) ? 1 : 0) - (badGroup(groups[t]) ? 1 : 0), 0)
+      return { ...c, priced: p, implied: p?.percentiles['50'] ?? null, groups, evidence }
     })
-  }, [data, pricing.data])
+  }, [data, pricing.data, evidence.data])
+  const allGoodCount = joined.filter(c => TRAITS.every(([t]) => goodGroup(c.groups[t]))).length
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
     const list = joined.filter(c =>
       (moat === 'all' || moatOf(c) === moat) &&
+      (!allGood || TRAITS.every(([t]) => goodGroup(c.groups[t]))) &&
       (!q || c.ticker.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
         || (c.industry ?? '').toLowerCase().includes(q)))
     const sign = sort.desc ? -1 : 1
@@ -121,7 +146,7 @@ export default function CompaniesPage() {
       if (y === null) return -1
       return sign * (x - y)
     })
-  }, [joined, moat, query, sort])
+  }, [joined, moat, allGood, query, sort])
 
   const head = (key: SortKey, label: string, title?: string) => (
     <th className="font-normal pb-2 text-right whitespace-nowrap" title={title}>
@@ -151,8 +176,9 @@ export default function CompaniesPage() {
           )}
           {pricing.data && (
             <p className="text-[12px] text-muted-foreground mt-1 max-w-2xl">
-              Tested on 2014–2026, the implied return did not predict which companies did better over 3 or 5 years;
-              the moat grade did, by about 2 points a year. <Link href="/proof" className="underline">See the proof</Link>.
+              Sorted by the sixty-year evidence: each company sits in a buyback, a profitability and a momentum group,
+              shown with what that group earned against the market since 1963, failed companies included. The implied
+              return did not predict 3- or 5-year returns in our tests. <Link href="/proof" className="underline">See the proof</Link>.
             </p>
           )}
         </div>
@@ -176,6 +202,11 @@ export default function CompaniesPage() {
             {MOAT_LABEL[m]} <span className="tabular-nums opacity-70">{counts[m]}</span>
           </button>
         ))}
+        <button onClick={() => setAllGood(!allGood)}
+          title="Buys back or holds its share count, in the top two profitability fifths, and in the top three momentum tenths"
+          className={`text-[13px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${allGood ? 'bg-emerald-600 text-white' : 'bg-muted/60 hover:bg-muted text-muted-foreground'}`}>
+          Good on all three <span className="tabular-nums opacity-70">{allGoodCount}</span>
+        </button>
         <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search name, ticker, industry"
           className="ml-auto text-[13px] bg-muted/60 rounded-full px-3 py-1.5 w-full sm:w-64" />
       </div>
@@ -194,8 +225,10 @@ export default function CompaniesPage() {
                 </th>
                 <th className="font-normal pb-2">Moat</th>
                 {head('implied', 'Implied return', 'What today\'s price earns a year, middle of 5,000 futures; the small figures are the 1-in-20 low and high')}
-                {head('alpha', 'vs market', 'Implied return less the market\'s')}
-                {head('beat', 'Beats market', 'Share of the futures in which it beats the market\'s implied return')}
+                {head('evidence', 'Evidence', 'Good groups less bad groups, of the three below: −3 to +3')}
+                {TRAITS.map(([t, label, title]) => (
+                  <th key={t} className="font-normal pb-2 text-left pl-3 whitespace-nowrap" title={title}>{label}</th>
+                ))}
                 {head('return_median', 'Return on capital', 'Median of the last 10 fiscal years, after tax. Banks and insurers: return on equity.')}
                 <th className="font-normal pb-2 pl-3">10 years</th>
                 {head('gross_margin', 'Gross margin', 'Median of the last 5 years; the small figure is how far it swung in 10')}
@@ -224,10 +257,23 @@ export default function CompaniesPage() {
                     {pct(c.implied, 1)}
                     {c.priced && <div className="text-[10px] text-muted-foreground">{pct(c.priced.percentiles['5'])} – {pct(c.priced.percentiles['95'])}</div>}
                   </td>
-                  <td className={`py-2 text-right font-semibold ${c.alpha === null ? '' : c.alpha > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {c.alpha === null ? <span className="text-muted-foreground font-normal text-[11px]">{c.financial ? 'bank' : '—'}</span> : signed(c.alpha)}
+                  <td className={`py-2 text-right font-semibold ${c.evidence > 0 ? 'text-emerald-600 dark:text-emerald-400' : c.evidence < 0 ? 'text-red-600 dark:text-red-400' : ''}`}>
+                    {c.evidence > 0 ? `+${c.evidence}` : c.evidence}
                   </td>
-                  <td className="py-2 text-right">{c.beat === null ? '—' : pct(c.beat)}</td>
+                  {TRAITS.map(([t]) => {
+                    const g = c.groups[t]
+                    return (
+                      <td key={t} className="py-2 pl-3 whitespace-nowrap"
+                        title={g ? `${g.label}: ${signed(g.excess)} a year against the market since 1963, ${signed(g.excess_recent)} since 2007; beat it in ${pct(g.won_10y)} of ten-year windows` : 'not sorted'}>
+                        {g ? (
+                          <>
+                            <span className={goodGroup(g) ? 'text-emerald-600 dark:text-emerald-400' : badGroup(g) ? 'text-red-600 dark:text-red-400' : ''}>{signed(g.excess)}</span>
+                            <div className="text-[10px] text-muted-foreground">{g.label}</div>
+                          </>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </td>
+                    )
+                  })}
                   <td className="py-2 text-right" title={c.return_measure}>
                     {pct(c.return_median, 1)}{c.financial && <span className="text-[10px] text-muted-foreground"> ROE</span>}
                   </td>

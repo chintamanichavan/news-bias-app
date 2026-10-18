@@ -76,8 +76,8 @@ def parse_french(text: str, block: int = 0) -> dict[str, dict[str, float]]:
     return out
 
 
-def french(name: str, block: int = 0) -> dict[str, dict[str, float]]:
-    """One table of a French file, the file kept on disk for CACHE_DAYS."""
+def french_text(name: str) -> str:
+    """A French library CSV as text, the file kept on disk for CACHE_DAYS."""
     path = CACHE / f"{name}.zip"
     if not path.exists() or time.time() - path.stat().st_mtime > CACHE_DAYS * 86400:
         r = httpx.get(FRENCH.format(name), timeout=60, follow_redirects=True)
@@ -85,7 +85,12 @@ def french(name: str, block: int = 0) -> dict[str, dict[str, float]]:
         CACHE.mkdir(parents=True, exist_ok=True)
         path.write_bytes(r.content)
     z = zipfile.ZipFile(io.BytesIO(path.read_bytes()))
-    return parse_french(z.read(z.namelist()[0]).decode("latin-1"), block)
+    return z.read(z.namelist()[0]).decode("latin-1")
+
+
+def french(name: str, block: int = 0) -> dict[str, dict[str, float]]:
+    """One table of a French file."""
+    return parse_french(french_text(name), block)
 
 
 def key(region: str, factor: str) -> str:
