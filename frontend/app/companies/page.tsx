@@ -36,6 +36,8 @@ interface Priced {
   price_date: string
   value_per_share: Record<'5' | '25' | '50' | '75' | '95', number>
   p_worth_more: number
+  roic_10y?: Record<'5' | '50' | '95', number>
+  sales_10y?: Record<'5' | '50' | '95', number>
 }
 
 interface Pricing {
@@ -222,7 +224,7 @@ export default function CompaniesPage() {
 
       {data && (
         <div className="news-card px-4 py-3 overflow-x-auto">
-          <table className="w-full text-[13px] tabular-nums min-w-[1300px]">
+          <table className="w-full text-[13px] tabular-nums min-w-[1500px]">
             <thead>
               <tr className="text-[11px] text-muted-foreground text-left">
                 <th className="font-normal pb-2">
@@ -232,6 +234,8 @@ export default function CompaniesPage() {
                 <th className="font-normal pb-2">Moat</th>
                 {head('implied', 'Implied return', 'What today\'s price earns a year, middle of 5,000 futures; the small figures are the 1-in-20 low and high')}
                 {head('worth', 'Price · value a share', 'Today\'s price, and what one share is worth in the middle of the 5,000 futures when each is valued at the market\'s implied return; the small figures are the 1-in-20 low and high. Sorts by value over price.')}
+                <th className="font-normal pb-2 pl-3 text-right whitespace-nowrap" title="Return on capital in the tenth fiscal year from now, middle of the futures; the small figures are the 1-in-20 low and high. Back-checked from 2014-16: the range held 89-92% of the time, and the middle beat assuming it stays where it is.">Return on capital in 10 yrs</th>
+                <th className="font-normal pb-2 pl-3 text-right whitespace-nowrap" title="Sales in ten fiscal years as a multiple of the last year's; the small figures are the 1-in-20 low and high. Back-checked from 2014-16: the range held 90-95% of the time, but the middle was no better than assuming 4% growth a year for everyone.">Sales in 10 yrs</th>
                 {head('evidence', 'Evidence', 'Good groups less bad groups, of the three below: −3 to +3')}
                 {TRAITS.map(([t, label, title]) => (
                   <th key={t} className="font-normal pb-2 text-left pl-3 whitespace-nowrap" title={title}>{label}</th>
@@ -276,6 +280,22 @@ export default function CompaniesPage() {
                           {money(c.priced.value_per_share['5'])} – {money(c.priced.value_per_share['95'])}
                         </div>
                       </span>
+                    ) : '—'}
+                  </td>
+                  <td className="py-2 pl-3 text-right whitespace-nowrap">
+                    {c.priced?.roic_10y ? (
+                      <>
+                        {pct(c.priced.roic_10y['50'])}
+                        <div className="text-[10px] text-muted-foreground">{pct(c.priced.roic_10y['5'])} – {pct(c.priced.roic_10y['95'])}</div>
+                      </>
+                    ) : '—'}
+                  </td>
+                  <td className="py-2 pl-3 text-right whitespace-nowrap">
+                    {c.priced?.sales_10y ? (
+                      <>
+                        {`${c.priced.sales_10y['50'].toFixed(1)}×`}
+                        <div className="text-[10px] text-muted-foreground">{c.priced.sales_10y['5'].toFixed(1)}× – {c.priced.sales_10y['95'].toFixed(1)}×</div>
+                      </>
                     ) : '—'}
                   </td>
                   <td className={`py-2 text-right font-semibold ${c.evidence > 0 ? 'text-emerald-600 dark:text-emerald-400' : c.evidence < 0 ? 'text-red-600 dark:text-red-400' : ''}`}>
@@ -327,7 +347,13 @@ export default function CompaniesPage() {
         2001). It is the return to the whole business, before leverage. Value a share: the same futures, each valued
         at the market&apos;s implied return, less net debt, over the diluted shares — at least nothing, as owners can
         lose no more than they put in (Merton 1974). It is the implied return in dollars, so it carries the same
-        warning: it has not predicted returns. Banks and insurers are not priced.
+        warning: it has not predicted returns. Banks and insurers are not priced. The ten-year columns come from
+        the same futures. Rebuilt as if it were 2014, 2015 and 2016 and checked against what happened ten fiscal
+        years later, their 1-in-20 ranges held 88&ndash;92% of the time for return on capital and 90&ndash;95% for
+        sales, after two changes tuned on 2014 alone: return on capital fades halfway to the company&apos;s own
+        past level and halfway to its industry&apos;s, and the yearly swings are twice those seen year to year.
+        The middle return on capital beat &ldquo;it stays where it is&rdquo;; the middle sales figure did no better
+        than 4% growth a year for everyone. Companies bought or failed in those years were not in the check.
         From SEC filings, each figure counted from the day it was first filed. Moat: return on capital above 15% in 8 of
         every 10 years is wide, above 10% in 6 of 10 is narrow (Mauboussin; Fama &amp; French 2000). Industry share
         counts S&amp;P 500 members only, so it is a share of filed peers, not of the whole market. Altman Z&apos;&apos;

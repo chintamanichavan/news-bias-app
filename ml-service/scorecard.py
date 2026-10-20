@@ -238,7 +238,7 @@ def annual(conn, as_of: str, tickers: list[str]) -> pd.DataFrame:
         SELECT symbol, tag, period_start, period_end, value FROM (
           SELECT *, ROW_NUMBER() OVER (
             PARTITION BY symbol, tag, period_start, period_end
-            ORDER BY filed_at, ingested_at) AS rn
+            ORDER BY filed_at, ingested_at, value, snapshot) AS rn
           FROM fundamentals
           WHERE filed_at <= CAST(? AS TIMESTAMP)
             AND ingested_at <= CAST(? AS TIMESTAMPTZ)
@@ -252,6 +252,11 @@ def annual(conn, as_of: str, tickers: list[str]) -> pd.DataFrame:
     raw = conn.execute(q, [as_of, "9999-12-31", *sorted(ALL_TAGS), *tickers]).df()
     if raw.empty:
         return pd.DataFrame()
+    # A fixed row order: ties above (one filing, two values) and two years
+    # ending on one day (52 and 53 weeks) otherwise came back in whatever
+    # order the database chose, and the pivot below keeps the last.
+    raw = raw.sort_values(["symbol", "tag", "period_end", "period_start", "value"],
+                          na_position="first", kind="stable").reset_index(drop=True)
     days = (raw["period_end"] - raw["period_start"]).dt.days
     years = raw[raw["tag"].isin(_flow_tags())]
     years = years[days[years.index].between(350, 380)]

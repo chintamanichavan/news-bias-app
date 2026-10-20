@@ -59,6 +59,10 @@ INDUSTRY_MIN = 5            # members needed for an industry's own median ROIC
 CLIP_ROIC = (-0.5, 1.0)     # one-off write-downs and tiny capital bases, held in
 CLIP_GROWTH = (-0.5, 1.0)
 GRADES = ("wide", "narrow", "none")
+# Set by backcheck.tune() on the 2014 start, judged on 2016 (backcheck.py).
+OWN_WEIGHT = 0.5            # how much of the fade target is the company's own past ROIC
+NOISE_SCALE = {"roic": 2.0, "growth": 2.0}   # yearly noise, widened to what ten years showed
+OWN_MIN_YEARS = 3
 
 
 # ── Calibration: how fast advantages fade, measured ─────────────────────────
@@ -312,6 +316,28 @@ def own_noise(card: dict, grade: dict) -> float:
     return float(1.4826 * np.median(np.abs(d - np.median(d))) / np.sqrt(2))
 
 
+def own_level(card: dict) -> float | None:
+    """The company's own ROIC level: the median of its years on record."""
+    r = [v for v in card["return_by_year"] if v is not None]
+    return float(np.median(np.clip(r, *CLIP_ROIC))) if len(r) >= OWN_MIN_YEARS else None
+
+
+def fade_for(card: dict, grade: dict, scale: dict | None = None) -> dict:
+    """The grade's fades with the company's own ROIC noise blended in,
+    both noises widened by `scale`."""
+    scale = scale or NOISE_SCALE
+    return {**grade, "roic_noise": scale["roic"] * (grade["roic_noise"] + own_noise(card, grade)) / 2,
+            "growth_noise": scale["growth"] * grade["growth_noise"]}
+
+
+def target_for(card: dict, industry: float, weight: float | None = None) -> float:
+    """Where ROIC fades to: the industry's median, blended with the
+    company's own level by `weight`."""
+    weight = OWN_WEIGHT if weight is None else weight
+    own = own_level(card)
+    return industry if own is None else weight * own + (1 - weight) * industry
+
+
 def industry_targets(members: dict[str, dict], cards: dict[str, dict]) -> dict[str, float]:
     """Each member's fade target: the median ROIC of members in its two-digit
     SIC industry, or of all members where the industry has too few."""
@@ -346,15 +372,15 @@ def price(as_of: str, cal: dict | None = None) -> dict:
     priced, draws = [], {}
     for t, m in members.items():
         grade = cal["grades"][cards[t]["moat"] or "none"]
-        fade = {**grade, "roic_noise": (grade["roic_noise"] + own_noise(cards[t], grade)) / 2}
+        fade = fade_for(cards[t], grade)
         r = simulate(m["capital"], m["roic"], m["growth"], m["ev"], fade,
-                     target[t], np.random.default_rng(SEED))
+                     target_for(cards[t], target[t]), np.random.default_rng(SEED))
         draws[t] = r
         priced.append({"ticker": t, "name": cards[t]["name"], "moat": cards[t]["moat"],
                        "industry": cards[t]["industry"],
                        "price": mv[t]["price"], "price_date": mv[t]["date"],
                        "market_value": mv[t]["market_value"], "enterprise_value": m["ev"],
-                       "roic": m["roic"], "roic_target": target[t], "growth": m["growth"],
+                       "roic": m["roic"], "roic_target": target_for(cards[t], target[t]), "growth": m["growth"],
                        "fiscal_year_end": m["fiscal_year_end"],
                        "percentiles": {str(p): float(np.percentile(r, p)) for p in (5, 25, 50, 75, 95)},
                        "p_loss": float((r < 0).mean())})
@@ -366,10 +392,17 @@ def price(as_of: str, cal: dict | None = None) -> dict:
         # The same futures again (same seed), each valued at the market's rate.
         t, m = p["ticker"], members[p["ticker"]]
         grade = cal["grades"][cards[t]["moat"] or "none"]
-        fade = {**grade, "roic_noise": (grade["roic_noise"] + own_noise(cards[t], grade)) / 2}
-        v = per_share(*futures(m["capital"], m["roic"], m["growth"], fade, target[t],
+        fade = fade_for(cards[t], grade)
+        v = per_share(*futures(m["capital"], m["roic"], m["growth"], fade, target_for(cards[t], target[t]),
                                np.random.default_rng(SEED)), market, m["net_debt"], mv[t]["shares"])
         p["value_per_share"] = {str(q): float(np.percentile(v, q)) for q in (5, 25, 50, 75, 95)}
+        # The ten-year ranges the back-check judged (backcheck.py): sales as
+        # a multiple of the last fiscal year's, and ROIC in year 10.
+        roic, growth = trajectories(m["roic"], m["growth"], fade, target_for(cards[t], target[t]),
+                                    np.random.default_rng(SEED))
+        sales = np.prod(1 + growth, axis=1)
+        p["sales_10y"] = {str(q): float(np.percentile(sales, q)) for q in (5, 50, 95)}
+        p["roic_10y"] = {str(q): float(np.percentile(roic[:, YEARS - 1], q)) for q in (5, 50, 95)}
         p["p_worth_more"] = float((v > p["price"]).mean())
     return {"as_of": as_of, "market_return": market, "priced": len(priced),
             "long_run_growth": LONG_RUN_GROWTH, "calibration": cal,

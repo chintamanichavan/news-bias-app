@@ -37,6 +37,20 @@ Measured 2026-10-19, starts 2014, 2015, 2016 (227-244 companies each):
   0.39-0.50): the fade toward the industry median is too strong, as many
   companies hold a level of their own.
 Not fit to show as forecasts until both are fixed and checked again.
+
+The fix, tuned on 2014 alone (tune()), judged on 2015 and 2016 (which
+share most of their years with it, so not fully independent): ROIC fades
+halfway to the company's own past level (pricer.OWN_WEIGHT 0.5) and both
+yearly noises double (NOISE_SCALE 2). Predicted weight 0.5, scales 1.7 and
+1.5, 2016 coverage 85-92%. Measured 2026-10-19:
+- 90% ranges held 88-92% (ROIC) and 90-95% (sales); 50% ranges 58-59% and
+  58-68%, a little wide;
+- ROIC error 5.3-5.6 points against 5.9-6.4 for "it stays"; ranking 0.54-0.56
+  against 0.50-0.59 (ahead in 2014 and 2016, behind in 2015);
+- sales: the middle got no better (0.30-0.33 against 0.28-0.34 for "everyone
+  4%"); the range is honest, the middle has no skill.
+Two repeatability bugs found on the way and fixed: scorecard.annual() and
+pricer.market_values() broke ties in whatever order DuckDB returned rows.
 """
 
 import numpy as np
@@ -52,9 +66,10 @@ HORIZON = 10
 NEAR = pd.Timedelta(days=75)         # a fiscal year end counts as "ten years on" within this
 
 
-def forecasts(as_of: str) -> pd.DataFrame:
-    """One row per member priced on `as_of`: its base year and the
-    percentiles of sales multiple and year-10 return on capital."""
+def setup(as_of: str) -> dict:
+    """What pricing on `as_of` needs, read once: the fades fitted then, the
+    cards, each member's starting state, its industry median and its past
+    five-year sales growth."""
     cal = pricer.calibrate(as_of, save=False)
     cards = {c["ticker"]: c for c in scorecard.cards(as_of)}
     tickers = [t for t, c in cards.items() if not c["financial"]]
@@ -68,17 +83,26 @@ def forecasts(as_of: str) -> pd.DataFrame:
             rev = y.set_index("year_end")["revenue"].dropna()
             five = rev[rev.index <= rev.index[-1] - pd.DateOffset(years=5) + NEAR]
             past[t] = (rev.iloc[-1] / five.iloc[-1]) ** (1 / 5) - 1 if len(five) and five.iloc[-1] > 0 else np.nan
-    target = pricer.industry_targets(members, cards)
+    return {"as_of": as_of, "cal": cal, "cards": cards, "members": members, "past": past,
+            "industry": pricer.industry_targets(members, cards)}
+
+
+def forecasts(st: dict, weight: float | None = None, scale: dict | None = None) -> pd.DataFrame:
+    """One row per member: its base year and the percentiles of sales
+    multiple and year-10 return on capital, at the pricer's settings unless
+    `weight` and `scale` are given."""
     rows = []
-    for t, m in members.items():
-        grade = cal["grades"][cards[t]["moat"] or "none"]
-        fade = {**grade, "roic_noise": (grade["roic_noise"] + pricer.own_noise(cards[t], grade)) / 2}
-        roic, growth = pricer.trajectories(m["roic"], m["growth"], fade, target[t],
+    for t, m in st["members"].items():
+        card = st["cards"][t]
+        grade = st["cal"]["grades"][card["moat"] or "none"]
+        target = pricer.target_for(card, st["industry"][t], weight)
+        roic, growth = pricer.trajectories(m["roic"], m["growth"], pricer.fade_for(card, grade, scale), target,
                                            np.random.default_rng(pricer.SEED))
         sales = np.prod(1 + growth[:, :HORIZON], axis=1)
         r10 = roic[:, HORIZON - 1]
-        row = {"as_of": as_of, "ticker": t, "moat": cards[t]["moat"], "base_end": m["fiscal_year_end"],
-               "revenue": m["revenue"], "roic0": m["roic"], "target": target[t], "past_growth": past[t]}
+        row = {"as_of": st["as_of"], "ticker": t, "moat": card["moat"], "base_end": m["fiscal_year_end"],
+               "revenue": m["revenue"], "roic0": m["roic"], "target": st["industry"][t],
+               "past_growth": st["past"][t]}
         for q in (5, 25, 50, 75, 95):
             row[f"sales_{q}"], row[f"roic_{q}"] = np.percentile(sales, q), np.percentile(r10, q)
         rows.append(row)
@@ -86,20 +110,22 @@ def forecasts(as_of: str) -> pd.DataFrame:
 
 
 def outcomes(f: pd.DataFrame) -> pd.DataFrame:
-    """The forecasts with what happened ten fiscal years on, from the
-    filings known today."""
+    """What happened ten fiscal years on, from the filings known today:
+    ticker -> (sales multiple, return on capital)."""
     years = scorecard.annual(pit.connect(), pd.Timestamp.today().date().isoformat(), sorted(f["ticker"].unique()))
     years = years.sort_values(["ticker", "year_end"])
     years["roic"] = scorecard.roic(years).clip(*pricer.CLIP_ROIC)
-    real = []
+    real = {}
     for _, r in f.iterrows():
         y = years[years["ticker"] == r["ticker"]]
         when = pd.Timestamp(r["base_end"]) + pd.DateOffset(years=HORIZON)
         hit = y[(y["year_end"] - when).abs() <= NEAR]
-        real.append((hit["revenue"].iloc[-1] / r["revenue"], hit["roic"].iloc[-1]) if len(hit) else (np.nan, np.nan))
-    f = f.copy()
-    f["real_sales"], f["real_roic"] = zip(*real)
-    return f
+        real[r["ticker"]] = (hit["revenue"].iloc[-1] / r["revenue"], hit["roic"].iloc[-1]) if len(hit) else (np.nan, np.nan)
+    return pd.DataFrame.from_dict(real, orient="index", columns=["real_sales", "real_roic"])
+
+
+def joined(f: pd.DataFrame, real: pd.DataFrame) -> pd.DataFrame:
+    return f.join(real, on="ticker").dropna(subset=["real_sales", "real_roic"], how="all")
 
 
 def score(d: pd.DataFrame) -> dict:
@@ -126,14 +152,35 @@ def score(d: pd.DataFrame) -> dict:
     }
 
 
-def run() -> dict:
+WEIGHTS = (0.0, 0.25, 0.5, 0.75, 1.0)
+SCALES = (1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
+TUNE, JUDGE = "2014-06-30", "2016-06-30"
+
+
+def tune() -> dict:
+    """On the 2014 start only: the own-level weight with the smallest
+    year-10 ROIC error, then each noise scale whose 90% range comes
+    closest to holding 90% of the time."""
+    st = setup(TUNE)
+    real = outcomes(forecasts(st))
+    err = {w: score(joined(forecasts(st, w), real))["roic"]["error_model"] for w in WEIGHTS}
+    w = min(err, key=err.get)
+    hold = {k: score(joined(forecasts(st, w, {"roic": k, "growth": k}), real)) for k in SCALES}
+    k_roic = min(SCALES, key=lambda k: abs(hold[k]["roic"]["inside_90"] - 0.9))
+    k_growth = min(SCALES, key=lambda k: abs(hold[k]["sales"]["inside_90"] - 0.9))
+    return {"weight": w, "scale": {"roic": k_roic, "growth": k_growth}, "roic_error_by_weight": err,
+            "inside_90_by_scale": {k: (v["roic"]["inside_90"], v["sales"]["inside_90"]) for k, v in hold.items()}}
+
+
+def run(weight: float | None = None, scale: dict | None = None) -> dict:
+    """Every start at the given settings (default: the pricer's)."""
     out = {}
     for day in STARTS:
-        f = forecasts(day)
-        d = outcomes(f)
-        seen = d.dropna(subset=["real_sales", "real_roic"], how="all")
-        out[day] = {"forecast": int(len(f)), "dropped_no_year_10": int(len(f) - len(seen)), **score(seen)}
-    monitor.log_experiment("backcheck:10y", {"starts": list(STARTS)},
+        st = setup(day)
+        f = forecasts(st, weight, scale)
+        d = joined(f, outcomes(f))
+        out[day] = {"forecast": int(len(f)), "dropped_no_year_10": int(len(f) - len(d)), **score(d)}
+    monitor.log_experiment("backcheck:10y", {"starts": list(STARTS), "weight": weight, "scale": scale},
                            {d: {"sales_90": v["sales"]["inside_90"], "roic_90": v["roic"]["inside_90"]} for d, v in out.items()})
     return out
 
