@@ -291,31 +291,32 @@ def survivor_gap(df: pd.DataFrame, h: int) -> dict | None:
     return {"gap_a_year": float(np.mean([g["gap"] for g in gaps])), "by_date": gaps}
 
 
-def evaluate(df: pd.DataFrame, traits: tuple, key: str) -> tuple[list[dict], list[np.ndarray]]:
-    """Fit on the start dates whose TRAIN_H years had ended, rank the next
-    date, and score the ranking on every horizon. Picks are also set against
-    companies of their own size (tenths of the day's sizes), as size alone
-    carries most of the survivor bias."""
+def evaluate(df: pd.DataFrame, traits: tuple, key: str, goal: float = GOAL,
+             horizons: tuple = HORIZONS, train_h: int = TRAIN_H) -> tuple[list[dict], list[np.ndarray]]:
+    """Fit on the start dates whose `train_h` years had ended, rank the next
+    date, and score the ranking on every horizon: a win is `goal` a year or
+    more. Picks are also set against companies of their own size (tenths of
+    the day's sizes), as size alone carries most of the survivor bias."""
     df = df.copy()
-    for h in HORIZONS:
-        df[f"win{h}"] = df[f"r{h}"] >= GOAL
+    for h in horizons:
+        df[f"win{h}"] = df[f"r{h}"] >= goal
     df["size_tenth"] = df.groupby("date")["log_size"].rank(pct=True).mul(10).apply(np.ceil).clip(1, 10)
     dates = sorted(df["date"].unique())
     X = {d: ranks(df[df["date"] == d], traits) for d in dates}
     rows, weights = [], []
     for d in dates:
-        known = [p for p in dates if pd.Timestamp(p) + pd.DateOffset(years=TRAIN_H) <= pd.Timestamp(d)]
-        train = df[df["date"].isin(known) & df[f"r{TRAIN_H}"].notna()]
-        if train[f"win{TRAIN_H}"].sum() < 10:
+        known = [p for p in dates if pd.Timestamp(p) + pd.DateOffset(years=train_h) <= pd.Timestamp(d)]
+        train = df[df["date"].isin(known) & df[f"r{train_h}"].notna()]
+        if train[f"win{train_h}"].sum() < 10:
             continue
-        Xt = np.vstack([X[p][(df[df["date"] == p][f"r{TRAIN_H}"].notna()).to_numpy()] for p in known])
-        w = fit_logistic(Xt, train[f"win{TRAIN_H}"].to_numpy().astype(float))
+        Xt = np.vstack([X[p][(df[df["date"] == p][f"r{train_h}"].notna()).to_numpy()] for p in known])
+        w = fit_logistic(Xt, train[f"win{train_h}"].to_numpy().astype(float))
         weights.append(w)
         day = df[df["date"] == d].copy()
         day["p"] = predict(w, X[d])
         day = day.sort_values("p", ascending=False)
         row = {"date": d, "companies": len(day), "top_names": day[key].head(10).tolist()}
-        for h in HORIZONS:
+        for h in horizons:
             done = day[day[f"r{h}"].notna()]
             if len(done) < 50:
                 continue
