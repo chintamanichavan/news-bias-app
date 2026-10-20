@@ -91,3 +91,13 @@ def test_a_share_is_worth_nothing_below_zero():
     v = pricer.per_share(cash, np.array([0.0]), np.array([0.1]), 0.06, 150.0, 10.0)
     assert v[0] == 0
     assert pricer.per_share(cash, np.array([0.0]), np.array([0.1]), 0.06, 40.0, 10.0)[0] == pytest.approx(6.0)
+
+
+def test_trajectories_feed_futures_exactly():
+    import numpy as np
+    fade = {"roic_persistence": 0.8, "roic_noise": 0.05, "growth_persistence": 0.3, "growth_noise": 0.08}
+    roic, growth = pricer.trajectories(0.25, 0.15, fade, 0.1, np.random.default_rng(1), paths=200)
+    assert roic.shape == (200, pricer.YEARS + 1) and growth.shape == (200, pricer.YEARS)
+    cash, nopat, roic11 = pricer.futures(100.0, 0.25, 0.15, fade, 0.1, np.random.default_rng(1), paths=200)
+    assert np.array_equal(roic11, roic[:, -1])
+    assert np.allclose(cash[:, 0], 100.0 * (roic[:, 0] - growth[:, 0]))

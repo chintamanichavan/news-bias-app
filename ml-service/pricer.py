@@ -127,26 +127,35 @@ def terminal(nopat: np.ndarray, roic: np.ndarray, rate: np.ndarray) -> np.ndarra
     return np.where(nopat <= 0, 0.0, np.where(roic > rate, grows, nopat / rate))
 
 
-def futures(capital: float, roic0: float, growth0: float, fade: dict,
-            roic_mean: float, rng, paths: int = PATHS) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Simulated futures: each one's yearly cash, and the NOPAT and ROIC of
-    year 11 that set its terminal value."""
+def trajectories(roic0: float, growth0: float, fade: dict, roic_mean: float, rng,
+                 paths: int = PATHS) -> tuple[np.ndarray, np.ndarray]:
+    """Simulated futures of the two drivers: ROIC for years 1..YEARS+1 and
+    sales growth for years 1..YEARS, one row per future."""
     rr, rs = fade["roic_persistence"], fade["roic_noise"]
     gr, gs = fade["growth_persistence"], fade["growth_noise"]
     r_gap = np.full(paths, np.clip(roic0, *CLIP_ROIC) - roic_mean)
     g_gap = np.full(paths, np.clip(growth0, *CLIP_GROWTH) - LONG_RUN_GROWTH)
-    ic = np.full(paths, capital)
-    cash = np.empty((paths, YEARS))
+    roic, growth = np.empty((paths, YEARS + 1)), np.empty((paths, YEARS))
     for t in range(YEARS + 1):
         r_gap = rr * r_gap + rs * rng.standard_normal(paths)
-        g_gap = gr * g_gap + gs * rng.standard_normal(paths)
-        roic = np.clip(roic_mean + r_gap, *CLIP_ROIC)
-        if t == YEARS:
-            break                           # year 11 sets the terminal value
-        g = np.clip(LONG_RUN_GROWTH + g_gap, *CLIP_GROWTH)
-        cash[:, t] = ic * (roic - g)        # NOPAT less the capital growth needs
-        ic = ic * (1 + g)
-    return cash, ic * roic, roic
+        g_gap = gr * g_gap + gs * rng.standard_normal(paths)    # drawn in year 11 too, unused
+        roic[:, t] = np.clip(roic_mean + r_gap, *CLIP_ROIC)
+        if t < YEARS:
+            growth[:, t] = np.clip(LONG_RUN_GROWTH + g_gap, *CLIP_GROWTH)
+    return roic, growth
+
+
+def futures(capital: float, roic0: float, growth0: float, fade: dict,
+            roic_mean: float, rng, paths: int = PATHS) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Simulated futures: each one's yearly cash, and the NOPAT and ROIC of
+    year 11 that set its terminal value."""
+    roic, growth = trajectories(roic0, growth0, fade, roic_mean, rng, paths)
+    ic = np.full(paths, capital)
+    cash = np.empty((paths, YEARS))
+    for t in range(YEARS):
+        cash[:, t] = ic * (roic[:, t] - growth[:, t])    # NOPAT less the capital growth needs
+        ic = ic * (1 + growth[:, t])
+    return cash, ic * roic[:, YEARS], roic[:, YEARS]
 
 
 def simulate(capital: float, roic0: float, growth0: float, ev: float, fade: dict,
@@ -233,7 +242,7 @@ def market_values(as_of: str, tickers: list[str]) -> dict[str, dict]:
     rows = conn.execute(f"""
         SELECT symbol, tag, period_start, period_end, value, filed_at FROM (
           SELECT *, ROW_NUMBER() OVER (
-            PARTITION BY symbol, tag, period_start, period_end ORDER BY filed_at) rn
+            PARTITION BY symbol, tag, period_start, period_end ORDER BY filed_at, value) rn
           FROM fundamentals WHERE symbol IN ({marks})
             AND tag IN ({','.join('?' * len(tags))})
             AND filed_at <= CAST(? AS TIMESTAMP)
@@ -244,7 +253,12 @@ def market_values(as_of: str, tickers: list[str]) -> dict[str, dict]:
         counts = r[r["tag"].isin(scorecard.TAGS["shares"])]
         if counts.empty:
             continue
-        latest = counts.sort_values(["period_end", "filed_at"]).iloc[-1]
+        # Ties (two tags, or a quarter and a year ending the same day, filed
+        # together) came back in whatever order the database chose, so a
+        # share count could flip between runs: break them by the tag's
+        # preference, then the shorter, latest period.
+        pref = counts["tag"].map(lambda t: -scorecard.TAGS["shares"].index(t))
+        latest = counts.assign(pref=pref).sort_values(["period_end", "filed_at", "pref", "period_start"]).iloc[-1]
         same = r[(r["period_start"] == latest["period_start"]) & (r["period_end"] == latest["period_end"])]
         sh[sym] = {"value": checked_shares(latest["value"], same), "filed_at": latest["filed_at"]}
     splits = conn.execute(f"""
