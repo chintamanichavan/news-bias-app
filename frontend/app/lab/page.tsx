@@ -5,6 +5,7 @@
 // exists. Search the registry or type any Yahoo-valid symbol raw.
 
 import { useEffect, useRef, useState } from 'react'
+import ArthaLoader from '@/components/ArthaLoader'
 import { ChartLegend, TimeSeriesChart } from '@/components/quantviz'
 import { useResource } from '@/lib/useResource'
 
@@ -147,7 +148,7 @@ export default function LabPage() {
         )}
       </div>
 
-      {loading && !d && <div className="mt-8 skeleton h-96 rounded-2xl" />}
+      {loading && !d && <ArthaLoader className="mt-8 h-96" />}
       {d?.error && <p className="mt-8 text-sm text-muted-foreground">{d.error}</p>}
       {error && !d && <p className="mt-8 text-sm text-muted-foreground">Could not load {symbol}: {error}</p>}
       {d?.resolved_from && !d.error && (

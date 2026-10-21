@@ -10,6 +10,7 @@ project's premise.
 - build_crossword:  daily mini-crossword from headlines
 """
 
+import hashlib
 import random
 import re
 
@@ -57,17 +58,34 @@ _TOPIC_PATTERNS = {
 }
 
 
+# Ranked topics per text, keyed by a digest of the text. An article's tags
+# never change, yet the simulation and the signal engine ask for all of them
+# again on every run: 24 regex scans per article, 9 s over 67,000 articles.
+_ranked_topics: dict[bytes, tuple[str, ...]] = {}
+_RANKED_TOPICS_MAX = 500_000
+
+
 def tag_topics(title: str, body: str | None = None, max_topics: int = 3) -> list[str]:
     """Rule-based topic tags. Title hits count double — headlines are the signal."""
     title = title or ""
     head = (body or "")[:600]
+    key = hashlib.blake2b(f"{title}\0{head}".encode(), digest_size=16).digest()
+    ranked = _ranked_topics.get(key)
+    if ranked is None:
+        if len(_ranked_topics) >= _RANKED_TOPICS_MAX:
+            _ranked_topics.clear()
+        ranked = _ranked_topics[key] = _rank_topics(title, head)
+    return list(ranked[:max_topics])
+
+
+def _rank_topics(title: str, head: str) -> tuple[str, ...]:
     scores: list[tuple[int, str]] = []
     for topic, pat in _TOPIC_PATTERNS.items():
         n = 2 * len(pat.findall(title)) + len(pat.findall(head))
         if n:
             scores.append((n, topic))
     scores.sort(reverse=True)
-    return [t for _, t in scores[:max_topics]]
+    return tuple(t for _, t in scores)
 
 
 # ── Key points ──────────────────────────────────────────────────────────────

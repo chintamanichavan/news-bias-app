@@ -1,3 +1,5 @@
+import ArthaLoader from '@/components/ArthaLoader'
+
 /**
  * Loading placeholders shared by every route's `loading.tsx`.
  *
@@ -19,16 +21,6 @@ export function SkeletonHeader() {
       <SkeletonBlock className="h-4 w-full max-w-prose mt-4" />
       <SkeletonBlock className="h-4 w-2/3 max-w-prose mt-2" />
     </header>
-  )
-}
-
-export function SkeletonCards({ count = 4, className = 'h-44' }: { count?: number; className?: string }) {
-  return (
-    <div className="space-y-4">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className={`news-card ${className} skeleton`} />
-      ))}
-    </div>
   )
 }
 
@@ -67,18 +59,7 @@ export function SkeletonSectionHead() {
   )
 }
 
-/** Generic page shell: masthead + a stack of cards. */
-export default function PageSkeleton({
-  cards = 5,
-  cardHeight = 'h-44',
-}: {
-  cards?: number
-  cardHeight?: string
-}) {
-  return (
-    <div className="px-4 sm:px-6 lg:px-10 xl:px-14 py-8">
-      <SkeletonHeader />
-      <SkeletonCards count={cards} className={cardHeight} />
-    </div>
-  )
+/** A whole page that is still loading: the Artha mark, mid-screen. */
+export default function PageSkeleton() {
+  return <ArthaLoader className="min-h-[60vh]" />
 }

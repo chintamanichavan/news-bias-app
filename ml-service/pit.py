@@ -15,6 +15,7 @@ prices_eod    symbol, date, open, high, low, close, volume, source
 fundamentals  cik, symbol, tag, unit, period_end, value, filed_at
 macro         series, date, value
 news_tone     date, theme, tone, articles
+corporate_actions  symbol, date, kind (split | dividend), value, source
 
 Each parquet file lives at data/pit/<table>/snapshot=<utc-iso>/part.parquet;
 `ingested_at` is stamped into every row from the snapshot id.
@@ -33,7 +34,7 @@ import contracts
 PIT_ROOT = Path(os.environ.get("ARTHA_PIT_ROOT",
                                Path(__file__).parent / "data" / "pit"))
 
-TABLES = ("prices_eod", "fundamentals", "macro", "news_tone")
+TABLES = ("prices_eod", "fundamentals", "macro", "news_tone", "corporate_actions")
 
 
 def _utcnow_id() -> str:
@@ -129,4 +130,24 @@ def fundamentals_asof(conn, as_of: str, tag: str | None = None) -> pd.DataFrame:
         ) WHERE rn = 1
         """,
         params,
+    ).df()
+
+
+def corporate_actions(conn, kind: str) -> pd.DataFrame:
+    """Every split or dividend on record, latest ingest of each. `value` is
+    new shares per old share for a split, dollars per share (in today's share
+    units) for a dividend. Not an as-of read: a split is a change of units,
+    and prices are stored already adjusted for all of them."""
+    if not list((PIT_ROOT / "corporate_actions").glob("snapshot=*/*.parquet")):
+        return pd.DataFrame({"symbol": [], "date": [], "value": []})
+    return conn.execute(
+        """
+        SELECT symbol, date, value FROM (
+          SELECT *, ROW_NUMBER() OVER (
+            PARTITION BY symbol, date, kind ORDER BY ingested_at DESC) AS rn
+          FROM corporate_actions WHERE kind = ?
+        ) WHERE rn = 1
+        ORDER BY symbol, date
+        """,
+        [kind],
     ).df()

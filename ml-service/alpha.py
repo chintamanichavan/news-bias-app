@@ -18,6 +18,7 @@ days; until then that section reports its own insufficiency rather than a
 number. Every run is logged to the experiments table.
 """
 
+import asyncio
 import json
 from datetime import datetime, timezone
 
@@ -61,7 +62,7 @@ def daily_symbol_signals(days: int) -> dict[str, dict[str, float]]:
 
 
 async def run(days: int = 120) -> dict:
-    panel = daily_symbol_signals(days)
+    panel = await asyncio.to_thread(daily_symbol_signals, days)
     covered = sorted(panel, key=lambda s: -len(panel[s]))
     symbols = [s for s in covered if len(panel[s]) >= MIN_SIGNAL_DAYS][:MAX_SYMBOLS]
     if len(symbols) < 4:

@@ -1,7 +1,6 @@
 import asyncio
 import time
 from contextlib import asynccontextmanager
-from typing import Awaitable, Callable
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
@@ -12,6 +11,7 @@ import db
 import evidence
 import forecast
 import beyond
+import cache
 import lab
 import monitor
 import odds
@@ -19,20 +19,26 @@ import pit
 import pricer
 import proof
 import portfolio
+import replay
 import scorecard
 import smallcaps
+import timing
 import tracker
 import universe
+
+results = cache.ResultCache()
 
 
 async def _background_startup():
     # The securities registry backs the Lab's search and the nightly ingest's
-    # symbol list.
+    # symbol list; then keep the slow results warm.
     try:
         await asyncio.to_thread(universe.seed)
         universe.load()
     except Exception as e:
         print(f"[startup] universe seed failed: {e!r}")
+    _keep_research_warm()
+    asyncio.create_task(results.warm_forever())
 
 
 @asynccontextmanager
@@ -59,6 +65,19 @@ def health():
     return {"status": "ok"}
 
 
+HOUR, DAY = 3600, 86_400
+# A price shown as current must not be older than this, even while a refresh
+# is on its way.
+QUOTES_STALE_OK = 600
+
+
+def _keep_research_warm():
+    """The Portfolio page's quality screen keeps its own hourly copy."""
+    results.keep_warm("portfolio-screen", HOUR, lambda: asyncio.to_thread(portfolio.refresh_screen))
+    for name in COMPANIES_TODAY:
+        results.keep_warm(f"{name}:today", HOUR, _today_compute(name))
+
+
 @app.get("/lab/search")
 def lab_search(q: str = Query(..., min_length=1, max_length=40)):
     """Registry search for the Lab; any Yahoo-valid symbol also works raw."""
@@ -69,34 +88,52 @@ def lab_search(q: str = Query(..., min_length=1, max_length=40)):
 async def lab_dossier(symbol: str, days: int = Query(500, ge=60, le=1300)):
     """The full quantitative dossier for one security — any instrument class."""
     sym = symbol.upper()[:20]
-    key = f"lab:{sym}:{days}"
-    cached = _data_cache.get(key)
-    if cached and time.time() - cached[0] < 900:
-        return cached[1]
-    out = await lab.dossier(sym, days)
-    _data_cache[key] = (time.time(), out)
-    return out
+    return await results.get(f"lab:{sym}:{days}", 900, 6 * HOUR, lambda: lab.dossier(sym, days))
 
 
 @app.get("/portfolio")
 async def portfolio_report():
     """The merged portfolio-research workspace: watchlist joined with live
     quotes, target allocation, decision log."""
-    cached = _data_cache.get("portfolio")
-    if cached and time.time() - cached[0] < 300:
-        return cached[1]
-    tickers = [w["ticker"] for w in portfolio.watchlist()]
-    quotes: dict[str, float] = {}
-    if tickers:
-        try:
-            async with httpx.AsyncClient(timeout=15, headers=YAHOO_HEADERS) as client:
-                qs = await _fetch_quotes(client, tickers)
-            quotes = {q["symbol"]: float(q["price"]) for q in qs if q.get("price") is not None}
-        except Exception:
-            pass
-    out = portfolio.report(quotes)
-    _data_cache["portfolio"] = (time.time(), out)
-    return out
+    async def build() -> dict:
+        tickers = [w["ticker"] for w in portfolio.watchlist()]
+        quotes: dict[str, float] = {}
+        if tickers:
+            try:
+                async with httpx.AsyncClient(timeout=15, headers=YAHOO_HEADERS) as client:
+                    qs = await _fetch_quotes(client, tickers)
+                quotes = {q["symbol"]: float(q["price"]) for q in qs if q.get("price") is not None}
+            except Exception:
+                pass
+        return await asyncio.to_thread(portfolio.report, quotes)
+
+    return await results.get("portfolio", 300, QUOTES_STALE_OK, build)
+
+
+@app.get("/replay")
+def replay_latest():
+    """The last historical replay of the return rule. Served from the saved
+    result: a replay is a trial and is logged, so only a deliberate run
+    (POST /replay/run) makes a new one."""
+    return replay.latest() or {"error": "the replay has not been run yet"}
+
+
+@app.post("/replay/run")
+async def replay_run():
+    return await asyncio.to_thread(replay.run)
+
+
+@app.get("/timing")
+def timing_latest():
+    """The last run of the timing test: investing every month against waiting
+    for a fall. Saved result; POST /timing/run makes a new one."""
+    return timing.latest() or {"error": "the timing test has not been run yet"}
+
+
+@app.post("/timing/run")
+async def timing_run():
+    await timing.ingest_index()
+    return await asyncio.to_thread(timing.run)
 
 
 @app.get("/pit/status")
@@ -139,41 +176,55 @@ def odds_what_if(body: WhatIf):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+def _scorecard_on(day: str) -> dict:
+    return {"as_of": day, "cards": scorecard.cards(day)}
+
+
+def _evidence_on(day: str) -> dict:
+    tickers = [c["ticker"] for c in scorecard.cards(day)]
+    return {"as_of": day, "groups": evidence.group_record(), "companies": evidence.company_groups(day, tickers)}
+
+
+# The Companies page asks for these three at once; cold they take 7, 17 and
+# 8 seconds (measured 2026-10-19). Today's copies are kept warm so no visitor
+# waits; a copy up to a day old is served while the next one is built.
+COMPANIES_TODAY = {"scorecard": _scorecard_on, "pricer": pricer.price, "evidence-companies": _evidence_on}
+
+
+def _today_compute(name: str):
+    return lambda: asyncio.to_thread(COMPANIES_TODAY[name], time.strftime("%Y-%m-%d"))
+
+
+async def _companies_data(name: str, as_of: str | None):
+    """Today's copy from the warm cache; another day's from the hourly one."""
+    try:
+        if as_of is None:
+            return await results.get(f"{name}:today", HOUR, 23 * HOUR, _today_compute(name))
+        key = f"{name}:{as_of}"
+        cached = _data_cache.get(key)
+        if cached and time.time() - cached[0] < 3600:
+            return cached[1]
+        out = await asyncio.to_thread(COMPANIES_TODAY[name], as_of)
+        _data_cache[key] = (time.time(), out)
+        return out
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.get("/scorecard")
-def scorecard_cards(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
+async def scorecard_cards(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
     """Every S&P 500 member's moat, industry share, growth engine, fragility
     and share discipline, read from its filings as known on `as_of`
-    (default today). Rebuilt at most hourly."""
-    day = as_of or time.strftime("%Y-%m-%d")
-    key = f"scorecard:{day}"
-    cached = _data_cache.get(key)
-    if cached and time.time() - cached[0] < 3600:
-        return cached[1]
-    try:
-        out = {"as_of": day, "cards": scorecard.cards(day)}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    _data_cache[key] = (time.time(), out)
-    return out
+    (default today)."""
+    return await _companies_data("scorecard", as_of)
 
 
 @app.get("/pricer")
-def pricer_prices(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
+async def pricer_prices(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
     """Every non-financial S&P 500 member priced on `as_of` (default today):
     the range of its implied return over 5,000 futures of its sales growth
-    and return on capital, against the market's value-weighted figure.
-    Rebuilt at most hourly."""
-    day = as_of or time.strftime("%Y-%m-%d")
-    key = f"pricer:{day}"
-    cached = _data_cache.get(key)
-    if cached and time.time() - cached[0] < 3600:
-        return cached[1]
-    try:
-        out = pricer.price(day)
-    except (ValueError, FileNotFoundError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    _data_cache[key] = (time.time(), out)
-    return out
+    and return on capital, against the market's value-weighted figure."""
+    return await _companies_data("pricer", as_of)
 
 
 @app.get("/proof")
@@ -217,6 +268,18 @@ def evidence_result():
     return out
 
 
+@app.get("/tracker")
+def tracker_record():
+    """The live record: the rule lists written down each month and how they
+    have done since, against SPY and every member. Rebuilt at most hourly."""
+    cached = _data_cache.get("tracker")
+    if cached and time.time() - cached[0] < 3600:
+        return cached[1]
+    out = tracker.record()
+    _data_cache["tracker"] = (time.time(), out)
+    return out
+
+
 @app.get("/smallcaps")
 def smallcaps_latest():
     """The latest monthly lose-less screen of small companies (smallcaps.py)."""
@@ -239,35 +302,11 @@ def smallcaps_record():
 
 
 @app.get("/evidence/companies")
-def evidence_companies(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
+async def evidence_companies(as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")):
     """Where each S&P 500 member sits in the groups the sixty years of
     evidence were measured on — buybacks, profitability, momentum — and what
-    each group earned against the market. Rebuilt at most hourly."""
-    day = as_of or time.strftime("%Y-%m-%d")
-    key = f"evidence-companies:{day}"
-    cached = _data_cache.get(key)
-    if cached and time.time() - cached[0] < 3600:
-        return cached[1]
-    try:
-        tickers = [c["ticker"] for c in scorecard.cards(day)]
-        out = {"as_of": day, "groups": evidence.group_record(),
-               "companies": evidence.company_groups(day, tickers)}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    _data_cache[key] = (time.time(), out)
-    return out
-
-
-@app.get("/tracker")
-def tracker_record():
-    """The live record: the rule lists written down each month and how they
-    have done since, against SPY and every member. Rebuilt at most hourly."""
-    cached = _data_cache.get("tracker")
-    if cached and time.time() - cached[0] < 3600:
-        return cached[1]
-    out = tracker.record()
-    _data_cache["tracker"] = (time.time(), out)
-    return out
+    each group earned against the market."""
+    return await _companies_data("evidence-companies", as_of)
 
 
 @app.get("/experiments")
@@ -276,16 +315,6 @@ def list_experiments(limit: int = Query(20, ge=1, le=100)):
 
 
 _data_cache: dict[str, tuple[float, dict]] = {}
-
-
-async def _cached(key: str, ttl: float, fetcher: Callable[[], Awaitable[dict]]) -> dict:
-    now = time.time()
-    hit = _data_cache.get(key)
-    if hit and now - hit[0] < ttl:
-        return hit[1]
-    data = await fetcher()
-    _data_cache[key] = (now, data)
-    return data
 
 
 YAHOO_HEADERS = {

@@ -78,7 +78,7 @@ async def _vix_by_day(days: int) -> dict[str, float]:
         import pit_ingest
         try:
             async with httpx.AsyncClient(timeout=30) as client:
-                df = await pit_ingest._yahoo_eod("^VIX", client, years=2)
+                df = await pit_ingest._yahoo_eod("^VIX", client, span="2y")
             pit.write_snapshot("prices_eod", df)
             conn = pit.connect()
             px = pit.prices_asof(conn, datetime.now(timezone.utc).isoformat(), symbols=["^VIX"])

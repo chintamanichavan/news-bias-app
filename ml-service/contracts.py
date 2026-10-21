@@ -45,6 +45,20 @@ _SCHEMAS: dict[str, pa.DataFrameSchema] = {
         ],
         coerce=True,
     ),
+    "corporate_actions": pa.DataFrameSchema(
+        {
+            "symbol": Column(str, Check.str_length(1, 20)),
+            "date": Column("datetime64[ns]"),
+            "kind": Column(str, Check.isin(["split", "dividend"])),
+            "value": Column(float, Check.gt(0)),
+            "source": Column(str),
+        },
+        checks=[
+            Check(lambda df: ~df.duplicated(["symbol", "date", "kind"]).any(),
+                  error="duplicate (symbol, date, kind) rows in one batch"),
+        ],
+        coerce=True,
+    ),
     "macro": pa.DataFrameSchema(
         {
             "series": Column(str),

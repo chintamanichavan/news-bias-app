@@ -13,6 +13,7 @@ selection. Benchmark: equal-weight buy-and-hold of the same universe with
 the same starting costs. Runs are logged to the experiments table.
 """
 
+import asyncio
 import math
 
 import numpy as np
@@ -84,7 +85,7 @@ def _daily_strategy_returns(dates, closes, panel, symbols, window, lo, hi,
 
 
 async def run(days: int = 150) -> dict:
-    panel = alpha.daily_symbol_signals(days)
+    panel = await asyncio.to_thread(alpha.daily_symbol_signals, days)
     covered = sorted(panel, key=lambda s: -len(panel[s]))
     symbols = [s for s in covered if len(panel[s]) >= alpha.MIN_SIGNAL_DAYS][:MAX_SYMBOLS]
     if len(symbols) < 4:

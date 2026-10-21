@@ -51,3 +51,19 @@ def test_missing_workspace_degrades(tmp_path, tmp_db, monkeypatch):
     rep = portfolio.report({})
     assert rep["available"] is False
     assert rep["watchlist"] == [] and rep["decisions"] == []
+
+
+def test_only_wide_moats_enter_the_buy_zone(tmp_path, tmp_db, monkeypatch):
+    """BBB is rated narrow. Under its buy price it still stays out: out of the
+    zone, out of the queue, and last in the watchlist."""
+    monkeypatch.setattr(portfolio, "PF_DIR", _workspace(tmp_path))
+    rep = portfolio.report({"AAA": 120.0, "BBB": 40.0})
+
+    by = {n["ticker"]: n for n in rep["watchlist"]}
+    assert by["AAA"]["moat_ok"] is True and by["BBB"]["moat_ok"] is False
+    assert by["BBB"]["to_buy_zone_pct"] == -20.0      # the distance is still shown
+    assert by["BBB"]["in_buy_zone"] is False
+    assert rep["in_buy_zone"] == []
+    assert [n["ticker"] for n in rep["watchlist"]] == ["AAA", "BBB"]
+    assert [e["ticker"] for e in rep["analysis_queue"]["queue"]] == ["AAA"]
+    assert rep["analysis_queue"]["required_moat"] == "wide"

@@ -15,6 +15,7 @@ timing toy, labeled as such — the point is the harness: data alignment,
 no-lookahead discipline, and honest comparison.
 """
 
+import asyncio
 import math
 
 import httpx
@@ -30,13 +31,15 @@ YAHOO_HEADERS = {
 SIGNAL_WINDOW = 3  # trailing days of news sentiment
 
 
-def _daily_news_sentiment(conn, days: int) -> dict[str, float]:
+def _daily_news_sentiment(days: int) -> dict[str, float]:
     """date -> mean market-scoped sentiment (model + LM blend)."""
+    conn = db.get_conn()
     rows = conn.execute(
         f"""SELECT date(published) AS d, title, body, sentiment_score FROM articles
             WHERE sentiment_score IS NOT NULL
               AND datetime(published) > datetime('now', '-{int(days)} days')""",
     ).fetchall()
+    conn.close()
     by_day: dict[str, list[float]] = {}
     for r in rows:
         topics = set(particle.tag_topics(r["title"] or "", r["body"]))
@@ -91,9 +94,9 @@ def _stats(returns: list[float]) -> dict:
 
 
 async def run(symbol: str = "SPY", days: int = 120) -> dict:
-    conn = db.get_conn()
-    senti = _daily_news_sentiment(conn, days)
-    conn.close()
+    # Off the event loop: it reads the whole corpus, and the server must keep
+    # answering other requests meanwhile.
+    senti = await asyncio.to_thread(_daily_news_sentiment, days)
     closes = await _daily_closes(symbol, days)
     if len(closes) < 10:
         return {"error": "not enough price history"}

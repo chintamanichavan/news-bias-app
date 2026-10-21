@@ -252,6 +252,24 @@
   .skeleton { animation: none; }
 }
 
+/* The loading mark: 24 square frames side by side in one image, shown one at
+   a time. The strip is scaled to the mark's height, so it is 24 marks wide. */
+.artha-loader {
+  --size: 56px;
+  width: var(--size);
+  height: var(--size);
+  background: url('/artha-loader.png') 0 0 / auto 100% no-repeat;
+  animation: artha-loader-flip 1.4s steps(24) infinite;
+}
+
+@keyframes artha-loader-flip {
+  to { background-position: calc(var(--size) * -24) 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .artha-loader { animation: none; }
+}
+
 @keyframes ticker-marquee {
   from { transform: translate3d(0, 0, 0); }
   to   { transform: translate3d(-50%, 0, 0); }

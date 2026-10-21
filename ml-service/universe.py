@@ -267,7 +267,7 @@ def load():
     the whole universe; issuer-name matching is restricted to the largest
     issuers (the SEC file is cap-ordered and rowid preserves it) — matching
     "Stock Yards Bancorp" on the word "Stock" taught us why."""
-    global _tickers, _names, _name_pattern
+    global _tickers, _names, _name_pattern, _symbols_seen
     conn = db.get_conn()
     try:
         rows = conn.execute("SELECT symbol, name FROM securities ORDER BY rowid").fetchall()
@@ -299,6 +299,9 @@ def load():
         _name_pattern = re.compile(r"\b(" + "|".join(alts) + r")\b")
     else:
         _name_pattern = None
+    # A fresh dict, not clear(): a thread that matched against the half-built
+    # registry still holds the old dict, so its answer is thrown away.
+    _symbols_seen = {}
 
 
 # A crypto cashtag means the coin, not whatever equity holds the bare ticker
@@ -312,11 +315,27 @@ def ensure_loaded() -> None:
         load()
 
 
+# Symbols found per text. Headlines are re-scanned by every study and every
+# engine cycle, and the scan runs a 700-name pattern over each one.
+_symbols_seen: dict[str, tuple[str, ...]] = {}
+_SYMBOLS_SEEN_MAX = 200_000
+
+
 def extract_symbols(text: str, max_symbols: int = 6) -> list[str]:
     """Cashtags, registry tickers, and issuer-name mentions in `text`."""
     if not text:
         return []
     ensure_loaded()
+    seen = _symbols_seen
+    found = seen.get(text)
+    if found is None:
+        if len(seen) >= _SYMBOLS_SEEN_MAX:
+            seen.clear()
+        found = seen[text] = _find_symbols(text)
+    return list(found[:max_symbols])
+
+
+def _find_symbols(text: str) -> tuple[str, ...]:
     out: set[str] = set()
     for m in _CASHTAG.finditer(text):
         sym = m.group(1).upper()
@@ -329,7 +348,7 @@ def extract_symbols(text: str, max_symbols: int = 6) -> list[str]:
             sym = _names.get(m.group(1))
             if sym:
                 out.add(sym)
-    return sorted(out)[:max_symbols]
+    return tuple(sorted(out))
 
 
 def lookup(symbol: str) -> dict | None:

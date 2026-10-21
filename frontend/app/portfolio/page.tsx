@@ -5,7 +5,9 @@
 // buy-below levels against live prices, the factor-tilt target allocation,
 // and the ADR decision log. Research workspace, not holdings.
 
+import ArthaLoader from '@/components/ArthaLoader'
 import LoadError from '@/components/LoadError'
+import { LongTermWinners, ResearchList, RuleReplay, TimingTest, type ResearchRow } from '@/components/PortfolioResearch'
 import { useResource } from '@/lib/useResource'
 
 interface Name {
@@ -14,6 +16,7 @@ interface Name {
   sector: string | null
   moat_type: string | null
   moat_strength: string | null
+  moat_ok?: boolean
   status: string | null
   one_liner: string | null
   buy_below: number | null
@@ -39,16 +42,6 @@ interface QueueItem {
   tier?: 'target' | 'minimum' | null
   target_below?: number | null
 }
-interface Screened {
-  ticker: string; price: number; vs_52w_high_pct: number
-  roe_pct: number; rev_cagr_pct: number; fcf: number; dilution_pct: number | null
-  fair_value: number | null; buy_below: number | null
-  to_zone_pct: number | null; in_zone: boolean
-  expected_return_pct: number | null
-  tier: 'target' | 'minimum' | null
-  target_below: number | null
-  growth_pct: number | null; exit_pe: number | null; div_yield_pct: number | null
-}
 interface ReturnRule {
   min_pct: number; target_pct: number; horizon_years: number
   growth_cap_pct: number; exit_pe_cap: number
@@ -63,8 +56,9 @@ interface PortfolioData {
   in_buy_zone: string[]
   analysis_queue: {
     queue: QueueItem[]; in_zone_count: number; target_count?: number
-    rule?: ReturnRule; screened: Screened[]; suspect_count?: number
-    clears_rule_unscreened?: { ticker: string; expected_return_pct: number; tier: string | null }[]
+    rule?: ReturnRule; suspect_count?: number
+    required_moat?: string
+    research: ResearchRow[]; winners: ResearchRow[]
   }
   decisions: { file: string; title: string; status: string | null }[]
 }
@@ -102,7 +96,7 @@ export default function PortfolioPage() {
       )}
 
       {error && !data && <div className="mt-8"><LoadError message={error} onRetry={reload} /></div>}
-      {loading && !data && <div className="mt-8 skeleton h-96 rounded-2xl" />}
+      {loading && !data && <ArthaLoader className="mt-8 h-96" />}
       {data && !data.available && (
         <p className="mt-8 text-sm text-muted-foreground">
           Workspace not found at <code className="text-[12px]">{data.workspace}</code> — set{' '}
@@ -117,7 +111,7 @@ export default function PortfolioPage() {
             <section className="mt-8">
               <div className="flex items-baseline justify-between mb-3">
                 <p className="news-section-label">
-                  Buy-zone queue · {data.analysis_queue.in_zone_count} clear the 15% floor
+                  Buy-zone queue · {data.analysis_queue.required_moat ?? 'wide'} moats only · {data.analysis_queue.in_zone_count} clear the 15% floor
                   {' · '}{data.analysis_queue.target_count ?? 0} at 20%+
                 </p>
                 <span className="text-[11px] text-muted-foreground">
@@ -166,75 +160,25 @@ export default function PortfolioPage() {
                   </a>
                 ))}
               </div>
-              {(data.analysis_queue.clears_rule_unscreened ?? []).length > 0 && (
-                <p className="mt-2 text-[12px] text-muted-foreground leading-relaxed">
-                  <span className="uppercase tracking-wider text-[9.5px] font-semibold mr-1.5">Clear 15% on the numbers, not screened</span>
-                  {data.analysis_queue.clears_rule_unscreened!.map((c, i) => (
-                    <span key={c.ticker}>
-                      {i > 0 && ' · '}
-                      <a className="underline decoration-dotted tabular-nums" href={`/lab?symbol=${encodeURIComponent(c.ticker)}`}>
-                        {c.ticker} {c.expected_return_pct}%
-                      </a>
-                    </span>
-                  ))}
-                  {' '}— failed the quality screen or have no thesis. Research leads only.
-                </p>
-              )}
               {data.in_buy_zone.length > 0 && (
                 <p className="mt-2 text-[12px] text-muted-foreground">
                   Re-read the thesis doc before acting on an in-zone name, per the IPS.
                 </p>
               )}
 
-              {data.analysis_queue.screened.length > 0 && (
-                <div className="mt-5 news-card overflow-x-auto">
-                  <div className="px-4 pt-3 pb-1 flex items-baseline justify-between">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">
-                      Quality screen, ranked by expected return — top 40 of the widened universe
-                    </p>
-                    <span className="text-[10px] text-muted-foreground">no thesis yet · research before any verdict (ADR 0007)</span>
-                  </div>
-                  <table className="w-full text-[13px]">
-                    <thead>
-                      <tr className="text-left text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border">
-                        <th className="px-4 py-2 font-semibold">Ticker</th>
-                        <th className="px-3 py-2 font-semibold text-right">Price</th>
-                        <th className="px-3 py-2 font-semibold text-right">vs 52w high</th>
-                        <th className="px-3 py-2 font-semibold text-right">Expected / yr</th>
-                        <th className="px-3 py-2 font-semibold text-right">15% price</th>
-                        <th className="px-3 py-2 font-semibold text-right">20% price</th>
-                        <th className="px-3 py-2 font-semibold text-right">To 15%</th>
-                        <th className="px-3 py-2 font-semibold text-right">ROE</th>
-                        <th className="px-3 py-2 font-semibold text-right">Rev CAGR</th>
-                        <th className="px-3 py-2 font-semibold text-right">FCF</th>
-                        <th className="px-4 py-2 font-semibold text-right">Share change</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.analysis_queue.screened.map(s => (
-                        <tr key={s.ticker}
-                          className="border-b border-border/50 last:border-0 hover:bg-muted/30 cursor-pointer"
-                          onClick={() => { window.location.href = `/lab?symbol=${encodeURIComponent(s.ticker)}` }}>
-                          <td className="px-4 py-2.5 font-semibold tabular-nums">{s.ticker}</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums">${s.price.toLocaleString()}</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-red-600 dark:text-red-400">{s.vs_52w_high_pct}%</td>
-                          <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${s.in_zone ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
-                            {s.expected_return_pct != null ? `${s.expected_return_pct}%` : '—'}
-                          </td>
-                          <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{s.buy_below != null ? `$${s.buy_below.toLocaleString()}` : '—'}</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{s.target_below != null ? `$${s.target_below.toLocaleString()}` : '—'}</td>
-                          <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${s.in_zone ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
-                            {s.in_zone ? (s.tier === 'target' ? '20%+' : '15%+') : s.to_zone_pct != null ? `+${s.to_zone_pct}%` : '—'}
-                          </td>
-                          <td className="px-3 py-2.5 text-right tabular-nums">{s.roe_pct}%</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums">{s.rev_cagr_pct}%</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums">{Math.abs(s.fcf) >= 1e9 ? `$${(s.fcf / 1e9).toFixed(1)}B` : `$${(s.fcf / 1e6).toFixed(0)}M`}</td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{s.dilution_pct != null ? `${s.dilution_pct > 0 ? '+' : ''}${s.dilution_pct}%` : '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <p className="px-4 py-2 text-[10.5px] text-muted-foreground">
+            </section>
+          )}
+
+          <RuleReplay />
+          <TimingTest />
+
+          {data.analysis_queue && (
+            <>
+              <ResearchList
+                rows={data.analysis_queue.research}
+                floorPct={data.analysis_queue.rule?.min_pct ?? 15}
+                requiredMoat={data.analysis_queue.required_moat ?? 'wide'}
+                footnote={<>
                     Screen: ROE &gt; 15%, positive FCF, revenue CAGR &gt; 5%, share count not inflating — from as-filed
                     fundamentals. Expected return: latest annual EPS grown for {data.analysis_queue.rule?.horizon_years ?? 5} years
                     at the slower of its revenue and EPS record (capped at {data.analysis_queue.rule?.growth_cap_pct ?? 15}%), sold
@@ -243,10 +187,9 @@ export default function PortfolioPage() {
                     from the past record, not a forecast{(data.analysis_queue.suspect_count ?? 0) > 0
                       ? ` — ${data.analysis_queue.suspect_count} names with estimates above 60% a year were set aside as likely data faults.`
                       : '.'}
-                  </p>
-                </div>
-              )}
-            </section>
+                </>} />
+              <LongTermWinners rows={data.analysis_queue.winners} floorPct={data.analysis_queue.rule?.min_pct ?? 15} />
+            </>
           )}
           {/* Watchlist — the discretionary alpha sleeve */}
           <section className="mt-10">
@@ -254,6 +197,8 @@ export default function PortfolioPage() {
               <p className="news-section-label">Quality-business watchlist</p>
               <span className="text-[11px] text-muted-foreground tabular-nums">
                 {data.watchlist.length} names · sorted by distance to buy zone
+                {data.watchlist.some(n => n.moat_ok === false) &&
+                  ` · ${data.watchlist.filter(n => n.moat_ok === false).length} greyed out: moat not ${data.analysis_queue?.required_moat ?? 'wide'}`}
               </span>
             </div>
             <div className="news-card overflow-x-auto">
@@ -272,9 +217,12 @@ export default function PortfolioPage() {
                 <tbody>
                   {data.watchlist.map(n => (
                     <tr key={n.ticker}
-                      className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                      className={`border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors cursor-pointer ${
+                        n.moat_ok === false ? 'opacity-45' : ''}`}
                       onClick={() => { window.location.href = `/lab?symbol=${encodeURIComponent(n.ticker)}` }}
-                      title={`Open ${n.ticker} in the Research Lab`}>
+                      title={n.moat_ok === false
+                        ? `${n.ticker}: moat is ${n.moat_strength ?? 'not rated'}, so it cannot enter the buy zone`
+                        : `Open ${n.ticker} in the Research Lab`}>
                       <td className="px-4 py-3">
                         <div className="font-semibold tabular-nums">{n.ticker}
                           <span className="ml-2 font-normal text-muted-foreground">{n.name}</span>
@@ -295,7 +243,8 @@ export default function PortfolioPage() {
                       </td>
                       <td className={`px-3 py-3 text-right tabular-nums font-semibold ${
                         n.in_buy_zone ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
-                        {n.to_buy_zone_pct != null ? (n.in_buy_zone ? 'IN ZONE' : `+${n.to_buy_zone_pct}%`) : '—'}
+                        {n.moat_ok === false ? 'OUTSIDE RULE'
+                          : n.to_buy_zone_pct != null ? (n.in_buy_zone ? 'IN ZONE' : `+${n.to_buy_zone_pct}%`) : '—'}
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums">
                         {n.upside_pct != null ? `${n.upside_pct > 0 ? '+' : ''}${n.upside_pct}%` : '—'}

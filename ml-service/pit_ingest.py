@@ -80,18 +80,57 @@ def parse_stooq_csv(symbol: str, text: str) -> pd.DataFrame:
     return df[["symbol", "date", "open", "high", "low", "close", "volume", "source"]]
 
 
-async def _yahoo_eod(sym: str, client: httpx.AsyncClient, years: int = 10,
+# Full pulls reach back this far. Every full pull must use the same start:
+# Yahoo re-bases the whole series after a split, and a shorter pull would
+# leave the older rows in the old share units.
+HISTORY_START = "2005-01-01"
+
+
+async def _yahoo_chart(sym: str, client: httpx.AsyncClient, span: str | None,
+                       start: str = HISTORY_START) -> dict:
+    """One symbol's daily chart: a short `span` like "1mo", or the full
+    history from `start` with splits and dividends when span is None. Only an
+    index, which never splits, may use a `start` of its own."""
+    if span:
+        params = {"range": span, "interval": "1d"}
+    else:
+        params = {"period1": int(pd.Timestamp(start, tz="UTC").timestamp()),
+                  "period2": 9999999999, "interval": "1d", "events": "div,splits"}
+    r = await client.get(
+        f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
+        params=params,
+        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+    )
+    r.raise_for_status()
+    return r.json()["chart"]["result"][0]
+
+
+def parse_actions(sym: str, res: dict) -> pd.DataFrame:
+    """Splits and dividends from a full chart response."""
+    events = res.get("events") or {}
+    rows = []
+    for s in (events.get("splits") or {}).values():
+        if s.get("numerator") and s.get("denominator"):
+            rows.append((s["date"], "split", s["numerator"] / s["denominator"]))
+    for d in (events.get("dividends") or {}).values():
+        if d.get("amount") and d["amount"] > 0:
+            rows.append((d["date"], "dividend", d["amount"]))
+    df = pd.DataFrame(rows, columns=["date", "kind", "value"])
+    df["date"] = pd.to_datetime(df["date"], unit="s", utc=True).dt.tz_convert(None).dt.normalize()
+    df["symbol"] = sym
+    df["source"] = "yahoo"
+    return df.drop_duplicates(["symbol", "date", "kind"])[["symbol", "date", "kind", "value", "source"]]
+
+
+async def _yahoo_eod(sym: str, client: httpx.AsyncClient,
                      span: str | None = None) -> pd.DataFrame:
     """Fallback provider. Provenance is recorded in the source column; the
     PIT discipline (immutable snapshots, contracts, as-of reads) holds
     regardless of which provider filled a row."""
-    r = await client.get(
-        f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
-        params={"range": span or f"{years}y", "interval": "1d"},
-        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
-    )
-    r.raise_for_status()
-    res = r.json()["chart"]["result"][0]
+    return parse_eod(sym, await _yahoo_chart(sym, client, span))
+
+
+def parse_eod(sym: str, res: dict) -> pd.DataFrame:
     q = res["indicators"]["quote"][0]
     df = pd.DataFrame({
         "date": pd.to_datetime(res["timestamp"], unit="s", utc=True).tz_convert(None).normalize(),
@@ -305,12 +344,14 @@ async def ingest_gdelt(client: httpx.AsyncClient) -> int:
 async def ingest_wide_prices(symbols: list[str], client: httpx.AsyncClient,
                              full: bool) -> int:
     """Keep the widened long-term universe fresh. A month of bars is enough
-    on most nights; `full` re-pulls the decade so a split's back-adjustment
-    reaches the stored history."""
+    on most nights; `full` re-pulls the whole history, with splits and
+    dividends, so a split's back-adjustment reaches every stored row."""
+    if full:
+        return await ingest_history(symbols, client)
     frames = []
     for sym in symbols:
         try:
-            frames.append(await _yahoo_eod(sym, client, span=None if full else "1mo"))
+            frames.append(await _yahoo_eod(sym, client, span="1mo"))
         except Exception as e:
             print(f"[pit] wide prices {sym} skipped: {e!r}")
         await asyncio.sleep(0.12)
@@ -320,6 +361,45 @@ async def ingest_wide_prices(symbols: list[str], client: httpx.AsyncClient,
     pit.write_snapshot("prices_eod", batch)
     print(f"[pit] wide prices: {len(batch)} rows across {len(frames)} symbols")
     return len(batch)
+
+
+async def ingest_history(symbols: list[str], client: httpx.AsyncClient,
+                         chunk: int = 150, done: set[str] | None = None) -> int:
+    """Full price history plus splits and dividends, one snapshot per chunk.
+    Symbols are added to `done` as their chunk lands, so a caller can stop
+    and resume."""
+    total = 0
+    for i in range(0, len(symbols), chunk):
+        part = symbols[i:i + chunk]
+        prices, actions = [], []
+        for sym in part:
+            for attempt in range(3):
+                try:
+                    res = await _yahoo_chart(sym, client, span=None)
+                    prices.append(parse_eod(sym, res))
+                    actions.append(parse_actions(sym, res))
+                    break
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code == 429 and attempt < 2:
+                        await asyncio.sleep(20 * (attempt + 1))
+                        continue
+                    print(f"[pit] history {sym} skipped: {e!r}")
+                    break
+                except Exception as e:
+                    print(f"[pit] history {sym} skipped: {e!r}")
+                    break
+            await asyncio.sleep(0.12)
+        if prices:
+            batch = pd.concat(prices, ignore_index=True)
+            pit.write_snapshot("prices_eod", batch)
+            total += len(batch)
+        found = [a for a in actions if len(a)]
+        if found:
+            pit.write_snapshot("corporate_actions", pd.concat(found, ignore_index=True))
+        if done is not None:
+            done.update(part)
+        print(f"[pit] history: {min(i + chunk, len(symbols))}/{len(symbols)} symbols", flush=True)
+    return total
 
 
 EDGAR_PER_RUN = 150
@@ -351,9 +431,42 @@ async def run(symbols: list[str] | None = None) -> dict:
     return out
 
 
+HISTORY_DONE = pit.PIT_ROOT.parent / "history_done.json"
+
+
+async def backfill_history(minutes: float) -> dict:
+    """Pull the full history for every priced symbol, for at most `minutes`.
+    Run it again to carry on where it stopped."""
+    try:
+        done = set(json.loads(HISTORY_DONE.read_text()))
+    except (OSError, ValueError):
+        done = set()
+    conn = pit.connect()
+    priced = [r[0] for r in conn.execute(
+        "SELECT DISTINCT symbol FROM prices_eod ORDER BY 1").fetchall()]
+    todo = [s for s in priced if s not in done]
+    deadline = datetime.now(timezone.utc).timestamp() + minutes * 60
+    rows = 0
+    async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
+        for i in range(0, len(todo), 100):
+            if datetime.now(timezone.utc).timestamp() > deadline:
+                break
+            rows += await ingest_history(todo[i:i + 100], client, chunk=100, done=done)
+            HISTORY_DONE.write_text(json.dumps(sorted(done)))
+    out = {"priced": len(priced), "done": len(done), "left": len(priced) - len(done),
+           "new_price_rows": rows}
+    print(json.dumps(out), flush=True)
+    return out
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--symbols", help="comma-separated override")
+    ap.add_argument("--history", type=float, metavar="MINUTES",
+                    help="backfill full price history, splits and dividends for this long")
     args = ap.parse_args()
-    syms = args.symbols.split(",") if args.symbols else None
-    asyncio.run(run(syms))
+    if args.history:
+        asyncio.run(backfill_history(args.history))
+    else:
+        syms = args.symbols.split(",") if args.symbols else None
+        asyncio.run(run(syms))

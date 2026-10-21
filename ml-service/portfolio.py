@@ -15,10 +15,17 @@ from pathlib import Path
 
 import yaml
 
+import screen
 import valuation
 
 PF_DIR = Path(os.environ.get("PORTFOLIO_RESEARCH_DIR",
                              os.path.expanduser("~/code/portfolio-research")))
+
+
+# Only a business whose moat the watchlist rates this strong may enter the buy
+# zone or the analysis queue. A moat is a judgment written down by hand, so a
+# name with no rating is simply not eligible yet.
+REQUIRED_MOAT = "wide"
 
 
 def _num(v: str) -> float | None:
@@ -105,16 +112,18 @@ def report(quotes: dict[str, float]) -> dict:
     names = []
     for w in watchlist():
         price = quotes.get(w["ticker"])
-        entry = {**w, "price": price}
+        entry = {**w, "price": price,
+                 "moat_ok": w["moat_strength"] == REQUIRED_MOAT}
         if price is not None and w["buy_below"]:
             entry["to_buy_zone_pct"] = round((price / w["buy_below"] - 1) * 100, 1)
-            entry["in_buy_zone"] = price <= w["buy_below"]
+            entry["in_buy_zone"] = entry["moat_ok"] and price <= w["buy_below"]
         if price is not None and w["intrinsic_value"]:
             entry["upside_pct"] = round((w["intrinsic_value"] / price - 1) * 100, 1)
         names.append(entry)
 
-    # Nearest to their buy zones first — that's what a check-in wants to see
-    names.sort(key=lambda n: n.get("to_buy_zone_pct", 1e9))
+    # Nearest to their buy zones first — that's what a check-in wants to see.
+    # Names outside the moat rule go last: they cannot be acted on.
+    names.sort(key=lambda n: (not n["moat_ok"], n.get("to_buy_zone_pct", 1e9)))
 
     return {
         "workspace": str(PF_DIR),
@@ -130,14 +139,34 @@ def report(quotes: dict[str, float]) -> dict:
 
 # ── The analysis queue: never fewer than five things worth studying ─────────
 
-_screen_cache: dict = {"at": 0.0, "rows": [], "valuations": {}}
+_VALUATION_FIELDS = tuple(screen.NO_VALUATION)
+_screen_cache: dict = {"at": 0.0, "everyone": []}
+
+
+def screened() -> list[dict]:
+    """Today's screen of every company on record (screen.run), ranked by
+    expected return. Kept for an hour; the service refreshes it in the
+    background before then, so no page load pays for it."""
+    import time as _t
+    if _t.time() - _screen_cache["at"] >= 3600 or not _screen_cache["everyone"]:
+        refresh_screen()
+    return _screen_cache["everyone"]
+
+
+def refresh_screen() -> None:
+    """Run the screen now. It takes about 10 s over the wide universe."""
+    import time as _t
+    try:
+        _screen_cache.update(at=_t.time(), everyone=screen.run())
+    except Exception as e:
+        print(f"[portfolio] screen unavailable: {e!r}")
 
 
 def valuations() -> dict[str, dict]:
     """ticker -> return-rule valuation for every filer with enough record,
-    quality screen or not. Shares the screen's hourly cache."""
-    screen_candidates(exclude=set(), limit=1)
-    return _screen_cache["valuations"]
+    quality screen or not."""
+    return {r["ticker"]: {k: r[k] for k in _VALUATION_FIELDS}
+            for r in screened() if r["valued"]}
 
 
 def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
@@ -145,156 +174,18 @@ def screen_candidates(exclude: set[str], limit: int = 8) -> list[dict]:
     FCF, revenue growing, shares not inflating — ranked by expected yearly
     return under the return rule (valuation.py). These carry NO thesis:
     candidates for research, never for a verdict (ADR 0007)."""
-    import time as _t
-    if _t.time() - _screen_cache["at"] < 3600 and _screen_cache["rows"]:
-        return [r for r in _screen_cache["rows"] if r["ticker"] not in exclude][:limit]
+    return [r for r in screened() if r["quality"] and r["ticker"] not in exclude][:limit]
 
-    import pandas as pd
-    import pit
-    from datetime import datetime, timezone
-    try:
-        conn = pit.connect()
-        now = datetime.now(timezone.utc).isoformat()
-        f = pit.fundamentals_asof(conn, now)
-        symbols = sorted(f["symbol"].dropna().unique())
-        px = pit.prices_asof(conn, now, symbols=list(symbols))
-    except Exception as e:
-        print(f"[portfolio] screen unavailable: {e!r}")
-        return []
-    if f.empty or px.empty:
-        return []
 
-    flows = f[f["period_start"].notna()].copy()
-    flows["dur"] = (flows["period_end"] - flows["period_start"]).dt.days
-    annual = flows[(flows["dur"] >= 300) & (flows["dur"] <= 400)]
+WINNERS_SHOWN = 50
 
-    # split once per table: filtering the whole frame per symbol does not
-    # survive a universe of thousands
-    annual_by = dict(tuple(annual.groupby("symbol")))
-    facts_by = dict(tuple(f.groupby("symbol")))
-    px_by = dict(tuple(px.groupby("symbol")))
+_RESEARCH_FIELDS = ("ticker", "price", "expected_return_pct", "tier", "buy_below",
+                    "target_below", "growth_pct", "exit_pe", "vs_52w_high_pct",
+                    "ten_year_return_pct", "roe_pct", "rev_cagr_pct", "quality")
 
-    out = []
-    vals: dict[str, dict] = {}
-    for sym in symbols:
-        fa = annual_by.get(sym)
-        fi = facts_by.get(sym)
-        if fa is None or fa.empty or sym not in px_by:
-            continue
 
-        def latest(tags, frame):
-            sub = frame[frame["tag"].isin(tags)].sort_values("period_end")
-            return float(sub["value"].iloc[-1]) if len(sub) else None
-
-        def series(tags, unit=None):
-            sub = fa[fa["tag"].isin(tags)]
-            if unit:
-                sub = sub[sub["unit"] == unit]
-            sub = sub.sort_values("period_end")
-            return [(pd.Timestamp(r.period_end).year, float(r.value)) for r in sub.itertuples()]
-
-        ni = latest(["NetIncomeLoss"], fa)
-        eq = latest(["StockholdersEquity"], fi)
-        ocf = latest(["NetCashProvidedByUsedInOperatingActivities"], fa)
-        capex = latest(["PaymentsToAcquirePropertyPlantAndEquipment"], fa) or 0.0
-        rev = series(["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax"])
-        shares = series(["WeightedAverageNumberOfDilutedSharesOutstanding"])
-
-        roe = ni / eq * 100 if ni is not None and eq else None
-        fcf = ocf - capex if ocf is not None else None
-        rev_cagr = None
-        if len(rev) >= 4 and rev[0][1] > 0 and rev[-1][1] > 0:
-            yrs = max(1, rev[-1][0] - rev[0][0])
-            rev_cagr = ((rev[-1][1] / rev[0][1]) ** (1 / yrs) - 1) * 100
-        dilution = None
-        if len(shares) >= 3 and shares[0][1]:
-            dilution = (shares[-1][1] / shares[0][1] - 1) * 100
-
-        p = px_by[sym].sort_values("date").reset_index(drop=True)
-        last = float(p["close"].iloc[-1])
-        hi52 = float(p["close"].tail(252).max())
-        discount = (last / hi52 - 1) * 100
-
-        # The return rule: what does today's price imply per year, on the
-        # company's own record? Growth is the slower of revenue and EPS,
-        # the exit multiple its own decade-median P/E — both capped.
-        # Dollar earnings only: an ADR that files in yen or yuan cannot be
-        # set against its dollar price.
-        eps_series = series(["EarningsPerShareDiluted"], unit="USD/shares")
-        val = None
-        this_year = datetime.now(timezone.utc).year
-        eps_base = valuation.base_eps([e for _, e in eps_series])
-        if (len(eps_series) >= 5 and eps_base
-                and eps_series[-1][0] >= this_year - valuation.MAX_EPS_AGE_YEARS):
-            pe_hist = []
-            pdates = p["date"]
-            for fy, eps in eps_series:
-                if eps and eps > 0:
-                    at = p[pdates.dt.year == fy]
-                    if len(at):
-                        pe_hist.append(float(at["close"].iloc[-1]) / eps)
-            if len(pe_hist) >= 5:
-                pe_hist.sort()
-                median_pe = pe_hist[len(pe_hist) // 2]
-                eps_now = eps_base
-                eps_cagr = valuation.cagr(eps_series[0][1], eps_series[-1][1],
-                                          eps_series[-1][0] - eps_series[0][0])
-                rev_recent = (valuation.cagr(rev[-4][1], rev[-1][1], rev[-1][0] - rev[-4][0])
-                              if len(rev) >= 4 else None)
-                growth = valuation.conservative_growth(
-                    rev_cagr / 100 if rev_cagr is not None else None, rev_recent, eps_cagr)
-                # dividends: the lowest of the last three years, so a special
-                # payout is not counted as if it came every year
-                declared = series(["CommonStockDividendsPerShareDeclared"], unit="USD/shares")
-                if declared and declared[-1][0] >= eps_series[-1][0] - 1:
-                    dps = min(d for _, d in declared[-3:])
-                else:
-                    paid = series(["PaymentsOfDividendsCommonStock", "PaymentsOfDividends"])
-                    per_share = (min(d for _, d in paid[-3:]) / shares[-1][1]
-                                 if paid and shares and shares[-1][1]
-                                 and paid[-1][0] >= eps_series[-1][0] - 1 else 0.0)
-                    dps = max(0.0, per_share)
-                ret = valuation.expected_return(last, eps_now, growth, median_pe, dps)
-                floor_px = valuation.price_for_return(
-                    valuation.MIN_RETURN, eps_now, growth, median_pe, dps)
-                target_px = valuation.price_for_return(
-                    valuation.TARGET_RETURN, eps_now, growth, median_pe, dps)
-                val = {
-                    "expected_return_pct": round(ret * 100, 1) if ret is not None else None,
-                    "tier": valuation.tier(ret),
-                    "buy_below": round(floor_px, 2) if floor_px else None,
-                    "target_below": round(target_px, 2) if target_px else None,
-                    "fair_value": round(median_pe * eps_now, 2),
-                    "growth_pct": round(growth * 100, 1),
-                    "exit_pe": round(min(median_pe, valuation.EXIT_PE_CAP), 1),
-                    "div_yield_pct": round(dps / last * 100, 2) if last else 0.0,
-                    "to_zone_pct": round((last / floor_px - 1) * 100, 1) if floor_px else None,
-                    "in_zone": valuation.tier(ret) is not None,
-                    "suspect": ret is not None and ret > valuation.MAX_CREDIBLE,
-                }
-                vals[sym] = val
-
-        if (roe is not None and roe > 15 and fcf is not None and fcf > 0
-                and rev_cagr is not None and rev_cagr > 5
-                and (dilution is None or dilution <= 5)):
-            out.append({
-                "ticker": sym, "price": round(last, 2),
-                "vs_52w_high_pct": round(discount, 1),
-                "roe_pct": round(roe, 1), "rev_cagr_pct": round(rev_cagr, 1),
-                "fcf": round(fcf, 0),
-                "dilution_pct": round(dilution, 1) if dilution is not None else None,
-                **(val or {"expected_return_pct": None, "tier": None,
-                           "buy_below": None, "target_below": None,
-                           "fair_value": None, "growth_pct": None,
-                           "exit_pe": None, "div_yield_pct": None,
-                           "to_zone_pct": None, "in_zone": False, "suspect": False}),
-            })
-
-    # highest expected return first; names with no estimate last
-    out.sort(key=lambda r: -(r["expected_return_pct"]
-                             if r["expected_return_pct"] is not None else -1e9))
-    _screen_cache.update(at=_t.time(), rows=out, valuations=vals)
-    return [r for r in out if r["ticker"] not in exclude][:limit]
+def _research_row(r: dict, moats: dict[str, str | None]) -> dict:
+    return {**{k: r[k] for k in _RESEARCH_FIELDS}, "moat": moats.get(r["ticker"])}
 
 
 def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
@@ -303,14 +194,22 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
     under their thesis price AND clear the floor; quality-screen names need
     only clear the floor. Topped up with the nearest names until at least
     `min_size` sit in the row. Distances are always shown; a fifth name is
-    never manufactured by loosening the bar."""
+    never manufactured by loosening the bar.
+
+    Only names the watchlist rates REQUIRED_MOAT are eligible. Everything
+    else that clears the floor is returned apart as `research`, and the best
+    ten-year records as `winners`: things to study, not a queue."""
     watchlist_tickers = {n["ticker"] for n in names}
+    moats = {n["ticker"]: n.get("moat_strength") for n in names}
+    eligible = {n["ticker"] for n in names if n.get("moat_ok")}
     quality = screen_candidates(exclude=set(), limit=400)
     vals = valuations()
 
     entries: dict[str, dict] = {}
     for n in names:
         if n.get("to_buy_zone_pct") is None:
+            continue
+        if n["ticker"] not in eligible:
             continue
         v = vals.get(n["ticker"])
         ret = v["expected_return_pct"] if v else None
@@ -333,6 +232,8 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
         }
     for q in quality:
         if q.get("to_zone_pct") is None or q.get("suspect"):
+            continue
+        if q["ticker"] not in eligible:
             continue
         prev = entries.get(q["ticker"])
         cand = {
@@ -404,19 +305,16 @@ def analysis_queue(names: list[dict], min_size: int = 5) -> dict:
         "queue": queue,
         "in_zone_count": len(in_zone),
         "target_count": len([e for e in in_zone if e.get("tier") == "target"]),
-        # clears the return floor on the numbers but did NOT pass the quality
-        # screen and has no thesis — leads to research, nothing more
-        "clears_rule_unscreened": sorted(
-            ({"ticker": s, "expected_return_pct": v["expected_return_pct"], "tier": v["tier"]}
-             for s, v in vals.items()
-             if v["in_zone"] and s not in entries),
-            key=lambda r: -r["expected_return_pct"])[:8],
         "rule": {"min_pct": valuation.MIN_RETURN * 100,
                  "target_pct": valuation.TARGET_RETURN * 100,
                  "horizon_years": valuation.HORIZON,
                  "growth_cap_pct": valuation.GROWTH_CAP * 100,
                  "exit_pe_cap": valuation.EXIT_PE_CAP},
-        "screened": [q for q in quality if q["expected_return_pct"] is not None
-                     and not q["suspect"]][:40],
+        "required_moat": REQUIRED_MOAT,
+        "research": [_research_row(r, moats) for r in screened()
+                     if r["in_zone"] and not r["suspect"]],
+        "winners": [_research_row(r, moats) for r in sorted(
+            (r for r in screened() if r["ten_year_return_pct"] is not None),
+            key=lambda r: -r["ten_year_return_pct"])[:WINNERS_SHOWN]],
         "suspect_count": len([1 for v in vals.values() if v["suspect"]]),
     }
